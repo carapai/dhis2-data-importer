@@ -8,6 +8,9 @@ import {Tab, Tabs} from '@dhis2/d2-ui-core';
 import Badge from '@material-ui/core/Badge';
 import {withStyles} from "@material-ui/core/styles";
 
+import Typography from '@material-ui/core/Typography';
+
+
 
 import {inject, observer} from "mobx-react";
 
@@ -48,9 +51,10 @@ class Step5 extends React.Component {
         } = program.processed;
         return (
             <div>
+                
                 <Tabs>
                     <Tab label={<Badge className={classes.padding} color="secondary"
-                                       badgeContent={newTrackedEntityInstances.length}>New Entities</Badge>}>
+                                       badgeContent={newTrackedEntityInstances.length}>New Enrollments</Badge>}>
                         <Table>
                             <TableHead>
                                 <TableRow>

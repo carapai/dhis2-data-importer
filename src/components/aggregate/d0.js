@@ -23,7 +23,7 @@ class D0 extends React.Component {
             <Table
                 columns={['aggregateId', 'name']}
                 rows={this.integrationStore.aggregates}
-                contextMenuActions={this.integrationStore.tableActions}
+                contextMenuActions={this.integrationStore.tableAggActions}
                 primaryAction={this.integrationStore.useSavedAggregate}
             />
         </div>

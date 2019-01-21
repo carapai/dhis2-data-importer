@@ -11,6 +11,8 @@ import red from '@material-ui/core/colors/red';
 import Icon from '@material-ui/core/Icon';
 import {inject, observer} from "mobx-react";
 import {InputField} from "@dhis2/d2-ui-core";
+import FormGroup from '@material-ui/core/FormGroup';
+
 
 
 const styles = theme => ({
@@ -251,32 +253,61 @@ class Step2 extends React.Component {
                         Events
                     </td>
                     <td valign="top" colSpan="2">
-                        Enrollments
+                        Enrollments & Entities
                     </td>
                 </tr>
 
                 <tr>
                     <td valign="top">
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    disabled={!program.isTracker}
-                                    checked={program.createNewEvents}
-                                    onChange={program.handleCreateNewEventsCheck}
-                                />}
-                            label="Create new event if not found"
-                        />
+                        <FormGroup row>
+                            <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        checked={program.updateEvents}
+                                        onChange={program.handleUpdateEventsCheck}
+                                    />}
+                                label="Update events"
+                            />
+                             <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        checked={program.createNewEvents}
+                                        onChange={program.handleCreateNewEventsCheck}
+                                    />}
+                                label="Create new events"
+                            />
+                        </FormGroup>
                     </td>
                     <td valign="top" colSpan="2">
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    disabled={!program.isTracker}
-                                    checked={program.createNewEnrollments}
-                                    onChange={program.handleCreateNewEnrollmentsCheck}
-                                />}
-                            label="Create new enrollment if not found"
-                        />
+                        <FormGroup row>
+                            <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        disabled={!program.isTracker}
+                                        checked={program.createEntities}
+                                        onChange={program.handleCreateEntitiesCheck}
+                                    />}
+                                label="Create new entities"
+                            />
+                            <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        disabled={!program.isTracker}
+                                        checked={program.updateEntities}
+                                        onChange={program.handleUpdateEntitiesCheck}
+                                    />}
+                                label="Update entities"
+                            />
+                            <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        disabled={!program.isTracker}
+                                        checked={program.createNewEnrollments}
+                                        onChange={program.handleCreateNewEnrollmentsCheck}
+                                    />}
+                                label="Create new enrollments"
+                            />
+                        </FormGroup>
                     </td>
                 </tr>
                 <tr>

@@ -56,7 +56,6 @@ class Program extends React.Component {
         const {d2, IntegrationStore} = props;
         this.integrationStore = IntegrationStore;
         this.integrationStore.setD2(d2);
-
     }
 
     getStepContent = step => {
@@ -83,9 +82,7 @@ class Program extends React.Component {
     render() {
         const {classes, baseUrl} = this.props;
         let finish = '';
-        if (this.integrationStore.program &&
-            (this.integrationStore.program.percentage === 0 ||
-                this.integrationStore.program.percentage === 100)) {
+        if (this.integrationStore.program && !this.integrationStore.program.displayProgress) {
             finish = <Button
                 variant="contained"
                 color={this.integrationStore.finishLabel === 'Finish' ? 'primary' : 'secondary'}
@@ -100,89 +97,88 @@ class Program extends React.Component {
                 {/*<Fullscreen
                     enabled={this.integrationStore.isFull}
                     onChange={isFull => this.integrationStore.setFull(isFull)}>*/}
-                    <Card>
-                        <CardContent>
-                            <Stepper alternativeLabel activeStep={this.integrationStore.activeStep}>
-                                {this.integrationStore.steps.map((label, index) => {
-                                    const props = {};
-                                    const buttonProps = {};
+                <Card>
+                    <CardContent>
+                        <Stepper alternativeLabel activeStep={this.integrationStore.activeStep}>
+                            {this.integrationStore.steps.map((label, index) => {
+                                const props = {};
+                                const buttonProps = {};
 
-                                    return (
-                                        <Step key={label} {...props}>
-                                            <StepButton
-                                                onClick={this.integrationStore.handleStep(index)}
-                                                completed={this.integrationStore.isStepComplete(index)}
-                                                {...buttonProps}
-                                            >
-                                                {label}
-                                            </StepButton>
-                                        </Step>
-                                    );
-                                })}
-                            </Stepper>
-                            <div>
-                                {this.integrationStore.allStepsCompleted() ? (
+                                return (
+                                    <Step key={label} {...props}>
+                                        <StepButton
+                                            onClick={this.integrationStore.handleStep(index)}
+                                            completed={this.integrationStore.isStepComplete(index)}
+                                            {...buttonProps}
+                                        >
+                                            {label}
+                                        </StepButton>
+                                    </Step>
+                                );
+                            })}
+                        </Stepper>
+                        <div>
+                            {this.integrationStore.allStepsCompleted() ? (
+                                <div>
+                                    <Typography className={classes.instructions}>
+                                        All steps completed - you&quot;re finished
+                                    </Typography>
+                                    <Button onClick={this.handleReset}>Reset</Button>
+                                </div>
+                            ) : (
+                                <div>
+                                    <div
+                                        className={classes.instructions}>{this.getStepContent(this.integrationStore.activeStep)}</div>
+
+                                    <table width="100%">
+                                        <tbody>
+                                        <tr>
+                                            <td width="33%" align="left">
+                                                <Button
+                                                    disabled={this.integrationStore.activeStep === 0}
+                                                    onClick={this.integrationStore.handleBack}
+                                                    variant="contained"
+                                                    color="secondary"
+                                                    className={this.integrationStore.activeStep === 0 || this.integrationStore.activeStep === 6 ? classes.hidden : classes.button}
+                                                >
+                                                    Back
+                                                </Button>
+                                            </td>
+                                            <td width="34%" valign="top" align="center">
+                                                <Button
+                                                    disabled={this.integrationStore.activeStep === 0}
+                                                    onClick={this.integrationStore.saveMapping}
+                                                    variant="contained"
+                                                    color="default"
+                                                    className={this.integrationStore.activeStep < 2 ? classes.hidden : classes.button}
+                                                >
+                                                    Save
+                                                </Button>
+                                            </td>
+                                            <td width="33%" valign="top" align="right">
+                                                <Button
+                                                    disabled={this.integrationStore.disableNext}
+                                                    variant="contained"
+                                                    color="primary"
+                                                    onClick={this.integrationStore.handleNext}
+                                                    className={this.integrationStore.activeStep === 1 || this.integrationStore.activeStep === 6 ? classes.hidden : classes.button}
+                                                >
+                                                    {this.integrationStore.nextLabel}
+                                                </Button>
+
+                                                {finish}
+                                            </td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
                                     <div>
-                                        <Typography className={classes.instructions}>
-                                            All steps completed - you&quot;re finished
-                                        </Typography>
-                                        <Button onClick={this.handleReset}>Reset</Button>
+
                                     </div>
-                                ) : (
-                                    <div>
-                                        <div
-                                            className={classes.instructions}>{this.getStepContent(this.integrationStore.activeStep)}</div>
-
-                                        <table width="100%">
-                                            <tbody>
-                                            <tr>
-                                                <td width="33%" align="left">
-                                                    <Button
-                                                        disabled={this.integrationStore.activeStep === 0}
-                                                        onClick={this.integrationStore.handleBack}
-                                                        variant="contained"
-                                                        color="secondary"
-                                                        className={this.integrationStore.activeStep === 0 || this.integrationStore.activeStep === 6 ? classes.hidden : classes.button}
-                                                    >
-                                                        Back
-                                                    </Button>
-                                                </td>
-                                                <td width="34%" valign="top" align="center">
-                                                    <Button
-                                                        disabled={this.integrationStore.activeStep === 0}
-                                                        onClick={this.integrationStore.saveMapping}
-                                                        variant="contained"
-                                                        color="default"
-                                                        className={this.integrationStore.activeStep < 2 ? classes.hidden : classes.button}
-                                                    >
-                                                        Save
-                                                    </Button>
-                                                </td>
-                                                <td width="33%" valign="top" align="right">
-                                                    <Button
-                                                        disabled={this.integrationStore.disableNext}
-                                                        variant="contained"
-                                                        color="primary"
-                                                        onClick={this.integrationStore.handleNext}
-                                                        className={this.integrationStore.activeStep === 1 || this.integrationStore.activeStep === 6 ? classes.hidden : classes.button}
-                                                    >
-                                                        {this.integrationStore.nextLabel}
-                                                    </Button>
-
-                                                    {finish}
-                                                </td>
-                                            </tr>
-                                            </tbody>
-                                        </table>
-                                        <div>
-
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-               {/* </Fullscreen>*/}
+                                </div>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
         );
     }

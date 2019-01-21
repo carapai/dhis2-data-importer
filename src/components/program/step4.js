@@ -50,6 +50,9 @@ class Step4 extends React.Component {
         super(props);
         const {IntegrationStore} = props;
         this.integrationStore = IntegrationStore;
+    }
+
+    componentDidMount() {
         if (this.integrationStore.program.isTracker && this.integrationStore.program.fetchingEntities === 0) {
             this.integrationStore.program.searchTrackedEntities();
         }
@@ -107,6 +110,17 @@ class Step4 extends React.Component {
                                             value={n.longitudeColumn}
                                             onChange={n.setLongitudeColumn}
                                         />
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                    <Button
+                                        variant="contained"
+                                        color="primary"
+                                        onClick={program.loadDefaultDataElements(n)}
+                                    >
+                                        Auto Map
+                                    </Button>
                                     </td>
                                 </tr>
                                 </tbody>

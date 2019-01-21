@@ -1,5 +1,7 @@
 import React, {Component} from 'react';
 import {HashRouter as Router, Route} from "react-router-dom";
+import {NotificationContainer} from 'react-notifications';
+import 'react-notifications/lib/notifications.css';
 
 import './App.css';
 import {Provider} from "mobx-react";
@@ -43,6 +45,7 @@ class App extends Component {
         d2.i18n.translations['log_out'] = 'Logout';
         d2.i18n.translations['help'] = 'Help';
         d2.i18n.translations['about_dhis2'] = 'About DHIS2';
+        d2.i18n.translations['aggregate_id'] = 'Id';
 
         this.state = {
             d2,
@@ -113,6 +116,7 @@ class App extends Component {
                                 </D2UIApp>
                             </main>
                         </div>
+                        <NotificationContainer/>
                     </div>
                 </Router>
             </Provider>

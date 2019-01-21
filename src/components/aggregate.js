@@ -16,8 +16,6 @@ import D2 from "./aggregate/d2";
 import D3 from "./aggregate/d3";
 import D4 from "./aggregate/d4";
 import D5 from "./aggregate/d5";
-import D6 from "./aggregate/d6";
-
 
 const styles = theme => ({
     card: {
@@ -70,8 +68,6 @@ class Aggregate extends React.Component {
                 return <D4/>;
             case 5:
                 return <D5/>;
-            case 6:
-                return <D6/>;
             default:
                 return 'Unknown step';
         }
@@ -81,14 +77,12 @@ class Aggregate extends React.Component {
 
         const {classes, baseUrl} = this.props;
         let finish = '';
-        if (this.integrationStore.dataSet &&
-            (this.integrationStore.dataSet.percentage === 0 ||
-                this.integrationStore.dataSet.percentage === 100)) {
+        if (this.integrationStore.dataSet && !this.integrationStore.dataSet.displayProgress) {
             finish = <Button
                 variant="contained"
-                color={this.integrationStore.finishLabel === 'Finish' ? 'primary' : 'secondary'}
+                color={this.integrationStore.finishAggregateLabel === 'Finish' ? 'primary' : 'secondary'}
                 href={baseUrl}
-                className={this.integrationStore.activeAggregateStep < 5 ? classes.hidden : classes.button}
+                className={this.integrationStore.activeAggregateStep < 4 ? classes.hidden : classes.button}
             >
                 {this.integrationStore.finishAggregateLabel}
             </Button>
@@ -136,7 +130,7 @@ class Aggregate extends React.Component {
                                                     onClick={this.integrationStore.handleAggregateBack}
                                                     variant="contained"
                                                     color="secondary"
-                                                    className={this.integrationStore.activeAggregateStep === 0 || this.integrationStore.activeAggregateStep === 6 ? classes.hidden : classes.button}
+                                                    className={this.integrationStore.activeAggregateStep === 0 || this.integrationStore.activeAggregateStep === 5 ? classes.hidden : classes.button}
                                                 >
                                                     Back
                                                 </Button>
@@ -157,7 +151,9 @@ class Aggregate extends React.Component {
                                                     disabled={this.integrationStore.disableNextAggregate}
                                                     variant="contained"
                                                     color="primary"
-                                                    onClick={this.integrationStore.handleNextAggregate}>
+                                                    onClick={this.integrationStore.handleNextAggregate}
+                                                    className={this.integrationStore.activeAggregateStep === 1 || this.integrationStore.activeAggregateStep === 5 ? classes.hidden : classes.button}
+                                                >
                                                     {this.integrationStore.nextAggregateLabel}
                                                 </Button>
                                                 {finish}
