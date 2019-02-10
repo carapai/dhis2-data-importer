@@ -1,8 +1,8 @@
 import {action, computed, observable} from "mobx";
 import _ from 'lodash';
 import XLSX from "xlsx";
-import {nest, processMergedCells, findAttributeCombo} from "../utils";
-// import moment from "moment";
+import {nest, processMergedCells, findAttributeCombo, searchSecond, findMechanism} from "../utils";
+import alasql from 'alasql';
 import axios from "axios";
 
 class DataSet {
@@ -14,6 +14,9 @@ class DataSet {
 
     @observable aggregateId = 1;
 
+    @observable page = 0;
+    @observable rowsPerPage = 10;
+
 
     @observable selectedSheet;
     @observable sheets = [];
@@ -24,6 +27,7 @@ class DataSet {
     @observable periodColumn;
     @observable dataStartColumn;
     @observable orgUnitStrategy;
+    @observable typeOfSupportColumn;
 
     @observable organisationUnits;
 
@@ -134,6 +138,7 @@ class DataSet {
     @action setAggregateId = val => this.aggregateId = val;
     @action setOrganisationColumn = val => this.organisationColumn = val;
     @action setCell2 = val => this.cell2 = val;
+    @action setTypeOfSupportColumn = val => this.typeOfSupportColumn = val;
 
     @action handleRadioChange = event => {
         this.setTemplateType(event.target.value);
@@ -157,6 +162,12 @@ class DataSet {
 
     @action
     handelDataRowStartChange = value => this.dataStartRow = value;
+
+    @action
+    handleChangePage = (event, page) => this.page = page;
+
+    @action
+    handleChangeRowsPerPage = event => this.rowsPerPage = event.target.value;
 
     @action
     onDrop = (accepted, rejected) => {
@@ -232,14 +243,6 @@ class DataSet {
 
     @action handlePeriodInExcel = event => {
         this.periodInExcel = event.target.checked;
-
-        /* if (!this.periodInExcel) {
-             this.period = null;
-         }
-
-         if (this.periodInExcel) {
-             this.periodColumn = this.cells[0];
-         }*/
     };
 
     @action handleOrganisationInExcel = event => {
@@ -355,13 +358,28 @@ class DataSet {
     @action setMappingAll2 = de => val => {
         let value = val.value;
         value = {...value, column: de.column};
+        const label = val.label;
+
         val = {
             ...val,
             value
         };
         const obj = _.fromPairs([[de.name, val]]);
-        const c = {...this.cell2, ...obj};
-        this.setCell2(c);
+
+        const foundVal = searchSecond(label, this.allCategoryOptionCombos);
+
+        if (foundVal) {
+            const v = foundVal.value;
+            const v2 = {...foundVal, value: v};
+            const obj2 = _.fromPairs([[de.name + '2', v2]]);
+
+            const c = {...this.cell2, ...obj, ...obj2};
+
+            this.setCell2(c);
+        } else {
+            const c = {...this.cell2, ...obj};
+            this.setCell2(c);
+        }
     };
 
     @action loadSame = () => {
@@ -380,7 +398,23 @@ class DataSet {
                     value
                 };
                 const obj = _.fromPairs([[coc.label, coc]]);
+
                 maps = {...maps, ...obj};
+
+                let foundVal = searchSecond(coc.label, this.allCategoryOptionCombos);
+
+                if (foundVal) {
+                    const v = foundVal.value;
+                    const v2 = {...v, column: match.column};
+                    const coc2 = {
+                        ...foundVal,
+                        value: v2
+                    };
+                    const obj2 = _.fromPairs([[coc.label + '2', coc2]]);
+
+                    maps = {...maps, ...obj2};
+                }
+
             }
         });
         maps = {...maps, ...this.cell2};
@@ -487,7 +521,7 @@ class DataSet {
             const range = XLSX.utils.decode_range(this.workSheet['!ref']);
             return _.range(this.dataStartRow, range.e.r + 2)
         }
-        return null;
+        return [];
     }
 
     @computed get cellColumns() {
@@ -542,16 +576,13 @@ class DataSet {
     }
 
     @computed get allAttributesMapped() {
-        console.log(this.categories);
         const mappings = this.categoryCombo.categories.map(c => {
-            console.log(c);
             return !!c
         });
         return _.every(mappings);
     }
 
     @computed get processed() {
-        let data = this.data;
         let dataValues = [];
 
         let dataSetUnits;
@@ -562,167 +593,38 @@ class DataSet {
                     return [o.name, o.id];
                 } else if (this.orgUnitStrategy && this.orgUnitStrategy.value === 'code') {
                     return [o.code, o.id];
-                } else if (this.orgUnitStrategy && this.orgUnitStrategy.value === 'id') {
+                } else if (this.orgUnitStrategy && this.orgUnitStrategy.value === 'uid') {
                     return [o.id, o.id];
                 }
                 return null;
 
             }));
         }
-        if (this.templateType !== '4') {
-            const forms = this.forms;
-            forms.forEach(f => {
-                if (this.templateType === '1') {
-                    let validatedData = [];
-                    f.dataElements.forEach(element => {
-                        if (element.mapping) {
-                            const foundData = data[element.mapping.value];
-                            if (foundData) {
-                                const groupedData = foundData.map(d => {
 
-                                    const rowData = this.categoryCombo.categories.map(category => {
-                                        const optionColumn = category.mapping.value;
-                                        return d[optionColumn]
-                                    });
-
-                                    return {
-                                        period: d[this.periodColumn.value],
-                                        value: d[this.dataValueColumn.value],
-                                        orgUnit: d[this.orgUnitColumn.value] ? d[this.orgUnitColumn.value].toLocaleLowerCase() : null,
-                                        dataElement: element.id,
-                                        attributeValue: rowData,
-                                        categoryOptionCombo: d[this.categoryOptionComboColumn.value] ? d[this.categoryOptionComboColumn.value].toLocaleLowerCase() : null
-                                    }
-                                });
-                                validatedData = [...validatedData, ...groupedData];
-                            }
-                        }
-                    });
-                    data = validatedData;
-                }
-                if (data) {
-                    f.categoryOptionCombos.forEach(coc => {
-                        if (this.templateType === '1') {
-                            f.categoryOptionCombos.forEach(coc => {
-                                _.forOwn(coc.mapping, (mapping, dataElement) => {
-                                    data.filter(v => {
-                                        return v.categoryOptionCombo === mapping.value.toLocaleLowerCase() && v.dataElement === dataElement;
-                                    }).forEach(d => {
-                                        const attribute = findAttributeCombo(this, d.attributeValue, false);
-                                        if (d['orgUnit'] && attribute) {
-                                            const orgUnit = dataSetUnits[d['orgUnit']];
-                                            if (orgUnit) {
-                                                dataValues = [...dataValues, {
-                                                    dataElement,
-                                                    value: d['value'],
-                                                    period: d['period'],
-                                                    attributeOptionCombo: attribute.id,
-                                                    categoryOptionCombo: coc.id,
-                                                }];
-                                            }
-                                        }
-                                    });
-                                });
-                            });
-                        } else if (this.templateType === '2') {
-                            _.forOwn(coc.cell, (mapping, dataElement) => {
-                                let orgUnit;
-                                let period;
-                                if (!this.periodInExcel) {
-                                    period = this.period;
-                                } else {
-                                    period = data[this.periodColumn]['v'];
-                                }
-
-
-                                if (!this.organisationUnitInExcel) {
-                                    orgUnit = this.organisation.value
-                                } else {
-                                    orgUnit = data[this.organisationCell]['v'];
-                                }
-
-                                let found;
-
-                                if (this.attributeCombosInExcel) {
-                                    const rowData = this.categoryCombo.categories.map(category => {
-                                        const value = data[category.mapping.value];
-                                        return value ? value.v : undefined;
-                                    });
-                                    found = findAttributeCombo(this, rowData, false);
-
-                                } else {
-                                    const rowData = this.categoryCombo.categories.map(category => {
-                                        return category.mapping.value;
-                                    });
-                                    found = findAttributeCombo(this, rowData, true);
-                                }
-                                if (found) {
-                                    dataValues = [...dataValues, {
-                                        dataElement,
-                                        value: data[mapping.value]['v'],
-                                        categoryOptionCombo: coc.id,
-                                        period,
-                                        attributeOptionCombo: found.id,
-                                        orgUnit
-                                    }]
-                                }
-
-
-                            });
-                        } else if (this.templateType === '3') {
-                            if (this.rows) {
-                                this.rows.forEach(r => {
-
-                                    const rowData = this.categoryCombo.categories.map(category => {
-                                        const optionCell = category.mapping.value + r;
-                                        const optionValue = this.data[optionCell];
-                                        return optionValue ? optionValue.v : undefined;
-                                    });
-                                    const found = findAttributeCombo(this, rowData, false);
-                                    if (found) {
-                                        _.forOwn(coc.column, (mapping, dataElement) => {
-                                            const cell = mapping.value + r;
-                                            let orgUnit = data[this.organisationColumn.value + r]['v'];
-                                            let period = data[this.periodColumn.value + r]['v'];
-                                            let value = data[cell]['v'];
-                                            orgUnit = dataSetUnits[orgUnit];
-                                            dataValues = [...dataValues, {
-                                                dataElement,
-                                                value,
-                                                categoryOptionCombo: coc.id,
-                                                attributeOptionCombo: found.id,
-                                                period,
-                                                orgUnit
-                                            }]
-                                        });
-                                    }
-                                })
-                            }
-                        }
-                    });
-                }
+        this.rows.forEach(i => {
+            const rowData = this.categoryCombo.categories.map(category => {
+                const optionCell = category.mapping.value + i;
+                const optionValue = this.data[optionCell];
+                return optionValue ? optionValue.v : undefined;
             });
-        } else if (this.templateType === '4') {
-            this.rows.forEach(i => {
-                const rowData = this.categoryCombo.categories.map(category => {
-                    const optionCell = category.mapping.value + i;
-                    const optionValue = this.data[optionCell];
-                    return optionValue ? optionValue.v : undefined;
-                });
 
-                const found = findAttributeCombo(this, rowData, false);
-
-                if (found) {
-                    _.forOwn(this.cell2, v => {
-                        const oCell = this.organisationColumn.value + i;
+            const found = findAttributeCombo(this, rowData);
+            if (found) {
+                _.forOwn(this.cell2, v => {
+                    const supportCell = this.typeOfSupportColumn.value + i;
+                    const typeOfSupport = this.data[supportCell];
+                    const mechanism = findMechanism(v.label);
+                    if (typeOfSupport && mechanism.trim() === typeOfSupport.v.trim()) {
+                        const oCell = this.orgUnitColumn.value + i;
                         const pCell = this.periodColumn.value + i;
                         const vCell = v.value.column + i;
                         const ou = this.data[oCell]['v'];
                         const period = this.data[pCell]['v'];
-                        const value = this.data[vCell]['v'];
+                        const val = this.data[vCell];
+                        const value = val ? val.v : null;
 
                         const orgUnit = dataSetUnits[ou];
-                        if (orgUnit) {
+                        if (orgUnit && value) {
                             dataValues = [...dataValues, {
                                 orgUnit,
                                 period,
@@ -732,13 +634,23 @@ class DataSet {
                                 categoryOptionCombo: v.value.categoryOptionCombo
                             }];
                         }
+                    }
+                });
+            }
+        });
 
-                    });
-                }
-            });
+        if(dataValues.length > 0){
+            return alasql('SELECT orgUnit,dataElement,attributeOptionCombo,categoryOptionCombo,period,SUM(`value`) AS `value` FROM ? GROUP BY orgUnit,dataElement,attributeOptionCombo,categoryOptionCombo,period',[dataValues]);
+
         }
-        return dataValues;
+        return dataValues
+    }
 
+    @computed get currentDataValues() {
+        if(this.processed && this.processed.length > 0){
+            return this.processed.slice(this.page * this.rowsPerPage, this.page * this.rowsPerPage + this.rowsPerPage);
+        }
+        return [];
     }
 
 
@@ -839,7 +751,8 @@ class DataSet {
                 'organisationCell',
                 'dataStartColumn',
                 'templateType',
-                'cell2'
+                'cell2',
+                'typeOfSupportColumn'
             ])
     }
 

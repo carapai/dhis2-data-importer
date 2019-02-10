@@ -1,6 +1,6 @@
 import React from 'react';
 import '@dhis2/d2-ui-core/css/Table.css';
-import PropTypes from 'prop-types';
+import * as PropTypes from 'prop-types';
 import {withStyles} from '@material-ui/core/styles';
 import {inject, observer} from "mobx-react";
 import Button from "@material-ui/core/Button";
@@ -147,6 +147,16 @@ class Aggregate extends React.Component {
                                                 </Button>
                                             </td>
                                             <td width="33%" valign="top" align="right">
+                                                <Button
+                                                    disabled={this.integrationStore.disableDownload}
+                                                    onClick={this.integrationStore.downloadAggregate}
+                                                    variant="contained"
+                                                    download={"data.json"}
+                                                    color={this.integrationStore.finishAggregateLabel === 'Finish' ? 'primary' : 'secondary'}
+                                                    className={this.integrationStore.activeAggregateStep < 4 ? classes.hidden : classes.button}
+                                                >
+                                                    Download
+                                                </Button>
                                                 <Button
                                                     disabled={this.integrationStore.disableNextAggregate}
                                                     variant="contained"

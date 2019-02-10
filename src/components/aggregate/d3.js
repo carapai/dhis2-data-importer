@@ -4,11 +4,11 @@ import {withStyles} from '@material-ui/core/styles';
 // import pixelWidth from 'string-pixel-width';
 import Select from 'react-select';
 
-import Table from "@material-ui/core/Table";
+/*import Table from "@material-ui/core/Table";
 import TableBody from "@material-ui/core/TableBody";
 import TableCell from "@material-ui/core/TableCell";
 import TableHead from "@material-ui/core/TableHead";
-import TableRow from "@material-ui/core/TableRow";
+import TableRow from "@material-ui/core/TableRow";*/
 
 
 const styles = theme => ({
@@ -90,6 +90,13 @@ class D3 extends React.Component {
         />
     };
 
+    displayOther = de => {
+        return <Select
+            placeholder="Select cell"
+            value={this.integrationStore.dataSet.cell2[de.name + '2']}
+        />
+    };
+
     render() {
         const {dataSet} = this.integrationStore;
         // const {classes} = this.props;
@@ -146,30 +153,38 @@ class D3 extends React.Component {
             });
         } else {
             // display = JSON.stringify(this.integrationStore.dataSet.mergedCellsWithDataElementRow, null, 2);
-            display = <Table width="100%">
-                <TableHead>
-                    <TableRow>
-                        <TableCell>
+            display = <table width="100%">
+                <thead>
+                    <tr>
+                        <th>
                             Data Element
-                        </TableCell>
-                        <TableCell>
+                        </th>
+                        <th>
                             Mapping
-                        </TableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
+                        </th>
+                        <th>
+                            Mirror
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
                     {this.integrationStore.dataSet.mergedCellsWithDataElementRow.map(de => {
-                        return <TableRow key={de.column} hover>
-                            <TableCell>
+                        return <tr key={de.column}>
+                            <td width="34%">
                                 {de.name}
-                            </TableCell>
-                            <TableCell>
+                            </td>
+                            <td width="33%">
                                 {this.displayDynamicCell(de)}
-                            </TableCell>
-                        </TableRow>
+                            </td>
+
+                            <td width="33%">
+                                {this.displayOther(de)}
+                            </td>
+
+                        </tr>
                     })}
-                </TableBody>
-            </Table>
+                </tbody>
+            </table>
         }
 
         return (<div>

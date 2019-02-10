@@ -8,6 +8,7 @@ import TableHead from "@material-ui/core/TableHead/TableHead";
 import TableRow from "@material-ui/core/TableRow/TableRow";
 import TableCell from "@material-ui/core/TableCell/TableCell";
 import TableBody from "@material-ui/core/TableBody/TableBody";
+import TablePagination from "@material-ui/core/TablePagination";
 
 const styles = theme => ({
     margin: {
@@ -34,7 +35,6 @@ class D4 extends React.Component {
         const {dataSet} = this.integrationStore;
         const {classes} = this.props;
         return <div>
-            {/*<pre>{JSON.stringify(dataSet.canBeSaved, null, 2)}</pre>*/}
             <Tabs>
                 <Tab label={<Badge className={classes.padding} color="secondary"
                                    badgeContent={dataSet.processed.length}>Data</Badge>}>
@@ -50,7 +50,7 @@ class D4 extends React.Component {
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {dataSet.processed.map((s, k) => {
+                            {dataSet.currentDataValues.map((s, k) => {
                                 return (
                                     <TableRow key={k}>
                                         <TableCell>
@@ -76,6 +76,20 @@ class D4 extends React.Component {
                             })}
                         </TableBody>
                     </Table>
+                    <TablePagination
+                        component="div"
+                        count={dataSet.processed.length}
+                        rowsPerPage={dataSet.rowsPerPage}
+                        page={dataSet.page}
+                        backIconButtonProps={{
+                            'aria-label': 'Previous Page',
+                        }}
+                        nextIconButtonProps={{
+                            'aria-label': 'Next Page',
+                        }}
+                        onChangePage={dataSet.handleChangePage}
+                        onChangeRowsPerPage={dataSet.handleChangeRowsPerPage}
+                    />
                 </Tab>
             </Tabs>
         </div>

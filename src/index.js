@@ -16,7 +16,6 @@ if (process.env.NODE_ENV === 'development') {
     } else {
         baseUrl = '/';
     }
-
     baseUrl = window.location.protocol + '//' + window.location.host + baseUrl
 }
 

@@ -1,23 +1,14 @@
 import React, {Component} from 'react';
-import {HashRouter as Router, Route} from "react-router-dom";
 import {NotificationContainer} from 'react-notifications';
 import 'react-notifications/lib/notifications.css';
 
 import './App.css';
 import {Provider} from "mobx-react";
-import PropTypes from 'prop-types';
+import * as PropTypes from 'prop-types';
 import IntegrationStore from './stores/IntegrationStore'
-import Program from './components/program';
 
 import D2UIApp from '@dhis2/d2-ui-app';
 import Aggregate from "./components/aggregate";
-import IconButton from "@material-ui/core/IconButton";
-import Drawer from "@material-ui/core/Drawer";
-import ChevronLeftIcon from "@material-ui/icons/ChevronLeft";
-import ChevronRightIcon from "@material-ui/icons/ChevronRight";
-import List from "@material-ui/core/List";
-import {mainListItems} from "./components/listItems";
-import classNames from "classnames";
 import {withStyles} from "@material-ui/core/styles";
 import styles from "./components/styles";
 import HeaderBar from '@dhis2/d2-ui-header-bar';
@@ -58,67 +49,22 @@ class App extends Component {
         return {d2: this.state.d2};
     }
 
-    handleDrawerOpen = () => {
-        this.setState({open: true});
-    };
-
-    handleDrawerClose = () => {
-        const open = !this.state.open;
-        this.setState({open});
-    };
-
-    getIcon = open => {
-        if (open) {
-            return <IconButton onClick={this.handleDrawerClose}>
-                <ChevronLeftIcon/>
-            </IconButton>
-        } else {
-            return <IconButton onClick={this.handleDrawerClose}>
-                <ChevronRightIcon/>
-            </IconButton>
-        }
-    }
-
     render() {
         const {classes} = this.props;
         return (
             <Provider IntegrationStore={IntegrationStore}>
-                <Router>
                     <div>
                         <HeaderBar d2={this.state.d2}/>
                         <div className={classes.root}>
-                            <Drawer
-                                variant="permanent"
-                                classes={{
-                                    paper: classNames(classes.drawerPaper, !this.state.open && classes.drawerPaperClose)
-                                }}
-                                open={this.state.open}
-                            >
-                                <div className={classes.toolbarIcon}>
-                                    {this.getIcon(this.state.open)}
-                                </div>
-                                {/*<Divider/>*/}
-                                <List>{mainListItems}</List>
-                                {/*<Divider/>
-                                <List>{secondaryListItems}</List>*/}
-                            </Drawer>
                             <main className={classes.content}>
                                 <div className={classes.appBarSpacer}/>
                                 <D2UIApp>
-                                    <Route
-                                        exact
-                                        path='/'
-                                        component={() => <Program d2={this.state.d2}
-                                                                  baseUrl={this.state.baseUrl}/>}/>
-                                    <Route
-                                        path='/aggregates'
-                                        component={() => <Aggregate d2={this.state.d2}/>}/>
+                                <Aggregate d2={this.state.d2}baseUrl={this.state.baseUrl}/>
                                 </D2UIApp>
                             </main>
                         </div>
                         <NotificationContainer/>
                     </div>
-                </Router>
             </Provider>
         );
     }

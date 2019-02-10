@@ -21,6 +21,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 db.json
+datim.json
 json-server.json
 .vscode/settings.json
 
