@@ -25,3 +25,5 @@ json-server.json
 .vscode/settings.json
 
 yarn.lock
+
+datim.json

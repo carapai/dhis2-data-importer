@@ -46,6 +46,9 @@ class App extends Component {
         d2.i18n.translations['help'] = 'Help';
         d2.i18n.translations['about_dhis2'] = 'About DHIS2';
         d2.i18n.translations['aggregate_id'] = 'Id';
+        d2.i18n.translations['upload'] = 'Upload Excel/CSV';
+        // d2.i18n.translations['import'] = 'Import';
+        d2.i18n.translations['download'] = 'Import from API';
 
         this.state = {
             d2,

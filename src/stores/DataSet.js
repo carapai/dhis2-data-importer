@@ -2,8 +2,9 @@ import {action, computed, observable} from "mobx";
 import _ from 'lodash';
 import XLSX from "xlsx";
 import {nest, processMergedCells, findAttributeCombo} from "../utils";
-// import moment from "moment";
 import axios from "axios";
+
+import alasql from 'alasql';
 
 class DataSet {
     @observable id;
@@ -40,6 +41,10 @@ class DataSet {
 
     @observable uploadMessage = '';
     @observable uploaded = 0;
+
+    @observable page = 0;
+    @observable rowsPerPage = 10;
+
 
     @observable d2;
 
@@ -232,14 +237,6 @@ class DataSet {
 
     @action handlePeriodInExcel = event => {
         this.periodInExcel = event.target.checked;
-
-        /* if (!this.periodInExcel) {
-             this.period = null;
-         }
-
-         if (this.periodInExcel) {
-             this.periodColumn = this.cells[0];
-         }*/
     };
 
     @action handleOrganisationInExcel = event => {
@@ -387,6 +384,12 @@ class DataSet {
         this.setCell2(maps);
     };
 
+    @action
+    handleChangePage = (event, page) => this.page = page;
+
+    @action
+    handleChangeRowsPerPage = event => this.rowsPerPage = event.target.value;
+
     @computed get processedResponses() {
         let errors = [];
         let conflicts = [];
@@ -487,7 +490,7 @@ class DataSet {
             const range = XLSX.utils.decode_range(this.workSheet['!ref']);
             return _.range(this.dataStartRow, range.e.r + 2)
         }
-        return null;
+        return [];
     }
 
     @computed get cellColumns() {
@@ -522,7 +525,7 @@ class DataSet {
         } else if (this.pulledData && this.dataElementColumn) {
             return nest(this.pulledData, [this.dataElementColumn.value]);
         }
-        return [];
+        return {};
     }
 
     @computed get allCategoryOptionCombos() {
@@ -562,10 +565,8 @@ class DataSet {
                     return [o.name, o.id];
                 } else if (this.orgUnitStrategy && this.orgUnitStrategy.value === 'code') {
                     return [o.code, o.id];
-                } else if (this.orgUnitStrategy && this.orgUnitStrategy.value === 'id') {
-                    return [o.id, o.id];
                 }
-                return null;
+                return [o.id, o.id];
 
             }));
         }
@@ -714,15 +715,18 @@ class DataSet {
 
                 if (found) {
                     _.forOwn(this.cell2, v => {
-                        const oCell = this.organisationColumn.value + i;
+                        const oCell = this.orgUnitColumn.value + i;
                         const pCell = this.periodColumn.value + i;
                         const vCell = v.value.column + i;
-                        const ou = this.data[oCell]['v'];
-                        const period = this.data[pCell]['v'];
-                        const value = this.data[vCell]['v'];
+                        const ouVal = this.data[oCell];
+                        const periodVal = this.data[pCell];
+                        const ou = ouVal ? ouVal['v'] : '';
+                        const period = periodVal ? periodVal['v'] : null;
+                        const val = this.data[vCell];
+                        const value = val ? val.v : null;
 
                         const orgUnit = dataSetUnits[ou];
-                        if (orgUnit) {
+                        if (orgUnit && value && period) {
                             dataValues = [...dataValues, {
                                 orgUnit,
                                 period,
@@ -737,7 +741,10 @@ class DataSet {
                 }
             });
         }
-        return dataValues;
+        if (dataValues.length > 0) {
+            return alasql('SELECT orgUnit,dataElement,attributeOptionCombo,categoryOptionCombo,period,SUM(`value`) AS `value` FROM ? GROUP BY orgUnit,dataElement,attributeOptionCombo,categoryOptionCombo,period', [dataValues]);
+        }
+        return dataValues
 
     }
 
@@ -847,6 +854,13 @@ class DataSet {
         return this.categoryCombo.categories.map(category => {
             return {label: category.name, value: category.id}
         })
+    }
+
+    @computed get currentDataValues() {
+        if (this.processed && this.processed.length > 0) {
+            return this.processed.slice(this.page * this.rowsPerPage, this.page * this.rowsPerPage + this.rowsPerPage);
+        }
+        return [];
     }
 }
 
