@@ -306,8 +306,8 @@ class Program {
         if (this.dateFilter !== '' && this.dateEndFilter !== '') {
             if (this.lastRun !== null) {
                 params = {
-                    ...params, ..._.fromPairs([[this.dateFilter + '_gte', this.lastRun],
-                        [this.dateEndFilter + '_lte', moment(new Date()).format('YYYY-MM-DD HH:mm:ss')]])
+                    ...params, ..._.fromPairs([[this.dateFilter, this.lastRun],
+                        [this.dateEndFilter, moment(new Date()).format('YYYY-MM-DD HH:mm:ss')]])
                 };
             }
         }
@@ -319,10 +319,6 @@ class Program {
                 });
                 if (response.status === 200) {
                     let {data} = response;
-
-                    data = data.map(d => {
-                        return _.pickBy(d, _.identity);
-                    });
                     this.setPulling(false);
                     this.setDataSource(3);
                     this.setPulledData(data);
@@ -482,7 +478,7 @@ class Program {
         return trackedEntityInstances.map(trackedEntityInstance => {
             return api.update('trackedEntityInstances/' + trackedEntityInstance['trackedEntityInstance'], trackedEntityInstance, {});
         });
-    }
+    };
 
     @action
     insertEnrollment = (data) => {
@@ -496,14 +492,14 @@ class Program {
         return api.post('events', data, {});
     };
 
-    /*@action
-    updateEvents = (eventsUpdate) => {
-      const api = this.d2.Api.getApi();
-      return eventsUpdate.map(event => {
-        return api.update('events/' + event['event'], event, {});
-      });
+    @action
+    updateDHISEvents = (eventsUpdate) => {
+        const api = this.d2.Api.getApi();
+        return eventsUpdate.map(event => {
+            return api.update('events/' + event['event'], event, {});
+        });
 
-    }*/
+    };
 
     @action setResponses = val => {
 
@@ -560,7 +556,7 @@ class Program {
 
         try {
             if (eventsUpdate.length > 0) {
-                const eventsResults = await this.updateEvents(eventsUpdate);
+                const eventsResults = await this.updateDHISEvents(eventsUpdate);
                 console.log(JSON.stringify(eventsResults));
                 this.setResponses(eventsResults);
             }
@@ -981,7 +977,6 @@ class Program {
         let duplicates = [];
         let conflicts = [];
         let errors = [];
-
         if (this.uniqueColumn) {
             data = data.filter(d => {
                 return d[this.uniqueColumn] !== null && d[this.uniqueColumn] !== undefined;
@@ -1149,8 +1144,6 @@ class Program {
                 });
                 let groupedEvents = _.groupBy(events, 'programStage');
 
-                // console.log(events);
-
                 if (client.previous.length > 1) {
                     duplicates = [...duplicates, client.previous]
                 } else if (client.previous.length === 1) {
@@ -1241,12 +1234,14 @@ class Program {
                                 if (repeatable) {
                                     evs.forEach(e => {
                                         const eventIndex = this.searchEvent(enrollmentEvents, stageEventFilters, stage, e);
-                                        console.log(eventIndex);
                                         if (eventIndex !== -1 && this.updateEvents) {
                                             const stageEvent = enrollmentEvents[eventIndex];
                                             const merged = _.unionBy(e['dataValues'], stageEvent['dataValues'], 'dataElement');
-                                            console.log(merged);
                                             const differingElements = _.differenceWith(e['dataValues'], stageEvent['dataValues'], _.isEqual);
+                                            console.log(JSON.stringify(stageEvent));
+                                            console.log(JSON.stringify(e));
+                                            console.log(JSON.stringify(differingElements));
+                                            console.log('----------------------------');
                                             if (merged.length > 0 && differingElements.length > 0) {
                                                 const mergedEvent = {
                                                     ...stageEvent,

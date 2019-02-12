@@ -8,13 +8,13 @@
   },
   "appType": "APP",
   "name": "data-importer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Data Importer",
   "icons": {
     "48": "favicon.ico"
   },
   "developer": {
-    "name": "DHIS2"
+    "name": "HISP Uganda"
   },
   "dhis2": {
     "apiVersion": "29"
