@@ -51,6 +51,8 @@ class D3 extends React.Component {
     componentDidMount() {
         if (this.integrationStore.dataSet.templateType === '4') {
             this.integrationStore.dataSet.loadSame();
+        } else if (this.integrationStore.dataSet.templateType === '1') {
+            this.integrationStore.dataSet.setDefaults();
         }
     }
 

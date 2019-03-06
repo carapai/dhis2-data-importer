@@ -2,15 +2,8 @@ import {inject, observer} from "mobx-react";
 import React from "react";
 import {withStyles} from "@material-ui/core/styles";
 import DHIS2Table from "@dhis2/d2-ui-table";
-
-
+import Select from 'react-select';
 import red from '@material-ui/core/colors/red';
-
-import TableHead from "@material-ui/core/TableHead/TableHead";
-import TableRow from "@material-ui/core/TableRow/TableRow";
-import TableCell from "@material-ui/core/TableCell/TableCell";
-import TableBody from "@material-ui/core/TableBody/TableBody";
-import TablePagination from "@material-ui/core/TablePagination";
 
 import MuiDialogTitle from '@material-ui/core/DialogTitle';
 import MuiDialogContent from '@material-ui/core/DialogContent';
@@ -24,11 +17,12 @@ import Dialog from '@material-ui/core/Dialog';
 import Dropzone from 'react-dropzone';
 import Button from '@material-ui/core/Button';
 import Icon from '@material-ui/core/Icon';
-import {Tab, Tabs} from "@dhis2/d2-ui-core";
-import Badge from "@material-ui/core/Badge";
-import Table from "@material-ui/core/Table";
+import {InputField} from "@dhis2/d2-ui-core";
 import _ from 'lodash';
-import {Delete, ArrowUpward} from "@material-ui/icons";
+import {Delete, ArrowUpward, ArrowDownward} from "@material-ui/icons";
+import Params from "./Params";
+import CircularProgress from "@material-ui/core/CircularProgress";
+import Summary from "./Summary";
 
 
 const DialogTitle = withStyles(theme => ({
@@ -111,7 +105,8 @@ class D0 extends React.Component {
                     {
 
                         delete: <Delete/>,
-                        upload: <ArrowUpward/>
+                        upload: <ArrowUpward/>,
+                        download: <ArrowDownward/>
                     }
                 }
                 primaryAction={this.integrationStore.useSavedAggregate}
@@ -131,92 +126,50 @@ class D0 extends React.Component {
                     <table width="100%">
                         <tbody>
                         <tr>
-                            <td valign="top" width="100%" align="center">
-                                <section>
-                                    <div className="dropzone">
-                                        <Dropzone accept=".csv, .xls, .xlsx"
-                                                  onDrop={this.integrationStore.dataSet.onDrop}>
-                                            <p align="center">Drop files here</p>
-                                            <p align="center">
-                                                <Icon
-                                                    className={classes.icon}
-                                                    color="primary"
-                                                    style={{
-                                                        fontSize: 48
-                                                    }}>
-                                                    add_circle
-                                                </Icon>
-                                            </p>
-                                            <p
-                                                align="center"
-                                                style={{
-                                                    color: 'red'
-                                                }}>{this.integrationStore.dataSet.uploadMessage}</p>
-                                        </Dropzone>
-                                    </div>
-                                </section>
+                            <td valign="top" width="100%">
+
+                                <table width="100%">
+                                    <tbody>
+                                    <tr>
+                                        <td width="20%" valign="top">
+                                            <div className="dropzone">
+                                                <Dropzone accept=".csv, .xls, .xlsx"
+                                                          onDrop={this.integrationStore.dataSet.onDrop}>
+                                                    <p align="center">Drop files here</p>
+                                                    <p align="center">
+                                                        <Icon
+                                                            className={classes.icon}
+                                                            color="primary"
+                                                            style={{
+                                                                fontSize: 48
+                                                            }}>
+                                                            add_circle
+                                                        </Icon>
+                                                    </p>
+                                                    <p
+                                                        align="center"
+                                                        style={{
+                                                            color: 'red'
+                                                        }}>{this.integrationStore.dataSet.uploadMessage}</p>
+                                                </Dropzone>
+                                            </div>
+                                        </td>
+                                        <td width="80%" valign="top">
+                                            <Select
+                                                placeholder="Select sheet"
+                                                value={this.integrationStore.dataSet.selectedSheet}
+                                                options={this.integrationStore.dataSet.sheets}
+                                                onChange={this.integrationStore.dataSet.setSelectedSheet}
+                                            />
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
                             </td>
                         </tr>
                         <tr>
                             <td valign="top" align="right" width="100%">
-                                <Tabs>
-                                    {this.integrationStore.dataSet.processed ?
-                                        <Tab label={<Badge className={classes.padding} color="secondary"
-                                                           badgeContent={this.integrationStore.dataSet.processed.length}>Data</Badge>}>
-                                            <Table>
-                                                <TableHead>
-                                                    <TableRow>
-                                                        <TableCell>Data Element</TableCell>
-                                                        <TableCell>CategoryOption</TableCell>
-                                                        <TableCell>Attribute</TableCell>
-                                                        <TableCell>Period</TableCell>
-                                                        <TableCell>Organisation</TableCell>
-                                                        <TableCell>Value</TableCell>
-                                                    </TableRow>
-                                                </TableHead>
-                                                <TableBody>
-                                                    {this.integrationStore.dataSet.currentDataValues.map((s, k) => {
-                                                        return (
-                                                            <TableRow key={k}>
-                                                                <TableCell>
-                                                                    {s.dataElement}
-                                                                </TableCell>
-                                                                <TableCell>
-                                                                    {s.categoryOptionCombo}
-                                                                </TableCell>
-                                                                <TableCell>
-                                                                    {s.attributeOptionCombo}
-                                                                </TableCell>
-                                                                <TableCell>
-                                                                    {s.period}
-                                                                </TableCell>
-                                                                <TableCell>
-                                                                    {s.orgUnit}
-                                                                </TableCell>
-                                                                <TableCell>
-                                                                    {s.value}
-                                                                </TableCell>
-                                                            </TableRow>
-                                                        );
-                                                    })}
-                                                </TableBody>
-                                            </Table>
-                                            <TablePagination
-                                                component="div"
-                                                count={this.integrationStore.dataSet.processed.length}
-                                                rowsPerPage={this.integrationStore.dataSet.rowsPerPage}
-                                                page={this.integrationStore.dataSet.page}
-                                                backIconButtonProps={{
-                                                    'aria-label': 'Previous Page',
-                                                }}
-                                                nextIconButtonProps={{
-                                                    'aria-label': 'Next Page',
-                                                }}
-                                                onChangePage={this.integrationStore.dataSet.handleChangePage}
-                                                onChangeRowsPerPage={this.integrationStore.dataSet.handleChangeRowsPerPage}
-                                            />
-                                        </Tab> : <Tab>Nothing</Tab>}
-                                </Tabs>
+                                <Summary/>
                             </td>
                         </tr>
                         </tbody>
@@ -233,6 +186,89 @@ class D0 extends React.Component {
                         onClick={this.integrationStore.dataSet.create}>
                         Insert
                     </Button>
+                </DialogActions>
+            </Dialog>
+
+
+            <Dialog
+                fullWidth={true}
+                maxWidth={'lg'}
+                open={this.integrationStore.importData}
+                onClose={this.integrationStore.closeImportDialog}
+                aria-labelledby="alert-dialog-title"
+                aria-describedby="alert-dialog-description">
+                <DialogTitle id="alert-dialog-title"
+                             onClose={this.integrationStore.closeImportDialog}>{"Import data from API"}</DialogTitle>
+                <DialogContent>
+                    <table width="100%">
+                        <tbody>
+                        <tr>
+                            <td width="50%">
+                                <InputField
+                                    label="URL"
+                                    type="text"
+                                    fullWidth
+                                    value={this.integrationStore.dataSet.url}
+                                    onChange={(value) => this.integrationStore.dataSet.handelURLChange(value)}/>
+                            </td>
+                            <td width="50%">
+                                <InputField
+                                    label="Response key"
+                                    type="text"
+                                    fullWidth
+                                    value={this.integrationStore.dataSet.responseKey}
+                                    onChange={(value) => this.integrationStore.dataSet.setResponseKey(value)}/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td width="50%">
+                                <InputField
+                                    label="Username"
+                                    type="text"
+                                    fullWidth
+                                    value={this.integrationStore.dataSet.username}
+                                    onChange={(value) => this.integrationStore.dataSet.setUsername(value)}/>
+                            </td>
+                            <td width="50%">
+                                <InputField
+                                    label="Password"
+                                    type="text"
+                                    fullWidth
+                                    value={this.integrationStore.dataSet.password}
+                                    onChange={(value) => this.integrationStore.dataSet.setPassword(value)}/>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <br/>
+                    <Params/>
+                    <br/>
+                    <Summary/>
+                </DialogContent>
+                <DialogActions>
+
+                    <Button onClick={this.integrationStore.closeUploadDialog} color="secondary">
+                        Cancel
+                    </Button>
+
+                    <Button
+                        variant="contained"
+                        disabled={!this.integrationStore.dataSet.url}
+                        onClick={this.integrationStore.dataSet.pullData}>
+                        {this.integrationStore.dataSet.pulling ?
+                            <CircularProgress size={24}
+                                              thickness={4} color="secondary"/> : 'Pull Data'}
+                    </Button>
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        disabled={_.keys(this.integrationStore.dataSet.data).length === 0}
+                        onClick={this.integrationStore.dataSet.create}>
+                        {this.integrationStore.dataSet.displayProgress ?
+                            <CircularProgress size={24}
+                                              thickness={4} color="secondary"/> : 'Insert'}
+                    </Button>
+
                 </DialogActions>
             </Dialog>
         </div>

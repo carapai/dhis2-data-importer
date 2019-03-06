@@ -28,6 +28,8 @@ class App extends Component {
         const {d2} = props;
         d2.i18n.translations['id'] = 'Id';
         d2.i18n.translations['program_name'] = 'Program Name';
+        d2.i18n.translations['program_type'] = 'Program Type';
+        d2.i18n.translations['last_updated'] = 'Last Updated';
         d2.i18n.translations['last_run'] = 'Last Run';
         d2.i18n.translations['run'] = 'Run';
         d2.i18n.translations['schedule'] = 'Schedule';
@@ -80,7 +82,7 @@ class App extends Component {
                 <ChevronRightIcon/>
             </IconButton>
         }
-    }
+    };
 
     render() {
         const {classes} = this.props;

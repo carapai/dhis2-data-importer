@@ -8,6 +8,7 @@ import TableHead from "@material-ui/core/TableHead/TableHead";
 import TableRow from "@material-ui/core/TableRow/TableRow";
 import TableCell from "@material-ui/core/TableCell/TableCell";
 import TableBody from "@material-ui/core/TableBody/TableBody";
+import TablePagination from "@material-ui/core/TablePagination";
 
 const styles = theme => ({
     margin: {
@@ -50,7 +51,7 @@ class D4 extends React.Component {
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {dataSet.processed.map((s, k) => {
+                            {dataSet.currentDataValues.map((s, k) => {
                                 return (
                                     <TableRow key={k}>
                                         <TableCell>
@@ -76,6 +77,21 @@ class D4 extends React.Component {
                             })}
                         </TableBody>
                     </Table>
+
+                    <TablePagination
+                        component="div"
+                        count={this.integrationStore.dataSet.processed.length}
+                        rowsPerPage={this.integrationStore.dataSet.rowsPerPage}
+                        page={this.integrationStore.dataSet.page}
+                        backIconButtonProps={{
+                            'aria-label': 'Previous Page',
+                        }}
+                        nextIconButtonProps={{
+                            'aria-label': 'Next Page',
+                        }}
+                        onChangePage={this.integrationStore.dataSet.handleChangePage}
+                        onChangeRowsPerPage={this.integrationStore.dataSet.handleChangeRowsPerPage}
+                    />
                 </Tab>
             </Tabs>
         </div>

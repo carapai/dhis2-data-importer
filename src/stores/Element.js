@@ -1,5 +1,7 @@
 import {action, observable} from "mobx";
 
+import _ from 'lodash';
+
 class Element {
     @observable id;
     @observable code;
@@ -25,9 +27,10 @@ class Element {
         this.setMapping(val);
         if (currentData) {
             const data = currentData[val.value];
-            const processed = data.map(d => {
+            let processed = data.map(d => {
                 return {label: d[cocColumn.value], value: d[cocColumn.value]}
             });
+            processed = _.uniqBy(processed,'value');
 
             this.setUniqueCategoryOptionCombos(processed);
         }

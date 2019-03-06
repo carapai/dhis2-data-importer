@@ -1,10 +1,11 @@
 import {action, computed, observable} from "mobx";
 import _ from 'lodash';
 import XLSX from "xlsx";
-import {nest, processMergedCells, findAttributeCombo} from "../utils";
+import {encodeData, findAttributeCombo, nest, processMergedCells} from "../utils";
 import axios from "axios";
-
 import alasql from 'alasql';
+import {NotificationManager} from "react-notifications";
+import Param from "./Param";
 
 class DataSet {
     @observable id;
@@ -45,6 +46,8 @@ class DataSet {
     @observable page = 0;
     @observable rowsPerPage = 10;
 
+    @observable params = [];
+
 
     @observable d2;
 
@@ -68,8 +71,14 @@ class DataSet {
     @observable responses = [];
     @observable cell2 = {};
 
+    @observable username = '';
 
+    @observable password = '';
+
+    @observable pulling = false;
     @observable templateType = "1";
+
+    @observable responseKey = '';
 
 
     @action
@@ -139,6 +148,13 @@ class DataSet {
     @action setAggregateId = val => this.aggregateId = val;
     @action setOrganisationColumn = val => this.organisationColumn = val;
     @action setCell2 = val => this.cell2 = val;
+    @action setPulling = val => this.pulling = val;
+    @action setUsername = val => this.username = val;
+
+    @action setPassword = val => this.password = val;
+    @action setResponseKey = val => this.responseKey = val;
+
+    @action setParams = val => this.params = val;
 
     @action handleRadioChange = event => {
         this.setTemplateType(event.target.value);
@@ -148,6 +164,10 @@ class DataSet {
             this.organisationUnitInExcel = false;
             this.attributeCombosInExcel = false;
         }
+    };
+
+    @action addParam = () => {
+        this.params = [...this.params, new Param()]
     };
 
     @action
@@ -219,10 +239,29 @@ class DataSet {
 
     @action setDefaults = () => {
         this.forms.forEach(form => {
+            form.dataElements.forEach(de => {
+                const mapping = this.uniqueDataElements.find(u => {
+                    return u.value === de.name || u.value === de.code;
+                });
+
+                if (mapping && !de.mapping) {
+                    de.mapping = mapping;
+                }
+            });
+
             form.categoryOptionCombos.forEach(coc => {
-                // console.log(JSON.stringify(coc, null, 2));
-            })
-        })
+                _.keys(coc.mapping).forEach(k => {
+                    const search = form.dataElements.find(de => de.id === k);
+                    if (search && search.mapping) {
+                        search.handelMappingChange(this.data, this.categoryOptionComboColumn)(search.mapping);
+                        const match = search.uniqueCategoryOptionCombos.find(ucoc => coc.name === ucoc.value);
+                        if (match) {
+                            coc.mapping[k] = match;
+                        }
+                    }
+                });
+            });
+        });
     };
 
     @action
@@ -288,17 +327,44 @@ class DataSet {
 
     @action
     pullData = async () => {
+        this.setPulledData(null);
+        let param = '';
+
+        if (this.params.length > 0) {
+            param = encodeData(this.params);
+        }
+
         if (this.url !== '') {
             try {
-                const response = await axios.get(this.url);
+                let response;
+                if (this.username !== '' && this.password !== '') {
+                    this.setPulling(true);
+                    response = await axios.get(this.url + '?' + param, {
+                        params: {},
+                        withCredentials: true,
+                        auth: {
+                            username: this.username,
+                            password: this.password
+                        }
+                    });
+                } else {
+                    this.setPulling(true);
+                    response = await axios.get(this.url + '?' + param);
+                }
+
                 if (response.status === 200) {
                     const {data} = response;
-                    this.setPulledData(data);
-                } else {
-                    console.log(response);
+                    if (this.responseKey && this.responseKey !== '') {
+                        this.setPulledData(data[this.responseKey]);
+                    } else {
+                        this.setPulledData(data);
+                    }
+
+                    this.setPulling(false)
                 }
             } catch (e) {
-                console.log(e);
+                NotificationManager.error(e.message, 'Error', 5000);
+                this.setPulling(false)
             }
         }
     };
@@ -317,6 +383,23 @@ class DataSet {
             if (this.processed && this.processed.length > 0) {
                 const insertResults = await this.insertDataValues({dataValues: this.processed});
                 this.setResponses(insertResults);
+                const {importCount, conflicts} = this.processedResponses;
+                NotificationManager.success(`${importCount.imported}`, 'Imported');
+                NotificationManager.success(`${importCount.deleted}`, 'Deleted');
+                NotificationManager.success(`${importCount.updated}`, 'Updated');
+
+                if (importCount.ignored > 0) {
+                    NotificationManager.warning(`${importCount['ignored']}`, 'Ignored');
+                }
+
+                conflicts.forEach(s => {
+                    NotificationManager.error(`${s.message}`, 'Error');
+                });
+
+                this.setPulledData(null);
+                this.setWorkSheet(null);
+                this.setWorkbook(null);
+                this.setSelectedSheet(null);
             }
         } catch (e) {
             this.setResponses(e);
@@ -331,6 +414,11 @@ class DataSet {
         } else {
             this.responses = [...this.responses, val]
         }
+    };
+
+    @action removeParam = i => () => {
+        const current = [...this.params.slice(0, i), ...this.params.slice(i + 1)];
+        this.setParams(current);
     };
 
     @action deleteAggregate = async aggregates => {
@@ -513,19 +601,16 @@ class DataSet {
                     range: this.headerRow - 1,
                     dateNF: 'YYYY-MM-DD'
                 });
-
                 return nest(data, [this.dataElementColumn.value]);
             } else if (this.cells.length > 0) {
                 return _.fromPairs(this.cells.map(c => {
                     return [c.value, this.workSheet[c.value]]
                 }));
-            } else {
-                return null;
             }
         } else if (this.pulledData && this.dataElementColumn) {
             return nest(this.pulledData, [this.dataElementColumn.value]);
         }
-        return {};
+        return [];
     }
 
     @computed get allCategoryOptionCombos() {
@@ -545,7 +630,6 @@ class DataSet {
     }
 
     @computed get allAttributesMapped() {
-        console.log(this.categories);
         const mappings = this.categoryCombo.categories.map(c => {
             console.log(c);
             return !!c
@@ -562,7 +646,7 @@ class DataSet {
         if (this.orgUnitStrategy) {
             dataSetUnits = _.fromPairs(this.organisationUnits.map(o => {
                 if (this.orgUnitStrategy && this.orgUnitStrategy.value === 'name') {
-                    return [o.name, o.id];
+                    return [o.name.toLowerCase(), o.id];
                 } else if (this.orgUnitStrategy && this.orgUnitStrategy.value === 'code') {
                     return [o.code, o.id];
                 }
@@ -574,6 +658,7 @@ class DataSet {
             const forms = this.forms;
             forms.forEach(f => {
                 if (this.templateType === '1') {
+
                     let validatedData = [];
                     f.dataElements.forEach(element => {
                         if (element.mapping) {
@@ -604,27 +689,29 @@ class DataSet {
                 if (data) {
                     f.categoryOptionCombos.forEach(coc => {
                         if (this.templateType === '1') {
-                            f.categoryOptionCombos.forEach(coc => {
-                                _.forOwn(coc.mapping, (mapping, dataElement) => {
-                                    data.filter(v => {
-                                        return v.categoryOptionCombo === mapping.value.toLocaleLowerCase() && v.dataElement === dataElement;
-                                    }).forEach(d => {
-                                        const attribute = findAttributeCombo(this, d.attributeValue, false);
-                                        if (d['orgUnit'] && attribute) {
-                                            const orgUnit = dataSetUnits[d['orgUnit']];
-                                            if (orgUnit) {
-                                                dataValues = [...dataValues, {
-                                                    dataElement,
-                                                    value: d['value'],
-                                                    period: d['period'],
-                                                    attributeOptionCombo: attribute.id,
-                                                    categoryOptionCombo: coc.id,
-                                                }];
-                                            }
+                            // f.categoryOptionCombos.forEach(coc => {
+                            _.forOwn(coc.mapping, (mapping, dataElement) => {
+                                const filtered = data.filter(v => {
+                                    return mapping && mapping.value && v.categoryOptionCombo === mapping.value.toLocaleLowerCase() && v.dataElement === dataElement;
+                                });
+                                filtered.forEach(d => {
+                                    const attribute = findAttributeCombo(this, d.attributeValue, false);
+                                    if (d['orgUnit'] && attribute) {
+                                        const orgUnit = dataSetUnits[d['orgUnit']];
+                                        if (orgUnit) {
+                                            dataValues = [...dataValues, {
+                                                dataElement,
+                                                value: d['value'],
+                                                period: d['period'],
+                                                attributeOptionCombo: attribute.id,
+                                                categoryOptionCombo: coc.id,
+                                                orgUnit
+                                            }];
                                         }
-                                    });
+                                    }
                                 });
                             });
+                            // });
                         } else if (this.templateType === '2') {
                             _.forOwn(coc.cell, (mapping, dataElement) => {
                                 let orgUnit;
@@ -673,7 +760,6 @@ class DataSet {
                         } else if (this.templateType === '3') {
                             if (this.rows) {
                                 this.rows.forEach(r => {
-
                                     const rowData = this.categoryCombo.categories.map(category => {
                                         const optionCell = category.mapping.value + r;
                                         const optionValue = this.data[optionCell];
@@ -846,7 +932,11 @@ class DataSet {
                 'organisationCell',
                 'dataStartColumn',
                 'templateType',
-                'cell2'
+                'cell2',
+                'username',
+                'password',
+                'params',
+                'responseKey'
             ])
     }
 

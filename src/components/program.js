@@ -80,18 +80,7 @@ class Program extends React.Component {
     };
 
     render() {
-        const {classes, baseUrl} = this.props;
-        let finish = '';
-        if (this.integrationStore.program && !this.integrationStore.program.displayProgress) {
-            finish = <Button
-                variant="contained"
-                color={this.integrationStore.finishLabel === 'Finish' ? 'primary' : 'secondary'}
-                href={baseUrl}
-                className={this.integrationStore.activeStep < 5 ? classes.hidden : classes.button}
-            >
-                {this.integrationStore.finishLabel}
-            </Button>
-        }
+        const {classes} = this.props;
         return (
             <div>
                 {/*<Fullscreen
@@ -165,15 +154,10 @@ class Program extends React.Component {
                                                 >
                                                     {this.integrationStore.nextLabel}
                                                 </Button>
-
-                                                {finish}
                                             </td>
                                         </tr>
                                         </tbody>
                                     </table>
-                                    <div>
-
-                                    </div>
                                 </div>
                             )}
                         </div>

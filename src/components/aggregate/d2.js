@@ -13,6 +13,7 @@ import Checkbox from "@material-ui/core/Checkbox";
 import FormGroup from '@material-ui/core/FormGroup';
 
 import Radio from '@material-ui/core/Radio';
+import Params from "./Params";
 
 const styles = theme => ({
     block: {
@@ -144,16 +145,6 @@ class D2 extends React.Component {
                                 <FormHelperText>Organisation units will searched using uid by default
                                     please change if your organisation unit column is not
                                     uid</FormHelperText>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <Select
-                                    placeholder="Identifier scheme"
-                                    value={this.integrationStore.dataSet.orgUnitStrategy}
-                                    options={items}
-                                    onChange={this.integrationStore.dataSet.setOrgUnitStrategy}
-                                />
                             </td>
                         </tr>
                         </tbody>
@@ -657,14 +648,66 @@ class D2 extends React.Component {
             columns = this.fileOptions();
             attributesCombos = this.attributeOptions();
             pullSection = <tr>
-                <td valign="top" align="right">
-                    <InputField
+                <td valign="top">
+
+                    <table width="100%">
+                        <tbody>
+                        <tr>
+                            <td>
+                                <InputField
+                                    label="URL"
+                                    type="text"
+                                    fullWidth
+                                    value={dataSet.url}
+                                    onChange={(value) => dataSet.handelURLChange(value)}/>
+                            </td>
+                        </tr>
+                        <tr>
+
+                            <td width="33%">
+                                <InputField
+                                    label="Username"
+                                    type="text"
+                                    fullWidth
+                                    value={dataSet.username}
+                                    onChange={(value) => dataSet.setUsername(value)}/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td width="33%">
+                                <InputField
+                                    label="Password"
+                                    type="text"
+                                    fullWidth
+                                    value={dataSet.password}
+                                    onChange={(value) => this.integrationStore.dataSet.setPassword(value)}/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <InputField
+                                    label="Response key"
+                                    type="text"
+                                    fullWidth
+                                    value={this.integrationStore.dataSet.responseKey}
+                                    onChange={(value) => this.integrationStore.dataSet.setResponseKey(value)}/>
+                                <FormHelperText>If the response is not an array, specify the key which holds the array</FormHelperText>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <Params/>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    {/*<InputField
                         label="URL"
                         type="text"
                         fullWidth
                         value={dataSet.url}
                         onChange={(value) => dataSet.handelURLChange(value)}
-                    />
+                    />*/}
                     <Button
                         variant="contained"
                         color="primary"
@@ -718,7 +761,7 @@ class D2 extends React.Component {
                                         }
                                         label="Fixed excel template"
                                     />
-                                    <FormControlLabel
+                                    {/*<FormControlLabel
                                         control={
                                             <Radio
                                                 checked={dataSet.templateType === "3"}
@@ -728,7 +771,7 @@ class D2 extends React.Component {
                                             />
                                         }
                                         label="Dynamic excel (Excel columns letters)"
-                                    />
+                                    />*/}
                                     <FormControlLabel
                                         control={
                                             <Radio
@@ -737,7 +780,7 @@ class D2 extends React.Component {
                                                 value="4"
                                             />
                                         }
-                                        label="Dynamic excel (Excel column names)"
+                                        label="Dynamic excel template"
                                     />
 
                                 </FormGroup>

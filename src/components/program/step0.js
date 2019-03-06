@@ -17,7 +17,18 @@ import IconButton from '@material-ui/core/IconButton';
 import CloseIcon from '@material-ui/icons/Close';
 import Typography from '@material-ui/core/Typography';
 import Summary from "./Summary";
-import {Delete, ArrowDownward,ArrowUpward} from "@material-ui/icons";
+import {Delete, ArrowDownward, ArrowUpward} from "@material-ui/icons";
+import Params from "./Params";
+import LinearProgress from '@material-ui/core/LinearProgress';
+import CircularProgress from "@material-ui/core/CircularProgress";
+import Select from 'react-select';
+// import ReactCountdownClock from "react-countdown-clock";
+
+// import work from 'webworkify-webpack';
+// let w = work(require.resolve('../../worker.js'));
+/*w.addEventListener('message', event => {
+    console.log(event.data);
+});*/
 
 const DialogTitle = withStyles(theme => ({
     root: {
@@ -82,24 +93,36 @@ class Step0 extends React.Component {
         super(props);
         const {IntegrationStore} = props;
         this.integrationStore = IntegrationStore;
+        this.state = {
+            count: 0
+        };
     }
 
     componentDidMount() {
-        this
-            .integrationStore
-            .checkDataStore();
+        this.integrationStore.checkDataStore();
     }
+
+    // fetchWebWorker = () => {
+    //     w.postMessage("Fetch Users", this.integrationStore.d2);
+
+    //     w.addEventListener("message", event => {
+    //         console.log(event.data);
+    //         this.setState({
+    //             count: event.data.length
+    //         });
+    //     });
+    // };
 
     render() {
         const {classes} = this.props;
         return <div>
+            {this.integrationStore.program.pulling ? <LinearProgress color="secondary"/> : ''}
             <Table
-                columns={['mappingId', 'displayName', 'lastRun']}
+                columns={['mappingId', 'displayName']}
                 rows={this.integrationStore.mappings}
                 contextMenuActions={this.integrationStore.tableActions}
                 contextMenuIcons={
                     {
-
                         delete: <Delete/>,
                         upload: <ArrowUpward/>,
                         download: <ArrowDownward/>
@@ -117,42 +140,49 @@ class Step0 extends React.Component {
                 <DialogTitle id="alert-dialog-title"
                              onClose={this.integrationStore.closeUploadDialog}>{"Upload Excel/CSV"}</DialogTitle>
                 <DialogContent>
-                    <table width="100%" cellPadding="5">
+                    <table width="100%">
                         <tbody>
                         <tr>
-                            <td valign="top" align="center">
-                                <section>
-                                    <div className="dropzone">
-                                        <Dropzone accept=".csv, .xls, .xlsx"
-                                                  onDrop={this.integrationStore.program.onDrop}>
-                                            <p align="center">Drop files here</p>
-                                            <p align="center">
-                                                <Icon
-                                                    className={classes.icon}
-                                                    color="primary"
-                                                    style={{
-                                                        fontSize: 48
-                                                    }}>
-                                                    add_circle
-                                                </Icon>
-                                            </p>
-                                            <p
-                                                align="center"
+                            <td width="20%" valign="top">
+                                <div className="dropzone">
+                                    <Dropzone accept=".csv, .xls, .xlsx"
+                                              onDrop={this.integrationStore.program.onDrop}>
+                                        <p align="center">Drop files here</p>
+                                        <p align="center">
+                                            <Icon
+                                                className={classes.icon}
+                                                color="primary"
                                                 style={{
-                                                    color: 'red'
-                                                }}>{this.integrationStore.program.uploadMessage}</p>
-                                        </Dropzone>
-                                    </div>
-                                </section>
+                                                    fontSize: 48
+                                                }}>
+                                                add_circle
+                                            </Icon>
+                                        </p>
+                                        <p
+                                            align="center"
+                                            style={{
+                                                color: 'red'
+                                            }}>{this.integrationStore.program.uploadMessage}</p>
+
+                                        {this.integrationStore.program.fetchingEntities === 1 && this.integrationStore.program.isTracker ?
+                                            <CircularProgress color="secondary"/> : ''}
+                                    </Dropzone>
+                                </div>
                             </td>
-                        </tr>
-                        <tr>
-                            <td valign="top" align="right">
-                                <Summary/>
+                            <td width="80%" valign="top">
+                                <Select
+                                    placeholder="Select sheet"
+                                    value={this.integrationStore.program.selectedSheet}
+                                    options={this.integrationStore.program.sheets}
+                                    onChange={this.integrationStore.program.setSelectedSheet}
+                                />
                             </td>
                         </tr>
                         </tbody>
                     </table>
+                    <br/>
+                    <br/>
+                    <Summary displayResponse={true}/>
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={this.integrationStore.closeUploadDialog} color="primary">
@@ -161,9 +191,10 @@ class Step0 extends React.Component {
                     <Button
                         variant="contained"
                         color="primary"
-                        disabled={!this.integrationStore.program.data || this.integrationStore.program.data.length === 0}
+                        disabled={this.integrationStore.program.disableCreate}
                         onClick={this.integrationStore.program.create}>
-                        Insert
+                        {this.integrationStore.program.displayProgress ?
+                            <CircularProgress size={24} thickness={4} color="secondary"/> : 'Insert'}
                     </Button>
                 </DialogActions>
             </Dialog>
@@ -178,49 +209,51 @@ class Step0 extends React.Component {
                 <DialogTitle id="alert-dialog-title"
                              onClose={this.integrationStore.closeImportDialog}>{"Import data from API"}</DialogTitle>
                 <DialogContent>
+
                     <table width="100%">
                         <tbody>
                         <tr>
-                            <td valign="top" align="right">
-                                <table width="100%">
-                                    <tbody>
-                                    <tr>
-                                        <td width="34%">
-                                            <InputField
-                                                label="URL"
-                                                type="text"
-                                                fullWidth
-                                                value={this.integrationStore.program.url}
-                                                onChange={(value) => this.integrationStore.program.handelURLChange(value)}/>
-                                        </td>
-                                        <td width="33%">
-                                            <InputField
-                                                label="Date start filter"
-                                                type="text"
-                                                fullWidth
-                                                value={this.integrationStore.program.dateFilter}
-                                                onChange={(value) => this.integrationStore.program.handelDateFilterChange(value)}/>
-                                        </td>
-                                        <td width="33%">
-                                            <InputField
-                                                label="Date end filter"
-                                                type="text"
-                                                fullWidth
-                                                value={this.integrationStore.program.dateEndFilter}
-                                                onChange={(value) => this.integrationStore.program.handelDateEndFilterChange(value)}/>
-                                        </td>
-                                    </tr>
-                                    </tbody>
-                                </table>
+                            <td width="50%">
+                                <InputField
+                                    label="URL"
+                                    type="text"
+                                    fullWidth
+                                    value={this.integrationStore.program.url}
+                                    onChange={(value) => this.integrationStore.program.handelURLChange(value)}/>
+                            </td>
+                            <td width="50%">
+                                <InputField
+                                    label="Response key"
+                                    type="text"
+                                    fullWidth
+                                    value={this.integrationStore.program.responseKey}
+                                    onChange={(value) => this.integrationStore.program.setResponseKey(value)}/>
                             </td>
                         </tr>
                         <tr>
-                            <td>
-                                <Summary/>
+                            <td width="50%">
+                                <InputField
+                                    label="Username"
+                                    type="text"
+                                    fullWidth
+                                    value={this.integrationStore.program.username}
+                                    onChange={(value) => this.integrationStore.program.setUsername(value)}/>
+                            </td>
+                            <td width="50%">
+                                <InputField
+                                    label="Password"
+                                    type="text"
+                                    fullWidth
+                                    value={this.integrationStore.program.password}
+                                    onChange={(value) => this.integrationStore.program.setPassword(value)}/>
                             </td>
                         </tr>
                         </tbody>
                     </table>
+                    <br/>
+                    <Params/>
+                    <br/>
+                    <Summary displayResponse={true}/>
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={this.integrationStore.closeImportDialog} color="primary">
@@ -237,9 +270,10 @@ class Step0 extends React.Component {
                     <Button
                         variant="contained"
                         color="primary"
-                        disabled={!this.integrationStore.program.data || this.integrationStore.program.data.length === 0}
+                        disabled={this.integrationStore.program.disableCreate}
                         onClick={this.integrationStore.program.create}>
-                        Insert
+                        {this.integrationStore.program.displayProgress ?
+                            <CircularProgress size={24} thickness={4} color="secondary"/> : 'Insert'}
                     </Button>
                 </DialogActions>
             </Dialog>

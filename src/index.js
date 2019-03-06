@@ -24,6 +24,7 @@ if (process.env.NODE_ENV === 'development') {
 init({
     baseUrl: baseUrl + 'api'
 }).then(d2 => {
+    window.d2 = d2;
     ReactDOM.render(
         <App d2={d2} baseUrl={baseUrl}/>, document.getElementById('root'));
     registerServiceWorker();

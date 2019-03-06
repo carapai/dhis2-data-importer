@@ -6,17 +6,15 @@ class CategoryOptionCombo {
     @observable name;
     @observable categoryOptions = [];
     @observable mapping = {};
-
+    @observable dataElement;
     @observable cell = {};
     @observable column = {};
-
     @action setId = val => this.id = val;
     @action setName = val => this.name = val;
     @action setCell = val => this.cell = val;
     @action setMapping = val => this.mapping = val;
     @action setColumn = val => this.column = val;
     @action setCategoryOptions = val => this.categoryOptions = val;
-
     @action setCellAll = de => val => {
         const obj = _.fromPairs([[de.id, val]]);
         const c = {...this.cell, ...obj};

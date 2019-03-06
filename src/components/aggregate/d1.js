@@ -29,7 +29,13 @@ class D1 extends React.Component {
         super(props);
         const {IntegrationStore} = props;
         this.integrationStore = IntegrationStore;
+        // this.integrationStore.setLoading(true);
+
+    }
+
+    componentDidMount() {
         this.integrationStore.fetchDataSets();
+        // this.integrationStore.setLoading(false);
     }
 
     render() {

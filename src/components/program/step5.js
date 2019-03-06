@@ -27,7 +27,7 @@ class Step5 extends React.Component {
 
     render() {
         return (
-            <Summary/>
+            <Summary displayResponse={false}/>
         );
     }
 }

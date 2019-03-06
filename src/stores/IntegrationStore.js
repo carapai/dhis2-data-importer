@@ -2,6 +2,8 @@ import {action, computed, configure, observable, toJS} from 'mobx';
 import _ from "lodash";
 
 import {convert, convertAggregate} from '../utils'
+import {NotificationManager} from "react-notifications";
+
 
 configure({
     enforceActions: "observed"
@@ -28,6 +30,8 @@ class IntegrationStore {
     @observable multipleCma = {};
     @observable mappings = [];
     @observable tracker;
+
+    @observable params = [];
 
     @observable programsFilter = '';
     @observable expanded;
@@ -90,18 +94,28 @@ class IntegrationStore {
         this.setImportData(true);
     };
 
+    importAgg = args => {
+        if (args.templateType === "1") {
+            this.setDataSet(args);
+            this.setImportData(true);
+        } else {
+            NotificationManager.warning(`Mapping type does not support API import`, 'Warning');
+        }
+    };
+
 
     @observable tableActions = {
         // logs: this.log,
         delete: this.delete,
-        schedule: this.schedule,
+        // schedule: this.schedule,
         download: this.import,
         upload: this.upload
     };
 
     @observable tableAggActions = {
         delete: this.deleteAgg,
-        upload: this.uploadAgg
+        upload: this.uploadAgg,
+        download: this.importAgg,
     };
 
 
@@ -198,6 +212,7 @@ class IntegrationStore {
 
     @action closeUploadDialog = () => {
         this.setUpload(false);
+        this.setImportData(false);
     };
 
     @action
@@ -269,6 +284,22 @@ class IntegrationStore {
     executeEditIfAllowedAgg = async model => {
         const api = this.d2.Api.getApi();
         const {dataValues} = await api.get('dataSets/' + model.id + '/dataValueSet', {});
+        model.forms.forEach(f => {
+            const des = f.dataElements.map(de => de.id);
+            f.categoryOptionCombos.forEach(coc => {
+
+                const filtered = dataValues.filter(dv => {
+                    return dv.categoryOptionCombo === coc.id && des.indexOf(dv.dataElement) !== -1
+                });
+
+                const mappings = filtered.map(m => {
+                    return [m.dataElement, null]
+                });
+
+                coc.mapping = _.fromPairs(mappings);
+            });
+        });
+
         model = {
             ...model,
             dataValues
@@ -328,6 +359,7 @@ class IntegrationStore {
 
     @action
     fetchDataSets = async () => {
+        this.setLoading(true);
         const api = this.d2.Api.getApi();
         try {
             let {dataSets} = await api.get('dataSets', {
@@ -367,6 +399,8 @@ class IntegrationStore {
         } catch (e) {
             console.log(e)
         }
+
+        this.setLoading(false);
     };
 
 
@@ -448,13 +482,6 @@ class IntegrationStore {
     toggleLoading = (val) => {
         this.loading = val;
     };
-
-    /* @action.bound
-     fetchProgramsSuccess({programs}) {
-         this.programs = programs;
-         this.toggleLoading(false);
-
-     }*/
 
     @action.bound
     createDataStoreSuccess(namespace) {
@@ -539,9 +566,7 @@ class IntegrationStore {
         } else if (this.activeStep === 4) {
             return !this.program.compulsoryDataElements;
         } else if (this.activeStep === 5) {
-            const {newTrackedEntityInstances, newEnrollments, newEvents, trackedEntityInstancesUpdate, eventsUpdate} = this.program.processed;
-            return (newTrackedEntityInstances.length + newEnrollments.length + newEvents.length + eventsUpdate.length +
-                trackedEntityInstancesUpdate.length) === 0;
+            return this.program.disableCreate;
         }
         return false;
 
@@ -550,7 +575,6 @@ class IntegrationStore {
     @computed
     get disableNextAggregate() {
         if (this.activeAggregateStep === 2) {
-            console.log(this.dataSet.categoryCombo);
             if (this.dataSet.templateType === '1') {
                 return !this.dataSet
                     || !this.dataSet.data

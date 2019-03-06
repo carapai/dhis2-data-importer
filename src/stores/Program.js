@@ -7,6 +7,8 @@ import {NotificationManager} from 'react-notifications';
 import XLSX from 'xlsx';
 
 import axios from 'axios';
+import {encodeData} from "../utils";
+import Param from "./Param";
 
 class Program {
     @observable lastUpdated;
@@ -101,6 +103,11 @@ class Program {
 
     @observable total = 0;
     @observable displayProgress = false;
+
+    @observable username = '';
+    @observable password = '';
+    @observable params = [];
+    @observable responseKey = '';
 
 
     constructor(lastUpdated, name, id, programType, displayName, programStages, programTrackedEntityAttributes) {
@@ -240,6 +247,15 @@ class Program {
         this.scheduleType = value.value;
     });
 
+    @action addParam = () => {
+        this.params = [...this.params, new Param()]
+    };
+
+    @action removeParam = i => () => {
+        const current = [...this.params.slice(0, i), ...this.params.slice(i + 1)];
+        this.setParams(current);
+    };
+
     @action setDataSource = val => this.dataSource = val;
 
     @action
@@ -260,7 +276,7 @@ class Program {
 
             fileReader.onprogress = (this.onProgress);
 
-            fileReader.onload = (ex) => {
+            fileReader.onload = async (ex) => {
                 let data = ex.target.result;
                 if (!rABS) {
                     data = new Uint8Array(data);
@@ -268,7 +284,7 @@ class Program {
 
                 const workbook = XLSX.read(data, {
                     type: rABS ? 'binary' : 'array',
-                    cellDates: true,
+                    cellDates: extension !== 'csv',
                     cellNF: false,
                     cellText: false
                 });
@@ -286,6 +302,10 @@ class Program {
                 if (sheets.length > 0) {
                     this.setSelectedSheet(sheets[0])
                 }
+
+                if (this.uniqueIds) {
+                    await this.searchTrackedEntities();
+                }
             };
             if (rABS) {
                 fileReader.readAsBinaryString(f);
@@ -302,30 +322,44 @@ class Program {
 
     @action
     pullData = async () => {
-        let params = {};
-        if (this.dateFilter !== '' && this.dateEndFilter !== '') {
-            if (this.lastRun !== null) {
-                params = {
-                    ...params, ..._.fromPairs([[this.dateFilter, this.lastRun],
-                        [this.dateEndFilter, moment(new Date()).format('YYYY-MM-DD HH:mm:ss')]])
-                };
-            }
+        let param = '';
+
+        if (this.params.length > 0) {
+            param = encodeData(this.params);
         }
+
         if (this.url) {
-            this.setPulling(true);
+
             try {
-                const response = await axios.get(this.url, {
-                    params
-                });
+                let response;
+                if (this.username !== '' && this.password !== '') {
+                    this.setPulling(true);
+                    response = await axios.get(this.url + '?' + param, {
+                        params: {},
+                        withCredentials: true,
+                        auth: {
+                            username: this.username,
+                            password: this.password
+                        }
+                    });
+                } else {
+                    this.setPulling(true);
+                    response = await axios.get(this.url + '?' + param);
+                }
+
                 if (response.status === 200) {
                     let {data} = response;
                     this.setPulling(false);
                     this.setDataSource(3);
-                    this.setPulledData(data);
+
+                    if (this.responseKey && this.responseKey !== '') {
+                        this.setPulledData(data[this.responseKey]);
+                    } else {
+                        this.setPulledData(data);
+                    }
+
                     await this.searchTrackedEntities();
                     this.setLastRun(moment(new Date()).format('YYYY-MM-DD HH:mm:ss'))
-                } else {
-                    this.setPulling(false);
                 }
             } catch (e) {
                 NotificationManager.error(e.message, 'Error', 5000);
@@ -411,8 +445,10 @@ class Program {
     @action setUpdateEntities = val => this.updateEntities = val;
     @action setTrackedEntityInstances = val => this.trackedEntityInstances = val;
     @action setPaging = val => this.paging = val;
-
-
+    @action setUsername = val => this.username = val;
+    @action setPassword = val => this.password = val;
+    @action setParams = val => this.params = val;
+    @action setResponseKey = val => this.responseKey = val;
     @action
     filterAttributes = attributesFilter => {
         attributesFilter = attributesFilter.toLowerCase();
@@ -557,13 +593,16 @@ class Program {
         try {
             if (eventsUpdate.length > 0) {
                 const eventsResults = await this.updateDHISEvents(eventsUpdate);
-                console.log(JSON.stringify(eventsResults));
                 this.setResponses(eventsResults);
             }
         } catch (e) {
             this.setResponses(e);
         }
 
+
+        this.setPulledData(null);
+        this.setWorkbook(null);
+        this.setSelectedSheet(null);
         this.setDisplayProgress(false);
     };
 
@@ -684,6 +723,14 @@ class Program {
     };
 
     @computed
+    get disableCreate() {
+        const {newTrackedEntityInstances, newEnrollments, newEvents, trackedEntityInstancesUpdate, eventsUpdate} = this.processed;
+        return (newTrackedEntityInstances.length + newEnrollments.length + newEvents.length + eventsUpdate.length +
+            trackedEntityInstancesUpdate.length) === 0
+
+    }
+
+    @computed
     get data() {
         if (this.workbook && this.selectedSheet) {
             return XLSX.utils.sheet_to_json(this.workbook.Sheets[this.selectedSheet.value], {
@@ -708,27 +755,29 @@ class Program {
     get columns() {
         if (this.workbook && this.selectedSheet) {
             const workSheet = this.workbook.Sheets[this.selectedSheet.value];
-            const range = XLSX.utils.decode_range(workSheet['!ref']);
-            return _.range(0, range.e.c + 1).map(v => {
-                const cell = XLSX.utils.encode_cell({
-                    r: this.headerRow - 1,
-                    c: v
+            if (workSheet) {
+                const range = XLSX.utils.decode_range(workSheet['!ref']);
+                return _.range(0, range.e.c + 1).map(v => {
+                    const cell = XLSX.utils.encode_cell({
+                        r: this.headerRow - 1,
+                        c: v
+                    });
+                    const cellValue = workSheet[cell];
+                    if (cellValue) {
+                        return {
+                            label: cellValue.v.toString(),
+                            value: cellValue.v.toString()
+                        };
+                    } else {
+                        return {
+                            label: '',
+                            value: ''
+                        };
+                    }
+                }).filter(c => {
+                    return c.label !== '';
                 });
-                const cellValue = workSheet[cell];
-                if (cellValue) {
-                    return {
-                        label: cellValue.v.toString(),
-                        value: cellValue.v.toString()
-                    };
-                } else {
-                    return {
-                        label: '',
-                        value: ''
-                    };
-                }
-            }).filter(c => {
-                return c.label !== '';
-            });
+            }
         } else if (this.pulledData) {
             return _.keys(this.pulledData[0]).map(e => {
                 return {
@@ -739,12 +788,6 @@ class Program {
         }
         return [];
     }
-
-
-    /*@computed
-    get running() {
-        return !(this.percentage >= 100 || this.percentage === 0);
-    }*/
 
     @computed
     get canBeSaved() {
@@ -784,6 +827,10 @@ class Program {
                 // 'conflicts',
                 // 'duplicates',
                 // 'responses',
+                'username',
+                'password',
+                'responseKey',
+                'params',
                 'longitudeColumn',
                 'latitudeColumn',
                 'selectedSheet'
