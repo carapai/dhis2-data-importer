@@ -48,6 +48,9 @@ class DataSet {
 
     @observable params = [];
 
+    @observable isDhis2 = false;
+    @observable dhis2DataSets = [];
+    @observable dhis2DataSet;
 
     @observable d2;
 
@@ -61,6 +64,7 @@ class DataSet {
 
     @observable period;
     @observable displayProgress = false;
+    @observable displayDhis2Progress = false;
 
     @observable organisation;
     @observable organisationColumn;
@@ -71,6 +75,8 @@ class DataSet {
     @observable responses = [];
     @observable cell2 = {};
 
+    @observable pullingErrors = [];
+
     @observable username = '';
 
     @observable password = '';
@@ -80,6 +86,14 @@ class DataSet {
 
     @observable responseKey = '';
 
+    @observable dialogOpen = false;
+
+
+    @action setDialogOpen = val => this.dialogOpen = val;
+
+
+    @action openDialog = () => this.setDialogOpen(true);
+    @action closeDialog = () => this.setDialogOpen(false);
 
     @action
     setD2 = (d2) => {
@@ -119,7 +133,9 @@ class DataSet {
 
     @action setSelectedSheet = val => {
         this.selectedSheet = val;
-        this.setWorkSheet(this.workbook.Sheets[val.value]);
+        if (val && this.workbook) {
+            this.setWorkSheet(this.workbook.Sheets[val.value]);
+        }
     };
 
     @action setWorkbook = val => this.workbook = val;
@@ -143,6 +159,7 @@ class DataSet {
     @action setPeriod = val => this.period = val;
     @action handelURLChange = value => this.url = value;
     @action setDisplayProgress = val => this.displayProgress = val;
+    @action setDisplayDhis2Progress = val => this.displayDhis2Progress = val;
     @action setPulledData = val => this.pulledData = val;
     @action setUrl = val => this.url = val;
     @action setAggregateId = val => this.aggregateId = val;
@@ -150,9 +167,15 @@ class DataSet {
     @action setCell2 = val => this.cell2 = val;
     @action setPulling = val => this.pulling = val;
     @action setUsername = val => this.username = val;
+    @action setDhis2DataSets = val => this.dhis2DataSets = val;
+    @action setIsDhis2 = val => this.isDhis2 = val;
 
     @action setPassword = val => this.password = val;
     @action setResponseKey = val => this.responseKey = val;
+
+    @action addPullingError = val => {
+        this.pullingErrors = [...this.pullingErrors, val];
+    };
 
     @action setParams = val => this.params = val;
 
@@ -170,6 +193,24 @@ class DataSet {
         this.params = [...this.params, new Param()]
     };
 
+    @action addParam2 = param => {
+        this.params = [...this.params, param]
+    };
+
+    @action replaceParam = (p) => {
+
+        const foundParam = _.findIndex(this.params, {
+            param: p.param
+        });
+
+
+        if (foundParam !== -1) {
+            this.params.splice(foundParam, 1, p);
+        } else {
+            this.params = [...this.params, p]
+        }
+    };
+
     @action
     handelHeaderRowChange = value => {
         this.headerRow = value;
@@ -182,6 +223,88 @@ class DataSet {
 
     @action
     handelDataRowStartChange = value => this.dataStartRow = value;
+
+    @action setDhis2DataSet = val => {
+        this.dhis2DataSet = val;
+        if (val.value) {
+            const p = new Param();
+            p.setParam('dataSet');
+            p.setValue(val.value.id);
+            this.replaceParam(p);
+        }
+    };
+
+    @action onCheckIsDhis2 = async event => {
+        this.isDhis2 = event.target.checked;
+        if (this.isDhis2 && this.url !== '' && this.username !== '' && this.password !== '') {
+            this.openDialog();
+            const url = new URL(this.url);
+            const dataURL = url.pathname.split('/');
+
+            const apiIndex = dataURL.indexOf('api');
+
+            const sliced = dataURL.slice(0, apiIndex + 1);
+            const dataSetUrl = url.origin + sliced.join('/') + '/dataSets.json';
+            const response = await axios.get(dataSetUrl, {
+                params: {
+                    paging: false,
+                    fields: 'id,name,code,periodType,dataSetElements[dataElement[id,name,code,valueType,categoryCombo[id,name,categoryOptionCombos[id,name]]]],organisationUnits[id,name,code]'
+                },
+                withCredentials: true,
+                auth: {
+                    username: this.username,
+                    password: this.password
+                }
+            });
+
+            const {data} = response;
+
+            const {dataSets} = data;
+
+            this.setDhis2DataSets(dataSets);
+
+            this.setDataElementColumn({label: 'dataElement', value: 'dataElement'});
+            this.setCategoryOptionComboColumn({label: 'categoryOptionCombo', value: 'categoryOptionCombo'});
+            this.setPeriodColumn({label: 'period', value: 'period'});
+            this.setDataValueColumn({label: 'value', value: 'value'});
+
+            const p1 = new Param();
+            p1.setParam('dataElementIdScheme');
+            p1.setValue('NAME');
+
+            const p2 = new Param();
+            p2.setParam('orgUnitIdScheme');
+            p2.setValue('NAME');
+
+            const p3 = new Param();
+            p3.setParam('includeDeleted');
+            p3.setValue(false);
+
+            const p4 = new Param();
+            p4.setParam('children');
+            p4.setValue(false);
+
+            const p5 = new Param();
+            p5.setParam('categoryOptionComboIdScheme');
+            p5.setValue('NAME');
+
+            this.replaceParam(p1);
+            this.replaceParam(p2);
+            this.replaceParam(p3);
+            this.replaceParam(p4);
+            this.replaceParam(p5);
+
+            this.setOrgUnitStrategy({label: 'name', value: 'name'});
+            this.setOrgUnitColumn({label: 'orgUnit', value: 'orgUnit'});
+
+            this.closeDialog();
+
+        } else {
+            this.setDhis2DataSet(null);
+            this.setDhis2DataSets([]);
+        }
+
+    };
 
     @action
     onDrop = (accepted, rejected) => {
@@ -253,7 +376,23 @@ class DataSet {
                 _.keys(coc.mapping).forEach(k => {
                     const search = form.dataElements.find(de => de.id === k);
                     if (search && search.mapping) {
-                        search.handelMappingChange(this.data, this.categoryOptionComboColumn)(search.mapping);
+                        search.handelMappingChange(this.data, this.categoryOptionComboColumn, this.isDhis2)(search.mapping);
+                        if (this.isDhis2) {
+                            if (this.dhis2DataSet) {
+                                const found = this.dhis2DataSet.value.dataSetElements.find(dde => {
+                                    return dde.dataElement.id === search.id;
+                                });
+
+                                if (found) {
+                                    const cocs = found.dataElement.categoryCombo.categoryOptionCombos.map(coc => {
+                                        return {label: coc.name, value: coc.name}
+                                    });
+                                    search.setUniqueCategoryOptionCombos(cocs);
+                                } else {
+                                    search.setUniqueCategoryOptionCombos([])
+                                }
+                            }
+                        }
                         const match = search.uniqueCategoryOptionCombos.find(ucoc => coc.name === ucoc.value);
                         if (match) {
                             coc.mapping[k] = match;
@@ -363,7 +502,8 @@ class DataSet {
                     this.setPulling(false)
                 }
             } catch (e) {
-                NotificationManager.error(e.message, 'Error', 5000);
+                this.addPullingError(e.response.data);
+                // NotificationManager.error(e.message, 'Error', 5000);
                 this.setPulling(false)
             }
         }
@@ -375,40 +515,80 @@ class DataSet {
         return api.post('dataValueSets', data, {});
     };
 
-
-    @action create = async () => {
-        this.setDisplayProgress(true);
-
+    @action create1 = () => {
         try {
             if (this.processed && this.processed.length > 0) {
-                const insertResults = await this.insertDataValues({dataValues: this.processed});
-                this.setResponses(insertResults);
-                const {importCount, conflicts} = this.processedResponses;
-                NotificationManager.success(`${importCount.imported}`, 'Imported');
-                NotificationManager.success(`${importCount.deleted}`, 'Deleted');
-                NotificationManager.success(`${importCount.updated}`, 'Updated');
-
-                if (importCount.ignored > 0) {
-                    NotificationManager.warning(`${importCount['ignored']}`, 'Ignored');
-                }
-
-                conflicts.forEach(s => {
-                    NotificationManager.error(`${s.message}`, 'Error');
-                });
-
+                const insertResults = this.insertDataValues({dataValues: this.processed});
                 this.setPulledData(null);
                 this.setWorkSheet(null);
                 this.setWorkbook(null);
                 this.setSelectedSheet(null);
+                return insertResults
+            }
+        } catch (e) {
+            this.setResponses(e);
+        }
+    };
+
+
+    @action create = async () => {
+        this.setDisplayProgress(true);
+        this.openDialog();
+        try {
+            if (this.isDhis2) {
+                if (this.dhis2DataSet) {
+                    const orgUnits = this.dhis2DataSet.value.organisationUnits;
+                    const param = new Param();
+                    param.setParam('orgUnit');
+                    const all = orgUnits.map(ou => {
+                        param.setValue(ou.id);
+                        this.replaceParam(param);
+                        return this.pullData().then(data => {
+                            return this.create1();
+                        });
+
+                    });
+
+                    const results = await Promise.all(all);
+                    const filtered = results.filter(r => {
+                        return r
+                    });
+
+                    this.setResponses(filtered);
+                }
+            } else {
+                const results = await this.create1();
+                this.setResponses(results);
             }
         } catch (e) {
             this.setResponses(e);
         }
         this.setDisplayProgress(false);
+        this.closeDialog();
+
+        const {importCount, conflicts} = this.processedResponses;
+        NotificationManager.success(`${importCount.imported}`, 'Imported');
+        NotificationManager.success(`${importCount.deleted}`, 'Deleted');
+        NotificationManager.success(`${importCount.updated}`, 'Updated');
+
+        if (importCount.ignored > 0) {
+            NotificationManager.warning(`${importCount['ignored']}`, 'Ignored');
+        }
+
+        if (this.pullingErrors.length > 0) {
+            const vals = _.groupBy(this.pullingErrors, 'message');
+            _.forOwn(vals, (val, key) => {
+                NotificationManager.error(`${key}`, `Error - Affected ${val.length}`, 10000);
+            })
+        }
+
+        _.uniqBy(conflicts, 'message').forEach(s => {
+            NotificationManager.error(`${s.message}`, 'Error');
+        });
+
     };
 
     @action setResponses = val => {
-
         if (Array.isArray(val)) {
             this.responses = [...this.responses, ...val]
         } else {
@@ -481,11 +661,31 @@ class DataSet {
     @computed get processedResponses() {
         let errors = [];
         let conflicts = [];
-        let importCount = {};
+
+        let updatedTotal = 0;
+        let deletedTotal = 0;
+        let importedTotal = 0;
+        let ignoredTotal = 0;
 
         this.responses.forEach(response => {
             if (response['status'] === 'SUCCESS' || response['status'] === 'WARNING') {
-                importCount = response['importCount'];
+                const {imported, deleted, updated, ignored} = response['importCount'];
+                if (imported) {
+                    importedTotal = importedTotal + imported
+                }
+
+                if (deleted) {
+                    deletedTotal = deletedTotal + deleted
+                }
+
+                if (updated) {
+                    updatedTotal = updatedTotal + updated
+                }
+
+                if (ignored) {
+                    ignoredTotal = ignoredTotal + ignored
+                }
+
                 if (response['conflicts']) {
                     conflicts = [...conflicts, ...response['conflicts']]
                 }
@@ -493,6 +693,12 @@ class DataSet {
                 errors = [...errors, {...response['error']}];
             }
         });
+        const importCount = {
+            deleted: deletedTotal,
+            imported: importedTotal,
+            updated: updatedTotal,
+            ignored: ignoredTotal
+        };
         return {errors, importCount, conflicts}
     }
 
@@ -555,6 +761,11 @@ class DataSet {
         return processed.sort(sorter);
     }
 
+    @computed get processedDhis2DataSets() {
+        return this.dhis2DataSets.map(ds => {
+            return {label: ds.name, value: ds}
+        });
+    }
 
     @computed get cells() {
         let foundCells = [];
@@ -867,14 +1078,22 @@ class DataSet {
                 return {label: o.name, value: o.id};
             });
         }
-
         return [];
     }
 
     @computed get uniqueDataElements() {
-        return _.keys(this.data).map(d => {
-            return {label: d, value: d}
-        });
+        if (this.isDhis2) {
+            if (this.dhis2DataSet) {
+                return this.dhis2DataSet.value.dataSetElements.map(dse => {
+                    return {label: dse.dataElement.name, value: dse.dataElement.name}
+                })
+            }
+            return [];
+        } else {
+            return _.keys(this.data).map(d => {
+                return {label: d, value: d}
+            });
+        }
     }
 
     @computed get periodMapped() {
@@ -936,7 +1155,10 @@ class DataSet {
                 'username',
                 'password',
                 'params',
-                'responseKey'
+                'responseKey',
+                'isDhis2',
+                'dhis2DataSets',
+                'dhis2DataSet'
             ])
     }
 

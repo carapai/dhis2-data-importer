@@ -191,7 +191,7 @@ class Step0 extends React.Component {
                     <Button
                         variant="contained"
                         color="primary"
-                        disabled={this.integrationStore.program.disableCreate}
+                        disabled={this.integrationStore.program.disableCreate || this.integrationStore.program.fetchingEntities === 1}
                         onClick={this.integrationStore.program.create}>
                         {this.integrationStore.program.displayProgress ?
                             <CircularProgress size={24} thickness={4} color="secondary"/> : 'Insert'}
@@ -270,7 +270,7 @@ class Step0 extends React.Component {
                     <Button
                         variant="contained"
                         color="primary"
-                        disabled={this.integrationStore.program.disableCreate}
+                        disabled={this.integrationStore.program.disableCreate || this.integrationStore.program.fetchingEntities === 1}
                         onClick={this.integrationStore.program.create}>
                         {this.integrationStore.program.displayProgress ?
                             <CircularProgress size={24} thickness={4} color="secondary"/> : 'Insert'}

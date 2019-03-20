@@ -16,7 +16,7 @@ class ProgramStage {
     @observable order = 'desc';
 
     @observable eventDateIdentifiesEvent = false;
-    @observable completeEvents = true;
+    @observable completeEvents = false;
     @observable longitudeColumn;
     @observable latitudeColumn;
 
@@ -63,6 +63,7 @@ class ProgramStage {
 
     @action setLongitudeColumn = value => this.longitudeColumn = value;
     @action setLatitudeColumn = value => this.latitudeColumn = value;
+    @action setCompleteEvents = value => this.completeEvents = value;
 
     @computed
     get dataElements() {

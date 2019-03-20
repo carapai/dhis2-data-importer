@@ -236,6 +236,9 @@ export const convertAggregate = (ds, d2) => {
     dataSet.setUrl(ds.url || '');
     dataSet.setTemplateType(ds.templateType || '1');
     dataSet.setCell2(ds.cell2 || {});
+    dataSet.setDhis2DataSets(ds.dhis2DataSets || []);
+    dataSet.setDhis2DataSet(ds.dhis2DataSet || {});
+    dataSet.setIsDhis2(ds.isDhis2);
 
     return dataSet;
 
@@ -266,7 +269,7 @@ export const convert = (program, d2) => {
                 psd.dataElement.valueType,
                 optionSet
             );
-            dataElement.setAsIdentifier(psd.dataElement.identifiesEvent || false);
+            dataElement.setAsIdentifier(psd.dataElement.identifiesEvent);
             const programStageDataElement = new ProgramStageDataElement(psd.compulsory, dataElement);
             if (psd.column) {
                 programStageDataElement.setColumn(psd.column);
@@ -285,7 +288,8 @@ export const convert = (program, d2) => {
             ps.repeatable,
             programStageDataElements
         );
-        programsStage.setEventDateAsIdentifier(ps.eventDateIdentifiesEvent || false);
+        programsStage.setEventDateAsIdentifier(ps.eventDateIdentifiesEvent);
+        programsStage.setCompleteEvents(ps.completeEvents);
         programsStage.setLongitudeColumn(ps.longitudeColumn);
         programsStage.setLatitudeColumn(ps.latitudeColumn);
         programStages = [...programStages, programsStage]

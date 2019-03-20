@@ -12,7 +12,7 @@ import Icon from '@material-ui/core/Icon';
 import {inject, observer} from "mobx-react";
 import {InputField} from "@dhis2/d2-ui-core";
 import FormGroup from '@material-ui/core/FormGroup';
-
+import Params from "./Params";
 
 
 const styles = theme => ({
@@ -81,8 +81,7 @@ class Step2 extends React.Component {
                                 <table width="100%">
                                     <tbody>
                                     <tr>
-                                        <td>Upload file to import</td>
-                                        <td>OR &nbsp;&nbsp;&nbsp;Enter URL and pull</td>
+                                        <td>Upload file to import OR &nbsp;&nbsp;&nbsp;Enter URL and pull</td>
                                     </tr>
                                     <tr>
                                         <td valign="top">
@@ -104,6 +103,8 @@ class Step2 extends React.Component {
                                                 </div>
                                             </section>
                                         </td>
+                                    </tr>
+                                    <tr>
                                         <td valign="top" align="right">
                                             <InputField
                                                 label="URL"
@@ -112,28 +113,45 @@ class Step2 extends React.Component {
                                                 value={program.url}
                                                 onChange={(value) => program.handelURLChange(value)}
                                             />
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
                                             <InputField
-                                                label="Date start filter"
+                                                label="Response key"
                                                 type="text"
                                                 fullWidth
-                                                value={program.dateFilter}
-                                                onChange={(value) => program.handelDateFilterChange(value)}
-                                            />
+                                                value={program.responseKey}
+                                                onChange={(value) => program.setResponseKey(value)}/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
                                             <InputField
-                                                label="Date end filter"
+                                                label="Username"
                                                 type="text"
                                                 fullWidth
-                                                value={program.dateEndFilter}
-                                                onChange={(value) => program.handelDateEndFilterChange(value)}
-                                            />
-
+                                                value={program.username}
+                                                onChange={(value) => program.setUsername(value)}/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
                                             <InputField
-                                                label="Schedule time in minutes"
-                                                type="number"
+                                                label="Password"
+                                                type="text"
                                                 fullWidth
-                                                value={program.scheduleTime}
-                                                onChange={(value) => program.handelScheduleTimeChange(value)}
-                                            />
+                                                value={program.password}
+                                                onChange={(value) => program.setPassword(value)}/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <Params/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
                                             <Button
                                                 variant="contained"
                                                 color="primary"
@@ -141,7 +159,6 @@ class Step2 extends React.Component {
                                                 onClick={program.pullData}>
                                                 Pull
                                             </Button>
-                                            {/*<pre>{JSON.stringify(this.integrationStore.data, null, 2)}</pre>*/}
                                         </td>
                                     </tr>
                                     </tbody>
@@ -268,7 +285,7 @@ class Step2 extends React.Component {
                                     />}
                                 label="Update events"
                             />
-                             <FormControlLabel
+                            <FormControlLabel
                                 control={
                                     <Checkbox
                                         checked={program.createNewEvents}

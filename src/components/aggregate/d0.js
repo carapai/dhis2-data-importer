@@ -23,6 +23,8 @@ import {Delete, ArrowUpward, ArrowDownward} from "@material-ui/icons";
 import Params from "./Params";
 import CircularProgress from "@material-ui/core/CircularProgress";
 import Summary from "./Summary";
+import Checkbox from "@material-ui/core/Checkbox";
+import Progress from "../procgress";
 
 
 const DialogTitle = withStyles(theme => ({
@@ -238,6 +240,21 @@ class D0 extends React.Component {
                                     onChange={(value) => this.integrationStore.dataSet.setPassword(value)}/>
                             </td>
                         </tr>
+                        <tr>
+                            <td width="50%">
+                                <Checkbox checked={this.integrationStore.dataSet.isDhis2}
+                                          onChange={this.integrationStore.dataSet.onCheckIsDhis2}/> From DHIS2
+                            </td>
+
+                            <td width="50%">
+                                {this.integrationStore.dataSet.isDhis2 ? <Select
+                                    placeholder="Identifier scheme"
+                                    value={this.integrationStore.dataSet.dhis2DataSet}
+                                    options={this.integrationStore.dataSet.processedDhis2DataSets}
+                                    onChange={this.integrationStore.dataSet.setDhis2DataSet}
+                                /> : null}
+                            </td>
+                        </tr>
                         </tbody>
                     </table>
                     <br/>
@@ -253,7 +270,7 @@ class D0 extends React.Component {
 
                     <Button
                         variant="contained"
-                        disabled={!this.integrationStore.dataSet.url}
+                        disabled={!this.integrationStore.dataSet.url || this.integrationStore.dataSet.isDhis2}
                         onClick={this.integrationStore.dataSet.pullData}>
                         {this.integrationStore.dataSet.pulling ?
                             <CircularProgress size={24}
@@ -262,7 +279,8 @@ class D0 extends React.Component {
                     <Button
                         variant="contained"
                         color="primary"
-                        disabled={_.keys(this.integrationStore.dataSet.data).length === 0}
+                        disabled={!((this.integrationStore.dataSet.isDhis2 && this.integrationStore.dataSet.dhis2DataSet) || _.keys(this.integrationStore.dataSet.data).length > 0)}
+                        // disabled={this.integrationStore.disableNextAggregate}
                         onClick={this.integrationStore.dataSet.create}>
                         {this.integrationStore.dataSet.displayProgress ?
                             <CircularProgress size={24}
@@ -271,6 +289,9 @@ class D0 extends React.Component {
 
                 </DialogActions>
             </Dialog>
+            {this.integrationStore.dataSet.dialogOpen && this.integrationStore.dataSet.closeDialog ?
+                <Progress open={this.integrationStore.dataSet.dialogOpen}
+                          onClose={this.integrationStore.dataSet.closeDialog}/> : null}
         </div>
     }
 

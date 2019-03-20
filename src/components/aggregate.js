@@ -75,18 +75,7 @@ class Aggregate extends React.Component {
 
     render() {
 
-        const {classes, baseUrl} = this.props;
-        let finish = '';
-        if (this.integrationStore.dataSet && !this.integrationStore.dataSet.displayProgress) {
-            finish = <Button
-                variant="contained"
-                color={this.integrationStore.finishAggregateLabel === 'Finish' ? 'primary' : 'secondary'}
-                href={baseUrl}
-                className={this.integrationStore.activeAggregateStep < 4 ? classes.hidden : classes.button}
-            >
-                {this.integrationStore.finishAggregateLabel}
-            </Button>
-        }
+        const {classes} = this.props;
         return (
             <div>
                 <Card className={classes.card}>
@@ -156,7 +145,6 @@ class Aggregate extends React.Component {
                                                 >
                                                     {this.integrationStore.nextAggregateLabel}
                                                 </Button>
-                                                {finish}
                                             </td>
                                         </tr>
                                         </tbody>

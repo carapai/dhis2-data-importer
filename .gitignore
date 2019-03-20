@@ -27,3 +27,7 @@ json-server.json
 yarn.lock
 
 datim.json
+
+arua.json
+test.json
+worker*

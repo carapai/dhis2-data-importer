@@ -14,6 +14,7 @@ import FormGroup from '@material-ui/core/FormGroup';
 
 import Radio from '@material-ui/core/Radio';
 import Params from "./Params";
+import Progress from "../procgress";
 
 const styles = theme => ({
     block: {
@@ -57,7 +58,6 @@ class D2 extends React.Component {
 
     constructor(props) {
         super(props);
-
         const {IntegrationStore} = props;
         this.integrationStore = IntegrationStore;
 
@@ -691,7 +691,21 @@ class D2 extends React.Component {
                                     fullWidth
                                     value={this.integrationStore.dataSet.responseKey}
                                     onChange={(value) => this.integrationStore.dataSet.setResponseKey(value)}/>
-                                <FormHelperText>If the response is not an array, specify the key which holds the array</FormHelperText>
+                                <FormHelperText>If the response is not an array, specify the key which holds the
+                                    array</FormHelperText>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <Checkbox checked={this.integrationStore.dataSet.isDhis2}
+                                          onChange={this.integrationStore.dataSet.onCheckIsDhis2}/> From DHIS2
+                                <br/>
+                                {this.integrationStore.dataSet.isDhis2 ? <Select
+                                    placeholder="Identifier scheme"
+                                    value={this.integrationStore.dataSet.dhis2DataSet}
+                                    options={this.integrationStore.dataSet.processedDhis2DataSets}
+                                    onChange={this.integrationStore.dataSet.setDhis2DataSet}
+                                /> : null}
                             </td>
                         </tr>
                         <tr>
@@ -877,6 +891,9 @@ class D2 extends React.Component {
                 {fileOptions}
                 </tbody>
             </table>
+
+            <Progress open={this.integrationStore.dataSet.dialogOpen}
+                      onClose={this.integrationStore.dataSet.closeDialog}/>
         </div>
     }
 }

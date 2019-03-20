@@ -1,13 +1,23 @@
-import {action, computed, observable} from 'mobx';
+import {
+    action,
+    computed,
+    observable
+} from 'mobx';
 import _ from 'lodash';
 import moment from 'moment';
-import {generateUid} from 'd2/uid';
-import {NotificationManager} from 'react-notifications';
+import {
+    generateUid
+} from 'd2/uid';
+import {
+    NotificationManager
+} from 'react-notifications';
 
 import XLSX from 'xlsx';
 
 import axios from 'axios';
-import {encodeData} from "../utils";
+import {
+    encodeData
+} from "../utils";
 import Param from "./Param";
 
 class Program {
@@ -56,14 +66,38 @@ class Program {
     @observable rowsPerPage = 5;
 
     @observable paging = {
-        nel: {page: 0, rowsPerPage: 10},
-        nte: {page: 0, rowsPerPage: 10},
-        nev: {page: 0, rowsPerPage: 10},
-        teu: {page: 0, rowsPerPage: 10},
-        evu: {page: 0, rowsPerPage: 10},
-        err: {page: 0, rowsPerPage: 10},
-        con: {page: 0, rowsPerPage: 10},
-        dup: {page: 0, rowsPerPage: 10}
+        nel: {
+            page: 0,
+            rowsPerPage: 10
+        },
+        nte: {
+            page: 0,
+            rowsPerPage: 10
+        },
+        nev: {
+            page: 0,
+            rowsPerPage: 10
+        },
+        teu: {
+            page: 0,
+            rowsPerPage: 10
+        },
+        evu: {
+            page: 0,
+            rowsPerPage: 10
+        },
+        err: {
+            page: 0,
+            rowsPerPage: 10
+        },
+        con: {
+            page: 0,
+            rowsPerPage: 10
+        },
+        dup: {
+            page: 0,
+            rowsPerPage: 10
+        }
     };
 
     @observable orderBy = 'mandatory';
@@ -189,9 +223,14 @@ class Program {
         if (current) {
             change.page = page;
             change.rowsPerPage = current.rowsPerPage;
-            const data = _.fromPairs([[what, change]]);
+            const data = _.fromPairs([
+                [what, change]
+            ]);
 
-            const p = {...this.paging, ...data};
+            const p = {
+                ...this.paging,
+                ...data
+            };
 
             this.setPaging(p);
         }
@@ -204,8 +243,13 @@ class Program {
         if (current) {
             change.rowsPerPage = event.target.value;
             change.page = current.page;
-            const data = _.fromPairs([[what, change]]);
-            const p = {...this.paging, ...data};
+            const data = _.fromPairs([
+                [what, change]
+            ]);
+            const p = {
+                ...this.paging,
+                ...data
+            };
 
             this.setPaging(p);
         }
@@ -284,7 +328,8 @@ class Program {
 
                 const workbook = XLSX.read(data, {
                     type: rABS ? 'binary' : 'array',
-                    cellDates: extension !== 'csv',
+                    // cellDates: extension !== 'csv',
+                    cellDates: true,
                     cellNF: false,
                     cellText: false
                 });
@@ -348,7 +393,9 @@ class Program {
                 }
 
                 if (response.status === 200) {
-                    let {data} = response;
+                    let {
+                        data
+                    } = response;
                     this.setPulling(false);
                     this.setDataSource(3);
 
@@ -466,37 +513,41 @@ class Program {
                     paging: false,
                     ouMode: 'ALL',
                     filter: this.uniqueAttribute + ':IN:' + uniqueId,
-                    fields: 'trackedEntityInstance'
-                })
-            });
-
-            const results = await Promise.all(all);
-
-            const ids = results.map(r => {
-                const {trackedEntityInstances} = r;
-                return trackedEntityInstances.map(t => {
-                    return t.trackedEntityInstance;
-                })
-            });
-
-            const entities = _.chunk(_.flatten(ids), 50).map(ids => ids.join(';'));
-
-            const all1 = entities.map(entityGroup => {
-                return api.get('trackedEntityInstances', {
-                    paging: false,
-                    trackedEntityInstance: entityGroup,
+                    program: this.id,
                     fields: 'trackedEntityInstance,orgUnit,attributes[attribute,value],enrollments[enrollment,program,' +
                         'trackedEntityInstance,trackedEntityType,trackedEntity,enrollmentDate,incidentDate,orgUnit,events[program,trackedEntityInstance,event,' +
                         'eventDate,status,completedDate,coordinate,programStage,orgUnit,dataValues[dataElement,value]]]'
                 })
             });
 
-            const results1 = await Promise.all(all1);
+            const results = await Promise.all(all);
 
-            for (let instance of results1) {
-                const {trackedEntityInstances} = instance;
+            // const ids = results.map(r => {
+            //     const {trackedEntityInstances} = r;
+            //     return trackedEntityInstances.map(t => {
+            //         return t.trackedEntityInstance;
+            //     })
+            // });
+
+            // const entities = _.chunk(_.flatten(ids), 50).map(ids => ids.join(';'));
+
+            // const all1 = entities.map(entityGroup => {
+            //     return api.get('trackedEntityInstances', {
+            //         paging: false,
+            //         trackedEntityInstance: entityGroup,
+
+            //     })
+            // });
+
+            // const results1 = await Promise.all(all1);
+
+            for (let instance of results) {
+                const {
+                    trackedEntityInstances
+                } = instance;
                 instances = [...instances, ...trackedEntityInstances];
             }
+            // console.log(JSON.stringify(instances));
             this.setTrackedEntityInstances(instances);
             this.setFetchingEntities(2);
         }
@@ -548,13 +599,22 @@ class Program {
 
     @action create = async () => {
         this.setDisplayProgress(true);
-        const {newTrackedEntityInstances, newEnrollments, newEvents, trackedEntityInstancesUpdate, eventsUpdate} = this.processed;
+        const {
+            newTrackedEntityInstances,
+            newEnrollments,
+            newEvents,
+            trackedEntityInstancesUpdate,
+            eventsUpdate
+        } = this.processed;
         try {
             if (newTrackedEntityInstances.length > 0) {
-                const instancesResults = await this.insertTrackedEntityInstance({
-                    trackedEntityInstances: newTrackedEntityInstances
+                const chunkedTEI = _.chunk(newTrackedEntityInstances, 250);
+                chunkedTEI.forEach(async tei => {
+                    const instancesResults = await this.insertTrackedEntityInstance({
+                        trackedEntityInstances: tei
+                    });
+                    this.setResponses(instancesResults);
                 });
-                this.setResponses(instancesResults);
             }
         } catch (e) {
             this.setResponses(e);
@@ -562,8 +622,12 @@ class Program {
 
         try {
             if (trackedEntityInstancesUpdate.length > 0) {
-                const instancesResults = await this.updateTrackedEntityInstances(trackedEntityInstancesUpdate);
-                this.setResponses(instancesResults);
+
+                const chunkedTEI = _.chunk(trackedEntityInstancesUpdate, 250);
+                chunkedTEI.forEach(async tei => {
+                    const instancesResults = await this.insertTrackedEntityInstance({trackedEntityInstances: tei});
+                    this.setResponses(instancesResults);
+                });
             }
         } catch (e) {
             this.setResponses(e);
@@ -571,20 +635,26 @@ class Program {
 
         try {
             if (newEnrollments.length > 0) {
-                const enrollmentsResults = await this.insertEnrollment({
-                    enrollments: newEnrollments
-                });
-                this.setResponses(enrollmentsResults);
+                const chunkedEnrollments = _.chunk(newEnrollments, 250);
+                chunkedEnrollments.forEach(async enrollments => {
+                    const enrollmentsResults = await this.insertEnrollment({
+                        enrollments: enrollments
+                    });
+                    this.setResponses(enrollmentsResults);
+                })
             }
         } catch (e) {
             this.setResponses(e);
         }
         try {
             if (newEvents.length > 0) {
-                const eventsResults = await this.insertEvent({
-                    events: newEvents
+                const chunkedEvents = _.chunk(newEvents, 250);
+                chunkedEvents.forEach(async events => {
+                    const eventsResults = await this.insertEvent({
+                        events
+                    });
+                    this.setResponses(eventsResults);
                 });
-                this.setResponses(eventsResults);
             }
         } catch (e) {
             this.setResponses(e);
@@ -592,8 +662,12 @@ class Program {
 
         try {
             if (eventsUpdate.length > 0) {
-                const eventsResults = await this.updateDHISEvents(eventsUpdate);
-                this.setResponses(eventsResults);
+                const chunkedEvents = _.chunk(eventsUpdate, 250);
+                chunkedEvents.forEach(async events => {
+                    const eventsResults = await this.insertEvent({events});
+                    this.setResponses(eventsResults);
+                });
+
             }
         } catch (e) {
             this.setResponses(e);
@@ -607,7 +681,11 @@ class Program {
     };
 
     @action saveMapping = mappings => {
-        const {conflicts, duplicates, errors} = this.processed;
+        const {
+            conflicts,
+            duplicates,
+            errors
+        } = this.processed;
         this.setConflicts(conflicts);
         this.setErrors(errors);
         this.setDuplicates(duplicates);
@@ -724,10 +802,15 @@ class Program {
 
     @computed
     get disableCreate() {
-        const {newTrackedEntityInstances, newEnrollments, newEvents, trackedEntityInstancesUpdate, eventsUpdate} = this.processed;
+        const {
+            newTrackedEntityInstances,
+            newEnrollments,
+            newEvents,
+            trackedEntityInstancesUpdate,
+            eventsUpdate
+        } = this.processed;
         return (newTrackedEntityInstances.length + newEnrollments.length + newEvents.length + eventsUpdate.length +
             trackedEntityInstancesUpdate.length) === 0
-
     }
 
     @computed
@@ -845,11 +928,17 @@ class Program {
 
         this.responses.forEach(response => {
             if (response['httpStatusCode'] === 200) {
-                const {importSummaries} = response['response'];
+                const {
+                    importSummaries
+                } = response['response'];
 
                 if (importSummaries) {
                     importSummaries.forEach(importSummary => {
-                        const {importCount, reference, href} = importSummary;
+                        const {
+                            importCount,
+                            reference,
+                            href
+                        } = importSummary;
                         const url = this.getLocation(href);
                         const pathNames = url.pathname.split('/');
                         const type = pathNames.slice(-2, -1)[0];
@@ -895,9 +984,9 @@ class Program {
 
     @computed
     get programAttributes() {
-        const sorter = this.order === 'desc'
-            ? (a, b) => (b[this.orderBy] < a[this.orderBy] ? -1 : 1)
-            : (a, b) => (a[this.orderBy] < b[this.orderBy] ? -1 : 1);
+        const sorter = this.order === 'desc' ?
+            (a, b) => (b[this.orderBy] < a[this.orderBy] ? -1 : 1) :
+            (a, b) => (a[this.orderBy] < b[this.orderBy] ? -1 : 1);
 
         return this.programTrackedEntityAttributes.filter(item => {
             const displayName = item.trackedEntityAttribute.displayName.toLowerCase();
@@ -962,7 +1051,9 @@ class Program {
             const val = uniqueAttribute ? uniqueAttribute['value'] : null;
             return {
                 ...e,
-                ..._.fromPairs([[this.uniqueAttribute, val]])
+                ..._.fromPairs([
+                    [this.uniqueAttribute, val]
+                ])
             }
         });
         return _.groupBy(entities, this.uniqueAttribute);
@@ -1102,10 +1193,9 @@ class Program {
                                     }];
                                 } else if (value !== undefined) {
                                     conflicts = [...conflicts, {
-                                        error: optionsSet === null ? 'Invalid value ' + value + ' for value type ' + type :
-                                            'Invalid value: ' + value + ', expected: ' + _.map(optionsSet.options, o => {
-                                                return o.code
-                                            }).join(','),
+                                        error: optionsSet === null ? 'Invalid value ' + value + ' for value type ' + type : 'Invalid value: ' + value + ', expected: ' + _.map(optionsSet.options, o => {
+                                            return o.code
+                                        }).join(','),
                                         row: client.client,
                                         column: e.column.value
                                     }]
@@ -1129,7 +1219,8 @@ class Program {
 
                             if (stage.completeEvents) {
                                 event = {
-                                    ...event, ...{
+                                    ...event,
+                                    ...{
                                         status: 'COMPLETED',
                                         completedDate: event['eventDate']
                                     }
@@ -1159,8 +1250,7 @@ class Program {
                             }]
                         } else if (value !== undefined) {
                             conflicts = [...conflicts, {
-                                error: !optionsSet ? 'Invalid value ' + value + ' for value type ' + type :
-                                    'Invalid value ' + value + ' choose from options: ' +
+                                error: !optionsSet ? 'Invalid value ' + value + ' for value type ' + type : 'Invalid value ' + value + ' choose from options: ' +
                                     _.map(optionsSet.options, o => o.code).join(','),
                                 row: client.client,
                                 column: a.column.value
@@ -1242,7 +1332,9 @@ class Program {
                                     const stageInfo = _.find(this.programStages, {
                                         id: stage
                                     });
-                                    const {repeatable} = stageInfo;
+                                    const {
+                                        repeatable
+                                    } = stageInfo;
 
                                     evs = this.removeDuplicates(evs, stageEventFilters);
 
@@ -1272,7 +1364,9 @@ class Program {
                                 const stageInfo = _.find(this.programStages, {
                                     id: stage
                                 });
-                                const {repeatable} = stageInfo;
+                                const {
+                                    repeatable
+                                } = stageInfo;
 
                                 const stageEventFilters = identifierElements[stage];
 
@@ -1285,10 +1379,6 @@ class Program {
                                             const stageEvent = enrollmentEvents[eventIndex];
                                             const merged = _.unionBy(e['dataValues'], stageEvent['dataValues'], 'dataElement');
                                             const differingElements = _.differenceWith(e['dataValues'], stageEvent['dataValues'], _.isEqual);
-                                            console.log(JSON.stringify(stageEvent));
-                                            console.log(JSON.stringify(e));
-                                            console.log(JSON.stringify(differingElements));
-                                            console.log('----------------------------');
                                             if (merged.length > 0 && differingElements.length > 0) {
                                                 const mergedEvent = {
                                                     ...stageEvent,
@@ -1322,7 +1412,7 @@ class Program {
                             });
                         }
                     });
-                } else {
+                } else if (this.createEntities || this.createNewEnrollments || this.createNewEvents) {
                     orgUnits = _.uniq(orgUnits);
                     let orgUnit;
                     if (orgUnits.length > 1) {
@@ -1333,35 +1423,43 @@ class Program {
                     } else if (orgUnits.length === 1) {
                         orgUnit = this.searchOrgUnit(orgUnits[0]);
                         if (orgUnit) {
-                            if (enrollmentDates.length > 0 && this.isTracker && this.createNewEnrollments && this.createEntities) {
+                            if (this.isTracker) {
                                 const trackedEntityInstance = generateUid();
-                                let tei = {
-                                    orgUnit: orgUnit.id,
-                                    attributes: allAttributes[0],
-                                    trackedEntityInstance
-                                };
 
-                                if (this.trackedEntityType && this.trackedEntityType.id) {
-                                    tei = {
-                                        ...tei,
-                                        trackedEntityType: this.trackedEntityType.id
+                                if(this.createEntities){
+                                    let tei = {
+                                        orgUnit: orgUnit.id,
+                                        attributes: allAttributes[0],
+                                        trackedEntityInstance
+                                    };
+
+                                    if (this.trackedEntityType && this.trackedEntityType.id) {
+                                        tei = {
+                                            ...tei,
+                                            trackedEntityType: this.trackedEntityType.id
+                                        }
+                                    } else if (this.trackedEntity && this.trackedEntity.id) {
+                                        tei = {
+                                            ...tei,
+                                            trackedEntity: this.trackedEntity.id
+                                        }
                                     }
-                                } else if (this.trackedEntity && this.trackedEntity.id) {
-                                    tei = {
-                                        ...tei,
-                                        trackedEntity: this.trackedEntity.id
-                                    }
+                                    newTrackedEntityInstances = [...newTrackedEntityInstances, tei];
                                 }
 
-                                newTrackedEntityInstances = [...newTrackedEntityInstances, tei];
+                                if(this.createNewEnrollments){
 
-                                let enrollment = {
-                                    orgUnit: orgUnit.id,
-                                    program: this.id,
-                                    trackedEntityInstance,
-                                    ...enrollmentDates[0],
-                                    enrollment: generateUid()
-                                };
+                                    let enrollment = {
+                                        orgUnit: orgUnit.id,
+                                        program: this.id,
+                                        trackedEntityInstance,
+                                        ...enrollmentDates[0],
+                                        enrollment: generateUid()
+                                    };
+
+                                    newEnrollments = [...newEnrollments, enrollment];
+
+                                }
 
                                 if (this.createNewEvents) {
                                     _.forOwn(groupedEvents, (evs, stage) => {
@@ -1369,7 +1467,9 @@ class Program {
                                         const stageInfo = _.find(this.programStages, {
                                             id: stage
                                         });
-                                        const {repeatable} = stageInfo;
+                                        const {
+                                            repeatable
+                                        } = stageInfo;
                                         evs = evs.map(e => {
                                             return {
                                                 ...e,
@@ -1388,7 +1488,6 @@ class Program {
                                         }
                                     });
                                 }
-                                newEnrollments = [...newEnrollments, enrollment];
                             } else if (!this.isTracker && this.createNewEvents) {
                                 events = events.map(e => {
                                     return {
@@ -1400,8 +1499,8 @@ class Program {
                             }
                         } else {
                             errors = [...errors, {
-                                error: 'Organisation unit ' + orgUnits[0] + ' not found using strategy '
-                                    + this.orgUnitStrategy.value,
+                                error: 'Organisation unit ' + orgUnits[0] + ' not found using strategy ' +
+                                    this.orgUnitStrategy.value,
                                 row: client.client
                             }]
                         }
@@ -1517,8 +1616,8 @@ class Program {
                 });
                 return item.programStage === stage &&
                     moment(item.eventDate, 'YYYY-MM-DD').format('YYYY-MM-DD') ===
-                    moment(e.eventDate, 'YYYY-MM-DD').format('YYYY-MM-DD')
-                    && _.every(filteredAndSame, 'exists');
+                    moment(e.eventDate, 'YYYY-MM-DD').format('YYYY-MM-DD') &&
+                    _.every(filteredAndSame, 'exists');
             } else if (stageEventFilters.elements) {
                 const filteredAndSame = stageEventFilters.elements.map(se => {
                     const foundPrevious = _.filter(item.dataValues, {

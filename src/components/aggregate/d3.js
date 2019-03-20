@@ -39,7 +39,7 @@ class D3 extends React.Component {
                     placeholder="Select mapping"
                     value={de.mapping}
                     options={this.integrationStore.dataSet.uniqueDataElements}
-                    onChange={de.handelMappingChange(this.integrationStore.dataSet.data, this.integrationStore.dataSet.categoryOptionComboColumn)}
+                    onChange={de.handelMappingChange(this.integrationStore.dataSet.data, this.integrationStore.dataSet.categoryOptionComboColumn, this.integrationStore.dataSet.isDhis2)}
                 />
             </td>
         }

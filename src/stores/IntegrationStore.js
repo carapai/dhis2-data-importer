@@ -364,7 +364,7 @@ class IntegrationStore {
         try {
             let {dataSets} = await api.get('dataSets', {
                 paging: false,
-                fields: 'id,name,code,periodType,categoryCombo[id,name,categories[id,name,code,categoryOptions[id,name,code]],categoryOptionCombos[id,name,categoryOptions[id,name]]],dataSetElements[dataElement[id,name,code,valueType,categoryCombo[id,name,categoryOptionCombos[id,name]]]],organisationUnits[id,name,code]'
+                fields: 'id,name,code,periodType,categoryCombo[id,name,categories[id,name,code,categoryOptions[id,name,code]],categoryOptionCombos[id,name,categoryOptions[id,name]]],dataSetElements[dataElement[id,name,code,valueType,categoryCombo[id,name,categoryOptionCombos[id,name]]]],organisationUnits[id,name,code],organisationUnits[id,name,code]'
             });
             dataSets = dataSets.map(dataSet => {
                 const groupedDataElements = _.groupBy(dataSet['dataSetElements'], 'dataElement.categoryCombo.id');
@@ -576,15 +576,16 @@ class IntegrationStore {
     get disableNextAggregate() {
         if (this.activeAggregateStep === 2) {
             if (this.dataSet.templateType === '1') {
-                return !this.dataSet
-                    || !this.dataSet.data
-                    || this.dataSet.data.length === 0
+                if (this.dataSet.isDhis2 && this.dataSet.dhis2DataSet) {
+                    return false;
+                }
+                return _.keys(this.dataSet.data).length === 0
                     || !this.dataSet.ouMapped
                     // || !this.dataSet.allAttributesMapped
                     || !this.dataSet.periodMapped
                     || !this.dataSet.dataElementColumn
                     || !this.dataSet.categoryOptionComboColumn
-                    || !this.dataSet.dataValueColumn
+                    || !this.dataSet.dataValueColumn;
             } else if (this.dataSet.templateType === '2') {
                 return !this.dataSet
                     || !this.dataSet.data
