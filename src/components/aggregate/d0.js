@@ -19,7 +19,7 @@ import Button from '@material-ui/core/Button';
 import Icon from '@material-ui/core/Icon';
 import {InputField} from "@dhis2/d2-ui-core";
 import _ from 'lodash';
-import {Delete, ArrowUpward, ArrowDownward} from "@material-ui/icons";
+import {Delete, ArrowUpward, ArrowDownward, CloudDownload} from "@material-ui/icons";
 import Params from "./Params";
 import CircularProgress from "@material-ui/core/CircularProgress";
 import Summary from "./Summary";
@@ -108,7 +108,8 @@ class D0 extends React.Component {
 
                         delete: <Delete/>,
                         upload: <ArrowUpward/>,
-                        download: <ArrowDownward/>
+                        download: <ArrowDownward/>,
+                        template: <CloudDownload/>
                     }
                 }
                 primaryAction={this.integrationStore.useSavedAggregate}

@@ -87,11 +87,17 @@ class DataSet {
     @observable responseKey = '';
 
     @observable dialogOpen = false;
+    @observable levels = [];
+    @observable currentLevel;
+    @observable selectedDataSet;
 
+    constructor() {
+        if (this.isDhis2) {
+
+        }
+    }
 
     @action setDialogOpen = val => this.dialogOpen = val;
-
-
     @action openDialog = () => this.setDialogOpen(true);
     @action closeDialog = () => this.setDialogOpen(false);
 
@@ -169,10 +175,10 @@ class DataSet {
     @action setUsername = val => this.username = val;
     @action setDhis2DataSets = val => this.dhis2DataSets = val;
     @action setIsDhis2 = val => this.isDhis2 = val;
-
+    @action setLevels = val => this.levels = val;
     @action setPassword = val => this.password = val;
     @action setResponseKey = val => this.responseKey = val;
-
+    @action setCurrentLevel = val => this.currentLevel = val;
     @action addPullingError = val => {
         this.pullingErrors = [...this.pullingErrors, val];
     };
@@ -224,32 +230,91 @@ class DataSet {
     @action
     handelDataRowStartChange = value => this.dataStartRow = value;
 
-    @action setDhis2DataSet = val => {
-        this.dhis2DataSet = val;
-        if (val.value) {
+    @action setDhis2DataSet = val => this.dhis2DataSet = val;
+
+    @action setDhis2DataSetChange = async val => {
+        this.selectedDataSet = val;
+        if (val && val.value) {
             const p = new Param();
             p.setParam('dataSet');
-            p.setValue(val.value.id);
+            p.setValue(val.value);
             this.replaceParam(p);
+            const urlBase = this.getDHIS2Url();
+            const url = `${urlBase}/dataSets/${val.value}.json`;
+            const dataSet = await this.callAxios(url, {
+                paging: false,
+                fields: 'id,name,code,periodType,dataSetElements[dataElement[id,name,code,valueType,categoryCombo[id,name,categoryOptionCombos[id,name]]]]'
+            });
+            this.setDhis2DataSet(dataSet);
         }
     };
 
-    @action onCheckIsDhis2 = async event => {
-        this.isDhis2 = event.target.checked;
+    @action loadLevelsAndDataSets = async () => {
+        const urlBase = this.getDHIS2Url();
+
+        if (urlBase) {
+            const dataSetUrl = urlBase + '/dataSets.json';
+            const orgUnitLevelUrl = urlBase + '/organisationUnitLevels.json';
+
+            const levelResponse = await this.callAxios(orgUnitLevelUrl, {
+                paging: false,
+                fields: 'name,level'
+            });
+
+            const levels = levelResponse.organisationUnitLevels.map(l => {
+                return {label: l.name, value: l.level}
+            });
+
+            this.setLevels(levels);
+
+            const data = await this.callAxios(dataSetUrl, {
+                paging: false,
+                fields: 'id,name'
+            });
+
+
+            const dataSets = data.dataSets.map(d => {
+                return {label: d.name, value: d.id};
+            });
+
+            this.setDhis2DataSets(dataSets);
+        }
+
+    };
+
+    getDHIS2Url = () => {
         if (this.isDhis2 && this.url !== '' && this.username !== '' && this.password !== '') {
-            this.openDialog();
             const url = new URL(this.url);
             const dataURL = url.pathname.split('/');
 
             const apiIndex = dataURL.indexOf('api');
 
             const sliced = dataURL.slice(0, apiIndex + 1);
-            const dataSetUrl = url.origin + sliced.join('/') + '/dataSets.json';
-            const response = await axios.get(dataSetUrl, {
-                params: {
-                    paging: false,
-                    fields: 'id,name,code,periodType,dataSetElements[dataElement[id,name,code,valueType,categoryCombo[id,name,categoryOptionCombos[id,name]]]],organisationUnits[id,name,code]'
-                },
+
+            return url.origin + sliced.join('/');
+        }
+
+        return null
+    };
+
+    pullOrganisationUnits = async () => {
+
+        const baseUrl = this.getDHIS2Url();
+        if (baseUrl) {
+            const url = baseUrl + '/organisationUnits.json';
+            const data = await this.callAxios(url, {level: this.currentLevel.value});
+            if (data) {
+                return data.organisationUnits;
+            }
+        }
+
+        return [];
+    };
+
+    callAxios = async (url, params) => {
+        try {
+            const levelResponse = await axios.get(url, {
+                params,
                 withCredentials: true,
                 auth: {
                     username: this.username,
@@ -257,12 +322,20 @@ class DataSet {
                 }
             });
 
-            const {data} = response;
+            return levelResponse.data;
+        } catch (e) {
+            NotificationManager.error(`Could not fetch data from ${url} ${JSON.stringify(e)}`);
+            return null;
+        }
 
-            const {dataSets} = data;
+    };
 
-            this.setDhis2DataSets(dataSets);
-
+    @action onCheckIsDhis2 = async event => {
+        this.isDhis2 = event.target.checked;
+        const urlBase = this.getDHIS2Url();
+        if (urlBase) {
+            this.openDialog();
+            await this.loadLevelsAndDataSets();
             this.setDataElementColumn({label: 'dataElement', value: 'dataElement'});
             this.setCategoryOptionComboColumn({label: 'categoryOptionCombo', value: 'categoryOptionCombo'});
             this.setPeriodColumn({label: 'period', value: 'period'});
@@ -282,7 +355,7 @@ class DataSet {
 
             const p4 = new Param();
             p4.setParam('children');
-            p4.setValue(false);
+            p4.setValue(true);
 
             const p5 = new Param();
             p5.setParam('categoryOptionComboIdScheme');
@@ -300,6 +373,7 @@ class DataSet {
             this.closeDialog();
 
         } else {
+            this.setLevels([]);
             this.setDhis2DataSet(null);
             this.setDhis2DataSets([]);
         }
@@ -341,8 +415,6 @@ class DataSet {
                     this.setSelectedSheet(sheets[0]);
                     this.setWorkSheet(this.workbook.Sheets[this.selectedSheet.value]);
                 }
-
-
                 this.setSheets(sheets);
 
             };
@@ -379,7 +451,7 @@ class DataSet {
                         search.handelMappingChange(this.data, this.categoryOptionComboColumn, this.isDhis2)(search.mapping);
                         if (this.isDhis2) {
                             if (this.dhis2DataSet) {
-                                const found = this.dhis2DataSet.value.dataSetElements.find(dde => {
+                                const found = this.dhis2DataSet.dataSetElements.find(dde => {
                                     return dde.dataElement.id === search.id;
                                 });
 
@@ -460,7 +532,7 @@ class DataSet {
             const namespace = await this.d2.dataStore.get('bridge');
             namespace.set('aggregates', toBeSaved);
         } catch (e) {
-            console.log(e);
+            NotificationManager.error(`Could not save to data store ${JSON.stringify(e)}`, 'Error', 5000);
         }
     };
 
@@ -504,7 +576,9 @@ class DataSet {
             } catch (e) {
                 this.addPullingError(e.response.data);
                 // NotificationManager.error(e.message, 'Error', 5000);
-                this.setPulling(false)
+                this.setPulling(false);
+
+                NotificationManager.error(`Could not pull data ${JSON.stringify(e)}`, 'Error', 5000);
             }
         }
     };
@@ -527,6 +601,7 @@ class DataSet {
             }
         } catch (e) {
             this.setResponses(e);
+            NotificationManager.error(`Could not insert values ${JSON.stringify(e)}`, 'Error', 5000);
         }
     };
 
@@ -537,7 +612,7 @@ class DataSet {
         try {
             if (this.isDhis2) {
                 if (this.dhis2DataSet) {
-                    const orgUnits = this.dhis2DataSet.value.organisationUnits;
+                    const orgUnits = await this.pullOrganisationUnits();
                     const param = new Param();
                     param.setParam('orgUnit');
                     const all = orgUnits.map(ou => {
@@ -546,7 +621,6 @@ class DataSet {
                         return this.pullData().then(data => {
                             return this.create1();
                         });
-
                     });
 
                     const results = await Promise.all(all);
@@ -581,7 +655,6 @@ class DataSet {
                 NotificationManager.error(`${key}`, `Error - Affected ${val.length}`, 10000);
             })
         }
-
         _.uniqBy(conflicts, 'message').forEach(s => {
             NotificationManager.error(`${s.message}`, 'Error');
         });
@@ -613,7 +686,7 @@ class DataSet {
             const namespace = await this.d2.dataStore.get('bridge');
             await namespace.set('aggregates', aggregates);
         } catch (e) {
-            console.log(e);
+            NotificationManager.error(`Could not delete aggregate mapping ${JSON.stringify(e)}`, 'Error', 5000);
         }
     };
 
@@ -842,7 +915,6 @@ class DataSet {
 
     @computed get allAttributesMapped() {
         const mappings = this.categoryCombo.categories.map(c => {
-            console.log(c);
             return !!c
         });
         return _.every(mappings);
@@ -1084,7 +1156,7 @@ class DataSet {
     @computed get uniqueDataElements() {
         if (this.isDhis2) {
             if (this.dhis2DataSet) {
-                return this.dhis2DataSet.value.dataSetElements.map(dse => {
+                return this.dhis2DataSet.dataSetElements.map(dse => {
                     return {label: dse.dataElement.name, value: dse.dataElement.name}
                 })
             }
@@ -1157,8 +1229,8 @@ class DataSet {
                 'params',
                 'responseKey',
                 'isDhis2',
-                'dhis2DataSets',
-                'dhis2DataSet'
+                'selectedDataSet',
+                'currentLevel'
             ])
     }
 

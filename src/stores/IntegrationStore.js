@@ -1,6 +1,6 @@
 import {action, computed, configure, observable, toJS} from 'mobx';
 import _ from "lodash";
-
+import saveAs from 'file-saver';
 import {convert, convertAggregate} from '../utils'
 import {NotificationManager} from "react-notifications";
 
@@ -103,19 +103,24 @@ class IntegrationStore {
         }
     };
 
+    downloadData = args => {
+        const blob = new Blob([JSON.stringify(args.canBeSaved, null, 2)], {type: 'application/json'});
+        saveAs(blob, "data.json");
+    };
+
 
     @observable tableActions = {
-        // logs: this.log,
         delete: this.delete,
-        // schedule: this.schedule,
         download: this.import,
-        upload: this.upload
+        upload: this.upload,
+        template: this.downloadData
     };
 
     @observable tableAggActions = {
         delete: this.deleteAgg,
         upload: this.uploadAgg,
         download: this.importAgg,
+        template: this.downloadData
     };
 
 
@@ -349,11 +354,15 @@ class IntegrationStore {
 
     @action fetchDataValues = async () => {
         const api = this.d2.Api.getApi();
-        const {dataValues} = await api.get('dataSets/' + this.dataSet.id + '/dataValueSet', {});
-        this.setDataSet({
-            ...this.dataSet,
-            dataValues
-        })
+        try {
+            const {dataValues} = await api.get('dataSets/' + this.dataSet.id + '/dataValueSet', {});
+            this.setDataSet({
+                ...this.dataSet,
+                dataValues
+            })
+        } catch (e) {
+            NotificationManager.error(JSON.stringify(e), 'Error', 5000);
+        }
     };
 
 
@@ -397,7 +406,7 @@ class IntegrationStore {
 
             this.setDataSets(dataSets);
         } catch (e) {
-            console.log(e)
+            NotificationManager.error(JSON.stringify(e), 'Error', 5000);
         }
 
         this.setLoading(false);
@@ -434,7 +443,7 @@ class IntegrationStore {
             });
             this.setMappings(processedMappings);
         } catch (e) {
-            console.log(e)
+            NotificationManager.error(JSON.stringify(e), 'Error', 5000);
         }
     };
 
@@ -449,13 +458,8 @@ class IntegrationStore {
             });
             this.setAggregates(processedAggregates);
         } catch (e) {
-            console.log(e)
+            NotificationManager.error('Could not fetch saved aggregate mappings', 'Error', 5000);
         }
-        /*.then(action(namespace => {
-            .then(action(aggregates => {
-
-            }), this.fetchProgramsError);
-        }), this.fetchProgramsError);*/
     };
 
     @action createDataStore = async () => {
@@ -464,9 +468,8 @@ class IntegrationStore {
             const namespace = await this.d2.dataStore.create('bridge');
             namespace.set('mappings', this.mappings);
         } catch (e) {
-            console.log(e);
+            NotificationManager.error('Could not create data store', 'Error', 5000);
         }
-        // .then(this.createDataStoreSuccess, this.fetchProgramsError);
     };
 
     @action createAggregateDataStore = async () => {
@@ -474,7 +477,7 @@ class IntegrationStore {
             const namespace = await this.d2.dataStore.create('bridge');
             namespace.set('aggregates', this.aggregates);
         } catch (e) {
-            console.log(e);
+            NotificationManager.error('Could not create data store', 'Error', 5000);
         }
     };
 
@@ -482,42 +485,6 @@ class IntegrationStore {
     toggleLoading = (val) => {
         this.loading = val;
     };
-
-    @action.bound
-    createDataStoreSuccess(namespace) {
-        namespace.set('mappings', this.mappings);
-    }
-
-    @action.bound
-    fetchSavedMappingSuccess(namespace) {
-        namespace.get('mappings').then(this.fetchMappings, this.fetchProgramsError);
-    }
-
-    @action.bound
-    savedMappingSuccess(namespace) {
-        namespace.set('mappings', toJS(this.mappings));
-    }
-
-    @action.bound
-    fetchMappings(mappings) {
-        this.mappings = mappings.map(m => {
-            return convert(m, this.d2);
-        });
-    }
-
-    @action.bound
-    checkDataStoreSuccess(val) {
-        if (!val) {
-            this.createDataStore()
-        } else {
-            this.fetchSavedMappings();
-        }
-    }
-
-    @action.bound
-    fetchProgramsError(error) {
-        this.error = "error"
-    }
 
     @action
     filterPrograms = (programsFilter) => {

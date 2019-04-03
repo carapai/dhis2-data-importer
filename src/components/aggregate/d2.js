@@ -16,6 +16,8 @@ import Radio from '@material-ui/core/Radio';
 import Params from "./Params";
 import Progress from "../procgress";
 
+import {createParam} from '../../utils'
+
 const styles = theme => ({
     block: {
         display: 'block',
@@ -698,14 +700,34 @@ class D2 extends React.Component {
                         <tr>
                             <td>
                                 <Checkbox checked={this.integrationStore.dataSet.isDhis2}
-                                          onChange={this.integrationStore.dataSet.onCheckIsDhis2}/> From DHIS2
+                                          onChange={this.integrationStore.dataSet.onCheckIsDhis2} value="checked"/> From
+                                DHIS2
                                 <br/>
-                                {this.integrationStore.dataSet.isDhis2 ? <Select
-                                    placeholder="Identifier scheme"
-                                    value={this.integrationStore.dataSet.dhis2DataSet}
-                                    options={this.integrationStore.dataSet.processedDhis2DataSets}
-                                    onChange={this.integrationStore.dataSet.setDhis2DataSet}
-                                /> : null}
+                                {this.integrationStore.dataSet.isDhis2 ? <div>
+                                        <Select
+                                            placeholder="Identifier scheme"
+                                            value={this.integrationStore.dataSet.selectedDataSet}
+                                            options={this.integrationStore.dataSet.dhis2DataSets}
+                                            onChange={this.integrationStore.dataSet.setDhis2DataSetChange}
+                                        />
+                                        <br/>
+                                        <Select
+                                            placeholder="Organisation unit level"
+                                            value={this.integrationStore.dataSet.currentLevel}
+                                            options={this.integrationStore.dataSet.levels}
+                                            onChange={this.integrationStore.dataSet.setCurrentLevel}
+                                        />
+                                        <br/>
+
+                                        <PeriodPicker
+                                            periodType={this.integrationStore.dataSet.periodType}
+                                            onPickPeriod={(value) => this.integrationStore.dataSet.replaceParam(createParam({
+                                                param: 'period',
+                                                value:value
+                                            }))}
+                                        />
+                                    </div>
+                                    : null}
                             </td>
                         </tr>
                         <tr>
@@ -725,7 +747,7 @@ class D2 extends React.Component {
                     <Button
                         variant="contained"
                         color="primary"
-                        disabled={!dataSet.url}
+                        disabled={!dataSet.url || dataSet.isDhis2}
                         onClick={dataSet.pullData}>
                         Pull
                     </Button>

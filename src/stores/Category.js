@@ -26,8 +26,6 @@ class Category {
             return {label: co.name, value: co.id}
         })
     }
-
-
 }
 
 export default Category;

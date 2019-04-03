@@ -51,6 +51,37 @@ class App extends Component {
         d2.i18n.translations['upload'] = 'Upload Excel/CSV';
         // d2.i18n.translations['import'] = 'Import';
         d2.i18n.translations['download'] = 'Import from API';
+        d2.i18n.translations['template'] = 'Download Template';
+        d2.i18n.translations['year'] = 'Year';
+        d2.i18n.translations['sixMonth'] = 'Six Month';
+        d2.i18n.translations['jan-jun'] = 'Jan - Jun';
+        d2.i18n.translations['jul-dec'] = 'Jul - Dec';
+
+        d2.i18n.translations['assign_all'] = 'Assign all';
+        d2.i18n.translations['hidden_by_filters'] = 'Hidden by filters';
+        d2.i18n.translations['day'] = 'Day';
+
+        d2.i18n.translations['year'] = 'Year';
+        d2.i18n.translations['week'] = 'Week';
+        d2.i18n.translations['day'] = 'Day';
+        d2.i18n.translations['month'] = 'Month';
+        d2.i18n.translations['quarter'] = 'Quarter';
+        d2.i18n.translations['jan'] = 'January';
+        d2.i18n.translations['feb'] = 'February';
+        d2.i18n.translations['mar'] = 'March';
+        d2.i18n.translations['apr'] = 'April';
+        d2.i18n.translations['may'] = 'May';
+        d2.i18n.translations['jun'] = 'June';
+        d2.i18n.translations['jul'] = 'July';
+        d2.i18n.translations['aug'] = 'August';
+        d2.i18n.translations['sep'] = 'September';
+        d2.i18n.translations['oct'] = 'October';
+        d2.i18n.translations['nov'] = 'November';
+        d2.i18n.translations['dec'] = 'December';
+        d2.i18n.translations['Q1'] = 'Q1';
+        d2.i18n.translations['Q2'] = 'Q2';
+        d2.i18n.translations['Q3'] = 'Q3';
+        d2.i18n.translations['Q4'] = 'Q4';
 
         this.state = {
             d2,

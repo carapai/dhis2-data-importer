@@ -236,9 +236,10 @@ export const convertAggregate = (ds, d2) => {
     dataSet.setUrl(ds.url || '');
     dataSet.setTemplateType(ds.templateType || '1');
     dataSet.setCell2(ds.cell2 || {});
-    dataSet.setDhis2DataSets(ds.dhis2DataSets || []);
-    dataSet.setDhis2DataSet(ds.dhis2DataSet || {});
     dataSet.setIsDhis2(ds.isDhis2);
+    dataSet.setDhis2DataSetChange(ds.selectedDataSet);
+    dataSet.loadLevelsAndDataSets();
+    dataSet.setCurrentLevel(ds.currentLevel);
 
     return dataSet;
 
@@ -411,4 +412,13 @@ export const encodeData = (objs) => {
     return objs.map(s => {
         return encodeURIComponent(s.param) + '=' + encodeURIComponent(s.value)
     }).join('&');
+};
+
+export const createParam = val => {
+    const param = new Param();
+
+    param.setParam(val.param);
+    param.setValue(val.value);
+
+    return param;
 };

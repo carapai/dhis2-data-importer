@@ -17,7 +17,7 @@ import IconButton from '@material-ui/core/IconButton';
 import CloseIcon from '@material-ui/icons/Close';
 import Typography from '@material-ui/core/Typography';
 import Summary from "./Summary";
-import {Delete, ArrowDownward, ArrowUpward} from "@material-ui/icons";
+import {Delete, ArrowDownward, ArrowUpward, CloudDownload} from "@material-ui/icons";
 import Params from "./Params";
 import LinearProgress from '@material-ui/core/LinearProgress';
 import CircularProgress from "@material-ui/core/CircularProgress";
@@ -125,7 +125,8 @@ class Step0 extends React.Component {
                     {
                         delete: <Delete/>,
                         upload: <ArrowUpward/>,
-                        download: <ArrowDownward/>
+                        download: <ArrowDownward/>,
+                        template: <CloudDownload/>
                     }
                 }
                 primaryAction={this.integrationStore.useSaved}/>
