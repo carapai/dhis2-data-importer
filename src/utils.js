@@ -18,6 +18,7 @@ import ProgramTrackedEntityAttribute from "./stores/ProgramTrackedEntityAttribut
 import Program from "./stores/Program";
 import TrackedEntityType from "./stores/TrackedEntityType";
 import Param from "./stores/Param";
+import moment from "moment";
 
 export const nest = function (seq, keys) {
     if (!keys.length)
@@ -237,9 +238,16 @@ export const convertAggregate = (ds, d2) => {
     dataSet.setTemplateType(ds.templateType || '1');
     dataSet.setCell2(ds.cell2 || {});
     dataSet.setIsDhis2(ds.isDhis2);
-    dataSet.setDhis2DataSetChange(ds.selectedDataSet);
-    dataSet.loadLevelsAndDataSets();
-    dataSet.setCurrentLevel(ds.currentLevel);
+    dataSet.setTemplate(ds.template || 0);
+    dataSet.setMappingName(ds.mappingName || '');
+    dataSet.setMappingDescription(ds.mappingDescription || '');
+    dataSet.setCompleteDataSet(ds.completeDataSet);
+
+    if (dataSet.isDhis2) {
+        dataSet.setDhis2DataSetChange(ds.selectedDataSet);
+        dataSet.loadLevelsAndDataSets();
+        dataSet.setCurrentLevel(ds.currentLevel);
+    }
 
     return dataSet;
 
@@ -376,6 +384,8 @@ export const convert = (program, d2) => {
     p.setSelectedSheet(program.selectedSheet);
     p.setErrors([]);
     p.setConflicts([]);
+    p.setMappingName(program.mappingName || '');
+    p.setMappingDescription(program.mappingDescription || '');
 
     return p;
 };
@@ -395,17 +405,16 @@ export const findAttributeCombo = (dataSet, data, compareId) => {
     });
 };
 
-export const searchTrackedEntityInstance = async (d2, uniqueAttribute, value) => {
-    const api = d2.Api.getApi();
-
-    const instance = await api.get('trackedEntityInstances', {
-        paging: false,
-        ouMode: 'ALL',
-        filter: uniqueAttribute + ':EQ:' + value,
-        fields: 'trackedEntityInstance'
-    });
-    console.log(instance);
-};
+// export const searchTrackedEntityInstance = async (d2, uniqueAttribute, value) => {
+//     const api = d2.Api.getApi();
+//
+//     const instance = await api.get('trackedEntityInstances', {
+//         paging: false,
+//         ouMode: 'ALL',
+//         filter: uniqueAttribute + ':EQ:' + value,
+//         fields: 'trackedEntityInstance'
+//     });
+// };
 
 
 export const encodeData = (objs) => {
@@ -421,4 +430,15 @@ export const createParam = val => {
     param.setValue(val.value);
 
     return param;
+};
+
+export const enumerateDates = (startDate, endDate, addition, format) => {
+    const dates = [];
+    const currDate = moment(startDate).startOf(addition);
+    const lastDate = moment(endDate).startOf(addition);
+    dates.push(currDate.clone().format(format));
+    while (currDate.add(1, addition).diff(lastDate) < 0) {
+        dates.push(currDate.clone().format(format));
+    }
+    return dates;
 };

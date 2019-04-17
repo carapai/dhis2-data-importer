@@ -27,7 +27,6 @@ import ListItem from "@material-ui/core/ListItem";
 import ListItemText from "@material-ui/core/ListItemText";
 import Dialog from "@material-ui/core/Dialog";
 import FormControlLabel from '@material-ui/core/FormControlLabel';
-import Paper from "@material-ui/core/Paper";
 
 
 const styles = theme => ({
@@ -90,7 +89,7 @@ class Step4 extends React.Component {
                                 label="Mark events as complete"
                             />
 
-                            <table width="100%">
+                            <table width="100%" cellPadding="10">
                                 <tbody>
                                 <tr>
                                     <td width="10%">Latitude Column</td>
@@ -114,13 +113,13 @@ class Step4 extends React.Component {
                                 </tr>
                                 <tr>
                                     <td>
-                                    <Button
-                                        variant="contained"
-                                        color="primary"
-                                        onClick={program.loadDefaultDataElements(n)}
-                                    >
-                                        Auto Map
-                                    </Button>
+                                        <Button
+                                            variant="contained"
+                                            color="primary"
+                                            onClick={program.loadDefaultDataElements(n)}
+                                        >
+                                            Auto Map
+                                        </Button>
                                     </td>
                                 </tr>
                                 </tbody>
@@ -134,133 +133,131 @@ class Step4 extends React.Component {
                                 value={n.dataElementsFilter}
                                 onChange={(value) => n.filterDataElements(value)}
                             />
-                            <Paper style={{maxHeight: 300, overflow: 'auto'}}>
-                                <Table className={classes.table}>
-                                    <TableHead>
-                                        <TableRow>
+                            <Table className={classes.table}>
+                                <TableHead>
+                                    <TableRow>
 
-                                            <TableCell
-                                                sortDirection={n.orderBy === 'displayName' ? n.order : false}>
-                                                <Tooltip
-                                                    title="Sort"
-                                                    placement="bottom-start"
-                                                    enterDelay={300}>
-                                                    <TableSortLabel
-                                                        active={n.orderBy === 'displayName'}
-                                                        direction={n.order}
-                                                        onClick={n.createSortHandler('displayName')}
-                                                    >
-                                                        Data Element Name
-                                                    </TableSortLabel>
-                                                </Tooltip>
-                                            </TableCell>
-                                            <TableCell
-                                                sortDirection={n.orderBy === 'compulsory' ? n.order : false}>
-                                                <Tooltip
-                                                    title="Sort"
-                                                    placement="bottom-start"
-                                                    enterDelay={300}>
-                                                    <TableSortLabel
-                                                        active={n.orderBy === 'compulsory'}
-                                                        direction={n.order}
-                                                        onClick={n.createSortHandler('compulsory')}
-                                                    >
-                                                        Compulsory
-                                                    </TableSortLabel>
-                                                </Tooltip>
-                                            </TableCell>
-                                            <TableCell>Uniquely Identifies Event</TableCell>
-                                            <TableCell>Data Element Mapping</TableCell>
-                                            <TableCell>Options Mapping</TableCell>
-                                        </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {n.dataElements.map(s => {
-                                            let de = '';
-                                            if (s.dataElement.optionSet) {
-                                                de = <div>
-                                                    <Button onClick={s.handleClickOpen}>Map Options</Button>
+                                        <TableCell
+                                            sortDirection={n.orderBy === 'displayName' ? n.order : false}>
+                                            <Tooltip
+                                                title="Sort"
+                                                placement="bottom-start"
+                                                enterDelay={300}>
+                                                <TableSortLabel
+                                                    active={n.orderBy === 'displayName'}
+                                                    direction={n.order}
+                                                    onClick={n.createSortHandler('displayName')}
+                                                >
+                                                    Data Element Name
+                                                </TableSortLabel>
+                                            </Tooltip>
+                                        </TableCell>
+                                        <TableCell
+                                            sortDirection={n.orderBy === 'compulsory' ? n.order : false}>
+                                            <Tooltip
+                                                title="Sort"
+                                                placement="bottom-start"
+                                                enterDelay={300}>
+                                                <TableSortLabel
+                                                    active={n.orderBy === 'compulsory'}
+                                                    direction={n.order}
+                                                    onClick={n.createSortHandler('compulsory')}
+                                                >
+                                                    Compulsory
+                                                </TableSortLabel>
+                                            </Tooltip>
+                                        </TableCell>
+                                        <TableCell>Uniquely Identifies Event</TableCell>
+                                        <TableCell>Data Element Mapping</TableCell>
+                                        <TableCell>Options Mapping</TableCell>
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {n.dataElements.map(s => {
+                                        let de = '';
+                                        if (s.dataElement.optionSet) {
+                                            de = <div>
+                                                <Button onClick={s.handleClickOpen}>Map Options</Button>
 
-                                                    <Dialog onClose={s.handleClose} open={s.open}
-                                                            aria-labelledby="simple-dialog-title">
-                                                        <DialogTitle id="simple-dialog-title">Mapping
-                                                            options</DialogTitle>
-                                                        <div>
-                                                            <Table className={classes.table}>
-                                                                <TableHead>
-                                                                    <TableRow>
-                                                                        <TableCell>
-                                                                            Option
-                                                                        </TableCell>
-                                                                        <TableCell>
-                                                                            Value
-                                                                        </TableCell>
-                                                                    </TableRow>
-                                                                </TableHead>
-                                                                <TableBody>
-                                                                    {s.dataElement.optionSet.options.map(o => {
-                                                                        return (
-                                                                            <TableRow key={o.code} hover>
-                                                                                <TableCell>
-                                                                                    {o.name}
-                                                                                </TableCell>
-                                                                                <TableCell>
-                                                                                    <InputField
-                                                                                        label="Value"
-                                                                                        type="text"
-                                                                                        value={o.value}
-                                                                                        onChange={(value) => o.setValue(value)}
-                                                                                    />
-                                                                                </TableCell>
-                                                                            </TableRow>
-                                                                        );
-                                                                    })}
-                                                                </TableBody>
-                                                            </Table>
-                                                            <List>
-                                                                <ListItem button onClick={() => s.handleClose()}>
-                                                                    {/*<ListItemAvatar>
+                                                <Dialog onClose={s.handleClose} open={s.open}
+                                                        aria-labelledby="simple-dialog-title">
+                                                    <DialogTitle id="simple-dialog-title">Mapping
+                                                        options</DialogTitle>
+                                                    <div>
+                                                        <Table className={classes.table}>
+                                                            <TableHead>
+                                                                <TableRow>
+                                                                    <TableCell>
+                                                                        Option
+                                                                    </TableCell>
+                                                                    <TableCell>
+                                                                        Value
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            </TableHead>
+                                                            <TableBody>
+                                                                {s.dataElement.optionSet.options.map(o => {
+                                                                    return (
+                                                                        <TableRow key={o.code} hover>
+                                                                            <TableCell>
+                                                                                {o.name}
+                                                                            </TableCell>
+                                                                            <TableCell>
+                                                                                <InputField
+                                                                                    label="Value"
+                                                                                    type="text"
+                                                                                    value={o.value}
+                                                                                    onChange={(value) => o.setValue(value)}
+                                                                                />
+                                                                            </TableCell>
+                                                                        </TableRow>
+                                                                    );
+                                                                })}
+                                                            </TableBody>
+                                                        </Table>
+                                                        <List>
+                                                            <ListItem button onClick={() => s.handleClose()}>
+                                                                {/*<ListItemAvatar>
                                                                     <Avatar>
                                                                         <AddIcon/>
                                                                     </Avatar>
                                                                 </ListItemAvatar>*/}
-                                                                    <ListItemText primary="Close"/>
-                                                                </ListItem>
-                                                            </List>
-                                                        </div>
-                                                    </Dialog>
-                                                </div>;
-                                            }
-                                            return (
-                                                <TableRow key={s.dataElement.id} hover>
-                                                    <TableCell>
-                                                        {s.dataElement.displayName}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Checkbox disabled checked={s['compulsory']}/>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Checkbox checked={s.dataElement.identifiesEvent}
-                                                                  onChange={s.dataElement.makeAsIdentifier}/>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Select
-                                                            placeholder="Select one"
-                                                            value={s.column}
-                                                            options={program.columns}
-                                                            onChange={s.setColumn}
-                                                        />
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {de}
-                                                    </TableCell>
-                                                </TableRow>
-                                            );
-                                        })}
-                                    </TableBody>
-                                </Table>
-                                {/*<pre>{JSON.stringify(this.integrationStore.dataElements, null, 2)}</pre>*/}
-                            </Paper>
+                                                                <ListItemText primary="Close"/>
+                                                            </ListItem>
+                                                        </List>
+                                                    </div>
+                                                </Dialog>
+                                            </div>;
+                                        }
+                                        return (
+                                            <TableRow key={s.dataElement.id} hover>
+                                                <TableCell>
+                                                    {s.dataElement.displayName}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Checkbox disabled checked={s['compulsory']}/>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Checkbox checked={s.dataElement.identifiesEvent}
+                                                              onChange={s.dataElement.makeAsIdentifier}/>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Select
+                                                        placeholder="Select one"
+                                                        value={s.column}
+                                                        options={program.columns}
+                                                        onChange={s.setColumn}
+                                                    />
+                                                </TableCell>
+                                                <TableCell>
+                                                    {de}
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                            {/*<pre>{JSON.stringify(this.integrationStore.dataElements, null, 2)}</pre>*/}
 
                             <TablePagination
                                 component="div"

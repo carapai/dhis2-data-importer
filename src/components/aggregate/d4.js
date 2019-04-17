@@ -1,14 +1,33 @@
 import {inject, observer} from "mobx-react";
 import React from "react";
 import {withStyles} from "@material-ui/core/styles";
-import {Tab, Tabs} from "@dhis2/d2-ui-core";
-import Badge from "@material-ui/core/Badge/Badge";
-import Table from "@material-ui/core/Table/Table";
-import TableHead from "@material-ui/core/TableHead/TableHead";
-import TableRow from "@material-ui/core/TableRow/TableRow";
-import TableCell from "@material-ui/core/TableCell/TableCell";
-import TableBody from "@material-ui/core/TableBody/TableBody";
-import TablePagination from "@material-ui/core/TablePagination";
+import {Table, Tabs} from 'antd';
+import * as PropTypes from "prop-types";
+import Typography from "@material-ui/core/Typography";
+import Badge from "@material-ui/core/Badge";
+
+const TabPane = Tabs.TabPane;
+
+const columns = [
+    {title: 'Data Element', dataIndex: 'dataElement', key: 'dataElement'},
+    {title: 'Category Option', dataIndex: 'categoryOptionCombo', key: 'categoryOptionCombo'},
+    {title: 'Attribute Combo', dataIndex: 'attributeOptionCombo', key: 'attributeOptionCombo'},
+    {title: 'Period', dataIndex: 'period', key: 'period'},
+    {title: 'Organisation', dataIndex: 'orgUnit', key: 'orgUnit'},
+    {title: 'Value', dataIndex: 'value', key: 'value'},
+];
+
+function TabContainer(props) {
+    return (
+        <Typography component="div" style={{padding: 8 * 3}}>
+            {props.children}
+        </Typography>
+    );
+}
+
+TabContainer.propTypes = {
+    children: PropTypes.node.isRequired,
+};
 
 const styles = theme => ({
     margin: {
@@ -34,67 +53,20 @@ class D4 extends React.Component {
     render() {
         const {dataSet} = this.integrationStore;
         const {classes} = this.props;
-        return <div>
-            {/*<pre>{JSON.stringify(dataSet.canBeSaved, null, 2)}</pre>*/}
-            <Tabs>
-                <Tab label={<Badge className={classes.padding} color="secondary"
-                                   badgeContent={dataSet.processed.length}>Data</Badge>}>
-                    <Table>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>Data Element</TableCell>
-                                <TableCell>CategoryOption</TableCell>
-                                <TableCell>Attribute</TableCell>
-                                <TableCell>Period</TableCell>
-                                <TableCell>Organisation</TableCell>
-                                <TableCell>Value</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {dataSet.currentDataValues.map((s, k) => {
-                                return (
-                                    <TableRow key={k}>
-                                        <TableCell>
-                                            {s.dataElement}
-                                        </TableCell>
-                                        <TableCell>
-                                            {s.categoryOptionCombo}
-                                        </TableCell>
-                                        <TableCell>
-                                            {s.attributeOptionCombo}
-                                        </TableCell>
-                                        <TableCell>
-                                            {s.period}
-                                        </TableCell>
-                                        <TableCell>
-                                            {s.orgUnit}
-                                        </TableCell>
-                                        <TableCell>
-                                            {s.value}
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                            })}
-                        </TableBody>
-                    </Table>
-
-                    <TablePagination
-                        component="div"
-                        count={this.integrationStore.dataSet.processed.length}
-                        rowsPerPage={this.integrationStore.dataSet.rowsPerPage}
-                        page={this.integrationStore.dataSet.page}
-                        backIconButtonProps={{
-                            'aria-label': 'Previous Page',
-                        }}
-                        nextIconButtonProps={{
-                            'aria-label': 'Next Page',
-                        }}
-                        onChangePage={this.integrationStore.dataSet.handleChangePage}
-                        onChangeRowsPerPage={this.integrationStore.dataSet.handleChangeRowsPerPage}
-                    />
-                </Tab>
-            </Tabs>
-        </div>
+        return <Tabs defaultActiveKey="1">
+            <TabPane tab={<Badge color="secondary" className={classes.padding}
+                                 badgeContent={dataSet.processed.length}>
+                Data</Badge>} key="1">
+                <Table
+                    columns={columns}
+                    rowKey="id"
+                    dataSource={dataSet.finalData}
+                />
+            </TabPane>
+            <TabPane tab="Code" key="2">
+                <pre>{JSON.stringify(dataSet.processed)}</pre>
+            </TabPane>
+        </Tabs>
     }
 
 }

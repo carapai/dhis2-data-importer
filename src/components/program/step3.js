@@ -20,10 +20,13 @@ import DialogTitle from "@material-ui/core/DialogTitle";
 import List from "@material-ui/core/List";
 import ListItem from "@material-ui/core/ListItem";
 import ListItemText from "@material-ui/core/ListItemText";
-import Paper from '@material-ui/core/Paper';
 
 
-const styles = theme => ({});
+const styles = theme => ({
+    selected: {
+        backgroundColor: 'yellow !important'
+    }
+});
 
 
 @inject('IntegrationStore')
@@ -78,140 +81,139 @@ class Step3 extends React.Component {
                 onChange={(value) => program.filterAttributes(value)}
             />
 
-            <Paper style={{maxHeight: 500, overflow: 'auto'}}>
-                <Table className={classes.table}>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell
-                                sortDirection={program.orderBy === 'displayName' ? program.order : false}>
-                                <Tooltip
-                                    title="Sort"
-                                    placement="bottom-start"
-                                    enterDelay={300}>
-                                    <TableSortLabel
-                                        active={program.orderBy === 'displayName'}
-                                        direction={program.order}
-                                        onClick={program.createSortHandler('displayName')}
-                                    >
-                                        Attribute name
-                                    </TableSortLabel>
-                                </Tooltip>
-                            </TableCell>
-                            <TableCell
-                                sortDirection={program.orderBy === 'unique' ? program.order : false}>
-                                <Tooltip
-                                    title="Sort"
-                                    placement="bottom-start"
-                                    enterDelay={300}>
-                                    <TableSortLabel
-                                        active={program.orderBy === 'unique'}
-                                        direction={program.order}
-                                        onClick={program.createSortHandler('unique')}
-                                    >
-                                        Unique
-                                    </TableSortLabel>
-                                </Tooltip>
-                            </TableCell>
-                            <TableCell
-                                sortDirection={program.orderBy === 'mandatory' ? program.order : false}>
-                                <Tooltip
-                                    title="Sort"
-                                    placement="bottom-start"
-                                    enterDelay={300}>
-                                    <TableSortLabel
-                                        active={program.orderBy === 'mandatory'}
-                                        direction={program.order}
-                                        onClick={program.createSortHandler('mandatory')}
-                                    >
-                                        Mandatory
-                                    </TableSortLabel>
-                                </Tooltip>
-                            </TableCell>
-                            <TableCell>Attribute mapping</TableCell>
-                            <TableCell>Options Mapping</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {program.programAttributes.map(n => {
-                            let de = '';
-                            if (n.trackedEntityAttribute.optionSet) {
-                                de = <div>
-                                    <Button onClick={n.handleClickOpen}>Map Options</Button>
+            <Table className={classes.table}>
+                <TableHead>
+                    <TableRow>
+                        <TableCell
+                            sortDirection={program.orderBy === 'displayName' ? program.order : false}>
+                            <Tooltip
+                                title="Sort"
+                                placement="bottom-start"
+                                enterDelay={300}>
+                                <TableSortLabel
+                                    active={program.orderBy === 'displayName'}
+                                    direction={program.order}
+                                    onClick={program.createSortHandler('displayName')}
+                                >
+                                    Attribute name
+                                </TableSortLabel>
+                            </Tooltip>
+                        </TableCell>
+                        <TableCell
+                            sortDirection={program.orderBy === 'unique' ? program.order : false}>
+                            <Tooltip
+                                title="Sort"
+                                placement="bottom-start"
+                                enterDelay={300}>
+                                <TableSortLabel
+                                    active={program.orderBy === 'unique'}
+                                    direction={program.order}
+                                    onClick={program.createSortHandler('unique')}
+                                >
+                                    Unique
+                                </TableSortLabel>
+                            </Tooltip>
+                        </TableCell>
+                        <TableCell
+                            sortDirection={program.orderBy === 'mandatory' ? program.order : false}>
+                            <Tooltip
+                                title="Sort"
+                                placement="bottom-start"
+                                enterDelay={300}>
+                                <TableSortLabel
+                                    active={program.orderBy === 'mandatory'}
+                                    direction={program.order}
+                                    onClick={program.createSortHandler('mandatory')}
+                                >
+                                    Mandatory
+                                </TableSortLabel>
+                            </Tooltip>
+                        </TableCell>
+                        <TableCell>Attribute mapping</TableCell>
+                        <TableCell>Options Mapping</TableCell>
+                    </TableRow>
+                </TableHead>
+                <TableBody>
+                    {program.programAttributes.map(n => {
+                        let de = '';
+                        if (n.trackedEntityAttribute.optionSet) {
+                            de = <div>
+                                <Button onClick={n.handleClickOpen}>Map Options</Button>
 
-                                    <Dialog onClose={n.handleClose} open={n.open}
-                                            aria-labelledby="simple-dialog-title">
-                                        <DialogTitle id="simple-dialog-title">Mapping options</DialogTitle>
-                                        <div>
-                                            <Table className={classes.table}>
-                                                <TableHead>
-                                                    <TableRow>
-                                                        <TableCell>
-                                                            Option
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            Value
-                                                        </TableCell>
-                                                    </TableRow>
-                                                </TableHead>
-                                                <TableBody>
-                                                    {n.trackedEntityAttribute.optionSet.options.map(o => {
-                                                        return (
-                                                            <TableRow key={o.code} hover>
-                                                                <TableCell>
-                                                                    {o.name}
-                                                                </TableCell>
-                                                                <TableCell>
-                                                                    <InputField
-                                                                        label="Value"
-                                                                        type="text"
-                                                                        value={o.value}
-                                                                        onChange={(value) => o.setValue(value)}
-                                                                    />
-                                                                </TableCell>
-                                                            </TableRow>
-                                                        );
-                                                    })}
-                                                </TableBody>
-                                            </Table>
-                                            <List>
-                                                <ListItem button onClick={() => n.handleClose()}>
-                                                    <ListItemText primary="Close"/>
-                                                </ListItem>
-                                            </List>
-                                        </div>
-                                    </Dialog>
-                                </div>;
-                            }
-                            return (
-                                <TableRow key={n.trackedEntityAttribute.id} hover>
-                                    <TableCell>
-                                        {n.trackedEntityAttribute.displayName}
-                                        {/*<pre>{JSON.stringify(n, null, 2)}</pre>*/}
-                                    </TableCell>
-                                    <TableCell>
-                                        <Checkbox disabled checked={n.trackedEntityAttribute.unique}/>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Checkbox disabled checked={n.mandatory}/>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Select
-                                            placeholder="Select one"
-                                            value={n.column}
-                                            options={program.columns}
-                                            onChange={n.setColumn}
-                                        />
-                                    </TableCell>
+                                <Dialog onClose={n.handleClose} open={n.open}
+                                        aria-labelledby="simple-dialog-title">
+                                    <DialogTitle id="simple-dialog-title">Mapping options</DialogTitle>
+                                    <div>
+                                        <Table className={classes.table}>
+                                            <TableHead>
+                                                <TableRow>
+                                                    <TableCell>
+                                                        Option
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        Value
+                                                    </TableCell>
+                                                </TableRow>
+                                            </TableHead>
+                                            <TableBody>
+                                                {n.trackedEntityAttribute.optionSet.options.map(o => {
+                                                    return (
+                                                        <TableRow key={o.code} hover>
+                                                            <TableCell>
+                                                                {o.name}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <InputField
+                                                                    label="Value"
+                                                                    type="text"
+                                                                    value={o.value}
+                                                                    onChange={(value) => o.setValue(value)}
+                                                                />
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    );
+                                                })}
+                                            </TableBody>
+                                        </Table>
+                                        <List>
+                                            <ListItem button onClick={() => n.handleClose()}>
+                                                <ListItemText primary="Close"/>
+                                            </ListItem>
+                                        </List>
+                                    </div>
+                                </Dialog>
+                            </div>;
+                        }
+                        return (
+                            <TableRow key={n.trackedEntityAttribute.id} hover selected={!!n.column}
+                                      classes={classes}>
+                                <TableCell>
+                                    {n.trackedEntityAttribute.displayName}
+                                    {/*<pre>{JSON.stringify(n, null, 2)}</pre>*/}
+                                </TableCell>
+                                <TableCell>
+                                    <Checkbox disabled checked={n.trackedEntityAttribute.unique}/>
+                                </TableCell>
+                                <TableCell>
+                                    <Checkbox disabled checked={n.mandatory}/>
+                                </TableCell>
+                                <TableCell>
+                                    <Select
+                                        placeholder="Select one"
+                                        value={n.column}
+                                        options={program.columns}
+                                        onChange={n.setColumn}
+                                    />
+                                </TableCell>
 
-                                    <TableCell>
-                                        {de}
-                                    </TableCell>
-                                </TableRow>
-                            );
-                        })}
-                    </TableBody>
-                </Table>
-            </Paper>
+                                <TableCell>
+                                    {de}
+                                </TableCell>
+                            </TableRow>
+                        );
+                    })}
+                </TableBody>
+            </Table>
 
             {/*<pre>{JSON.stringify(this.integrationStore.attributes, null, 2)}</pre>*/}
 

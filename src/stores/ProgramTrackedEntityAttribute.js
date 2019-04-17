@@ -1,4 +1,4 @@
-import {action, observable} from "mobx";
+import {action, observable, computed} from "mobx";
 
 class ProgramTrackedEntityAttribute {
     @observable valueType;
@@ -27,6 +27,13 @@ class ProgramTrackedEntityAttribute {
     handleClose = () => {
         this.setOpen(false);
     };
+
+    @computed get mapped() {
+        if (this.column) {
+            return 1;
+        }
+        return 2;
+    }
 }
 
 export default ProgramTrackedEntityAttribute;

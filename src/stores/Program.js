@@ -64,6 +64,7 @@ class Program {
 
     @observable page = 0;
     @observable rowsPerPage = 5;
+    @observable dialogOpen = false;
 
     @observable paging = {
         nel: {
@@ -142,7 +143,9 @@ class Program {
     @observable password = '';
     @observable params = [];
     @observable responseKey = '';
-
+    @observable fileName;
+    @observable mappingName;
+    @observable mappingDescription;
 
     constructor(lastUpdated, name, id, programType, displayName, programStages, programTrackedEntityAttributes) {
         this.lastUpdated = lastUpdated;
@@ -153,6 +156,10 @@ class Program {
         this.programStages = programStages;
         this.programTrackedEntityAttributes = programTrackedEntityAttributes;
     }
+
+    @action setDialogOpen = val => this.dialogOpen = val;
+    @action openDialog = () => this.setDialogOpen(true);
+    @action closeDialog = () => this.setDialogOpen(false);
 
     @action
     setD2 = (d2) => {
@@ -173,6 +180,16 @@ class Program {
         } else {
             this.handelDataRowStartChange('')
         }
+    };
+
+    @action
+    handleMappingNameChange = value => {
+        this.mappingName = value;
+    };
+
+    @action
+    handleMappingDescriptionChange = value => {
+        this.mappingDescription = value;
     };
 
     @action
@@ -309,6 +326,7 @@ class Program {
         if (accepted.length > 0) {
             this.uploadMessage = '';
             const f = accepted[0];
+            this.setFileName(f.name);
             const fileName = f.name.split('.');
             const extension = fileName.pop();
             if (extension === 'csv') {
@@ -496,6 +514,10 @@ class Program {
     @action setPassword = val => this.password = val;
     @action setParams = val => this.params = val;
     @action setResponseKey = val => this.responseKey = val;
+    @action setFileName = val => this.fileName = val;
+    @action setMappingName = val => this.mappingName = val;
+    @action setMappingDescription = val => this.mappingDescription = val;
+
     @action
     filterAttributes = attributesFilter => {
         attributesFilter = attributesFilter.toLowerCase();
@@ -599,6 +621,7 @@ class Program {
 
     @action create = async () => {
         this.setDisplayProgress(true);
+        this.openDialog();
         const {
             newTrackedEntityInstances,
             newEnrollments,
@@ -609,12 +632,13 @@ class Program {
         try {
             if (newTrackedEntityInstances.length > 0) {
                 const chunkedTEI = _.chunk(newTrackedEntityInstances, 250);
-                chunkedTEI.forEach(async tei => {
+
+                for (const tei of chunkedTEI) {
                     const instancesResults = await this.insertTrackedEntityInstance({
                         trackedEntityInstances: tei
                     });
                     this.setResponses(instancesResults);
-                });
+                }
             }
         } catch (e) {
             this.setResponses(e);
@@ -622,12 +646,11 @@ class Program {
 
         try {
             if (trackedEntityInstancesUpdate.length > 0) {
-
                 const chunkedTEI = _.chunk(trackedEntityInstancesUpdate, 250);
-                chunkedTEI.forEach(async tei => {
+                for (const tei of chunkedTEI) {
                     const instancesResults = await this.insertTrackedEntityInstance({trackedEntityInstances: tei});
                     this.setResponses(instancesResults);
-                });
+                }
             }
         } catch (e) {
             this.setResponses(e);
@@ -636,12 +659,12 @@ class Program {
         try {
             if (newEnrollments.length > 0) {
                 const chunkedEnrollments = _.chunk(newEnrollments, 250);
-                chunkedEnrollments.forEach(async enrollments => {
+                for (const enrollments of chunkedEnrollments) {
                     const enrollmentsResults = await this.insertEnrollment({
                         enrollments: enrollments
                     });
                     this.setResponses(enrollmentsResults);
-                })
+                }
             }
         } catch (e) {
             this.setResponses(e);
@@ -649,12 +672,13 @@ class Program {
         try {
             if (newEvents.length > 0) {
                 const chunkedEvents = _.chunk(newEvents, 250);
-                chunkedEvents.forEach(async events => {
+
+                for (const events of chunkedEvents) {
                     const eventsResults = await this.insertEvent({
                         events
                     });
                     this.setResponses(eventsResults);
-                });
+                }
             }
         } catch (e) {
             this.setResponses(e);
@@ -663,10 +687,11 @@ class Program {
         try {
             if (eventsUpdate.length > 0) {
                 const chunkedEvents = _.chunk(eventsUpdate, 250);
-                chunkedEvents.forEach(async events => {
+
+                for (const events of chunkedEvents) {
                     const eventsResults = await this.insertEvent({events});
                     this.setResponses(eventsResults);
-                });
+                }
 
             }
         } catch (e) {
@@ -678,9 +703,10 @@ class Program {
         this.setWorkbook(null);
         this.setSelectedSheet(null);
         this.setDisplayProgress(false);
+        this.closeDialog();
     };
 
-    @action saveMapping = mappings => {
+    @action saveMapping = async mappings => {
         const {
             conflicts,
             duplicates,
@@ -703,10 +729,13 @@ class Program {
         const toBeSaved = mappings.map(p => {
             return p.canBeSaved;
         });
-
-        this.d2.dataStore.get('bridge').then(action(namespace => {
+        try {
+            const namespace = await this.d2.dataStore.get('bridge');
             namespace.set('mappings', toBeSaved);
-        }), this.fetchProgramsError);
+            NotificationManager.successes('Success', 'Mapping saved successfully', 5000);
+        } catch (e) {
+            NotificationManager.error('Error', JSON.stringify(e), 5000);
+        }
     };
 
     @action deleteMapping = mappings => {
@@ -916,7 +945,9 @@ class Program {
                 'params',
                 'longitudeColumn',
                 'latitudeColumn',
-                'selectedSheet'
+                'selectedSheet',
+                'mappingName',
+                'mappingDescription'
             ])
     }
 
@@ -1426,7 +1457,7 @@ class Program {
                             if (this.isTracker) {
                                 const trackedEntityInstance = generateUid();
 
-                                if(this.createEntities){
+                                if (this.createEntities) {
                                     let tei = {
                                         orgUnit: orgUnit.id,
                                         attributes: allAttributes[0],
@@ -1447,7 +1478,7 @@ class Program {
                                     newTrackedEntityInstances = [...newTrackedEntityInstances, tei];
                                 }
 
-                                if(this.createNewEnrollments){
+                                if (this.createNewEnrollments) {
 
                                     let enrollment = {
                                         orgUnit: orgUnit.id,
@@ -1646,18 +1677,36 @@ class Program {
         });
     };
 
+    @computed get processedAttributes() {
+        const data = this.programTrackedEntityAttributes.map(item => {
+            return [item.trackedEntityAttribute.id, item.trackedEntityAttribute.displayName];
+        });
+        return _.fromPairs(data)
+    }
+
+    @computed get processedDataElements() {
+        let finalDataElements = [];
+
+        for (const stage of this.programStages) {
+            for (const element of stage.programStageDataElements) {
+                finalDataElements = [...finalDataElements, [element.dataElement.id, element.dataElement.name]]
+            }
+        }
+        return _.fromPairs(finalDataElements)
+    }
 
     @computed get currentNewInstances() {
         const {
             newTrackedEntityInstances
         } = this.processed;
 
-        const info = this.paging['nte'];
+        return newTrackedEntityInstances.map(tei => {
+            const attributes = tei.attributes.map(a => {
+                return {...a, name: this.processedAttributes[a.attribute]};
+            });
 
-        if (newTrackedEntityInstances && newTrackedEntityInstances.length > 0) {
-            return newTrackedEntityInstances.slice(info.page * info.rowsPerPage, info.page * info.rowsPerPage + info.rowsPerPage);
-        }
-        return [];
+            return {...tei, attributes}
+        })
     }
 
     @computed get currentNewEnrollments() {
@@ -1678,12 +1727,13 @@ class Program {
             newEvents
         } = this.processed;
 
-        const info = this.paging['nev'];
+        return newEvents.map(event => {
+            const dataValues = event.dataValues.map(e => {
+                return {...e, name: this.processedDataElements[e.dataElement]};
+            });
 
-        if (newEvents && newEvents.length > 0) {
-            return newEvents.slice(info.page * info.rowsPerPage, info.page * info.rowsPerPage + info.rowsPerPage);
-        }
-        return [];
+            return {...event, dataValues}
+        });
     }
 
     @computed get currentInstanceUpdates() {
@@ -1691,12 +1741,13 @@ class Program {
             trackedEntityInstancesUpdate
         } = this.processed;
 
-        const info = this.paging['teu'];
+        return trackedEntityInstancesUpdate.map(tei => {
+            const attributes = tei.attributes.map(a => {
+                return {...a, name: this.processedAttributes[a.attribute]};
+            });
 
-        if (trackedEntityInstancesUpdate && trackedEntityInstancesUpdate.length > 0) {
-            return trackedEntityInstancesUpdate.slice(info.page * info.rowsPerPage, info.page * info.rowsPerPage + info.rowsPerPage);
-        }
-        return [];
+            return {...tei, attributes}
+        });
     }
 
     @computed get currentEventUpdates() {
@@ -1704,12 +1755,13 @@ class Program {
             eventsUpdate
         } = this.processed;
 
-        const info = this.paging['evu'];
+        return eventsUpdate.map(event => {
+            const dataValues = event.dataValues.map(e => {
+                return {...e, name: this.processedDataElements[e.dataElement]};
+            });
 
-        if (eventsUpdate && eventsUpdate.length > 0) {
-            return eventsUpdate.slice(info.page * info.rowsPerPage, info.page * info.rowsPerPage + info.rowsPerPage);
-        }
-        return [];
+            return {...event, dataValues}
+        });
     }
 
     @computed get currentErrors() {

@@ -1,20 +1,21 @@
 import React from "react";
-import Table from "@material-ui/core/Table";
-import TableBody from "@material-ui/core/TableBody";
-import TableCell from "@material-ui/core/TableCell";
-import TableHead from "@material-ui/core/TableHead";
-import TableRow from "@material-ui/core/TableRow";
-// import {Tab, Tabs} from '@dhis2/d2-ui-core';
-import Tabs from '@material-ui/core/Tabs';
+// import Table from "@material-ui/core/Table";
+// import TableBody from "@material-ui/core/TableBody";
+// import TableCell from "@material-ui/core/TableCell";
+// import TableHead from "@material-ui/core/TableHead";
+// import TableRow from "@material-ui/core/TableRow";
+import Tabs2 from '@material-ui/core/Tabs';
 import Tab from '@material-ui/core/Tab';
 import AppBar from '@material-ui/core/AppBar';
 import Badge from '@material-ui/core/Badge';
 import {withStyles} from "@material-ui/core/styles";
 
 import {inject, observer} from "mobx-react";
-import TablePagination from "@material-ui/core/TablePagination";
+// import TablePagination from "@material-ui/core/TablePagination";
 import Typography from "@material-ui/core/Typography";
 import * as PropTypes from "prop-types";
+import {Table, Tabs} from 'antd';
+
 import Step6 from "./step6";
 
 const styles = theme => ({
@@ -43,6 +44,39 @@ TabContainer.propTypes = {
     children: PropTypes.node.isRequired,
 };
 
+const columns = [
+    {title: 'Tracked Entity Instance ID', dataIndex: 'trackedEntityInstance', key: 'trackedEntityInstance'}
+];
+
+const eventColumns = [
+    {title: 'Event ID', dataIndex: 'event', key: 'event'}
+];
+
+const enrollmentColumns = [
+    {title: 'Enrollment ID', dataIndex: 'enrollment', key: 'enrollment'},
+    {title: 'Incident Date', dataIndex: 'incidentDate', key: 'incidentDate'},
+    {title: 'Enrollment Date', dataIndex: 'enrollmentDate', key: 'enrollmentDate'},
+];
+
+const conflictColumns = [
+    {title: 'Row', dataIndex: 'row', key: 'row'},
+    {title: 'Column', dataIndex: 'column', key: 'column'},
+    {title: 'Error', dataIndex: 'error', key: 'error'}
+];
+
+const attributeColumns = [
+    {title: 'UID', dataIndex: 'attribute', key: 'attribute'},
+    {title: 'Name', dataIndex: 'name', key: 'name'},
+    {title: 'Value', dataIndex: 'value', key: 'value'}
+];
+
+const dataValueColumns = [
+    {title: 'UID', dataIndex: 'dataElement', key: 'dataElement'},
+    {title: 'Name', dataIndex: 'name', key: 'name'},
+    {title: 'Value', dataIndex: 'value', key: 'value'}
+];
+
+const TabPane = Tabs.TabPane;
 
 @inject('IntegrationStore')
 @observer
@@ -54,11 +88,12 @@ class Summary extends React.Component {
         super(props);
         const {IntegrationStore} = props;
         this.integrationStore = IntegrationStore;
+        this.state = {
+            value: 0,
+        };
     }
 
-    state = {
-        value: 0,
-    };
+
 
     handleChange = (event, value) => {
         this.setState({value});
@@ -81,7 +116,7 @@ class Summary extends React.Component {
         return (
             <div className={classes.root}>
                 <AppBar position="static" color="primary">
-                    <Tabs
+                    <Tabs2
                         value={value}
                         onChange={this.handleChange}
                         variant="scrollable"
@@ -108,10 +143,28 @@ class Summary extends React.Component {
                         <Tab value={7} label={<Badge color="secondary" className={classes.padding}
                                                      badgeContent={duplicates.length}>Duplicates</Badge>}/>
                         {displayResponse ? <Tab value={8} label="Response"/> : null}
-                    </Tabs>
+                    </Tabs2>
                 </AppBar>
                 {value === 0 && <TabContainer>
-                    <Table>
+                    <Tabs defaultActiveKey="1">
+                        <TabPane tab="Preview" key="1">
+                            <Table
+                                columns={columns}
+                                rowKey="trackedEntityInstances"
+                                expandedRowRender={record => <Table
+                                    columns={attributeColumns}
+                                    dataSource={record.attributes}
+                                    rowKey="attribute"
+                                />}
+                                dataSource={program.currentNewInstances}
+                            />
+                        </TabPane>
+                        <TabPane tab="Code" key="2">
+                            <pre>{JSON.stringify({trackedEntityInstances: newTrackedEntityInstances}, null, 2)}</pre>
+                        </TabPane>
+                    </Tabs>
+
+                    {/*<Table>
                         <TableHead>
                             <TableRow>
                                 <TableCell>Row</TableCell>
@@ -143,26 +196,40 @@ class Summary extends React.Component {
                         }}
                         onChangePage={program.handleChangeElementPage('nte')}
                         onChangeRowsPerPage={program.handleChangeElementRowsPerPage('nte')}
-                    />
+                    />*/}
                 </TabContainer>}
-                {value === 1 && <TabContainer><Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>Row</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {program.currentNewEnrollments.map((s, k) => {
-                            return (
-                                <TableRow key={k}>
-                                    <TableCell>
-                                        {JSON.stringify(s, null, 2)}
-                                    </TableCell>
-                                </TableRow>
-                            );
-                        })}
-                    </TableBody>
-                </Table>
+                {value === 1 && <TabContainer>
+                    <Tabs defaultActiveKey="1">
+                        <TabPane tab="Preview" key="1">
+                            <Table
+                                columns={enrollmentColumns}
+                                dataSource={newEnrollments}
+                                rowKey="enrollment"
+                            />
+                        </TabPane>
+                        <TabPane tab="Code" key="2">
+                            <pre>{JSON.stringify({enrollments: newEnrollments}, null, 2)}</pre>
+                        </TabPane>
+                    </Tabs>
+
+                    {/*<Table>
+                        <TableHead>
+                            <TableRow>
+                                <TableCell>Row</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {program.currentNewEnrollments.map((s, k) => {
+                                return (
+                                    <TableRow key={k}>
+                                        <TableCell>
+                                            {JSON.stringify(s, null, 2)}
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })}
+                        </TableBody>
+                    </Table>
                     <TablePagination
                         component="div"
                         count={newEnrollments.length}
@@ -176,9 +243,30 @@ class Summary extends React.Component {
                         }}
                         onChangePage={program.handleChangeElementPage('nel')}
                         onChangeRowsPerPage={program.handleChangeElementRowsPerPage('nel')}
-                    /></TabContainer>}
+                    />*/}
+                </TabContainer>}
                 {value === 2 && <TabContainer>
-                    <Table>
+
+                    <Tabs defaultActiveKey="1">
+                        <TabPane tab="Preview" key="1">
+                            <Table
+                                columns={eventColumns}
+                                rowKey="event"
+                                expandedRowRender={record => <Table
+                                    columns={dataValueColumns}
+                                    dataSource={record.dataValues}
+                                    rowKey="dataElement"
+                                />}
+                                dataSource={program.currentNewEvents}
+                            />
+                        </TabPane>
+                        <TabPane tab="Code" key="2">
+                            <pre>{JSON.stringify({events: newEvents}, null, 2)}</pre>
+                        </TabPane>
+                    </Tabs>
+
+
+                    {/*<Table>
                         <TableHead>
                             <TableRow>
                                 <TableCell>Row</TableCell>
@@ -210,9 +298,26 @@ class Summary extends React.Component {
                         }}
                         onChangePage={program.handleChangeElementPage('nev')}
                         onChangeRowsPerPage={program.handleChangeElementRowsPerPage('nev')}
-                    /></TabContainer>}
+                    />*/}
+                </TabContainer>}
                 {value === 3 && <TabContainer>
-                    <Table>
+                    <Tabs defaultActiveKey="1">
+                        <TabPane tab="Preview" key="1">
+                            <Table
+                                columns={columns}
+                                expandedRowRender={record => <Table
+                                    columns={attributeColumns}
+                                    dataSource={record.attributes}
+                                    rowKey="attribute"
+                                />}
+                                dataSource={program.currentInstanceUpdates}
+                            />
+                        </TabPane>
+                        <TabPane tab="Code" key="2">
+                            <pre>{JSON.stringify({trackedEntityInstances: trackedEntityInstancesUpdate}, null, 2)}</pre>
+                        </TabPane>
+                    </Tabs>
+                    {/*<Table>
                         <TableHead>
                             <TableRow>
                                 <TableCell>Row</TableCell>
@@ -244,25 +349,44 @@ class Summary extends React.Component {
                         }}
                         onChangePage={program.handleChangeElementPage('teu')}
                         onChangeRowsPerPage={program.handleChangeElementRowsPerPage('teu')}
-                    /></TabContainer>}
-                {value === 4 && <div><Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>Row</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {program.currentEventUpdates.map((s, k) => {
-                            return (
-                                <TableRow key={k}>
-                                    <TableCell>
-                                        {JSON.stringify(s, null, 2)}
-                                    </TableCell>
-                                </TableRow>
-                            );
-                        })}
-                    </TableBody>
-                </Table>
+                    />*/}
+                </TabContainer>}
+                {value === 4 && <TabContainer>
+                    <Tabs defaultActiveKey="1">
+                        <TabPane tab="Preview" key="1">
+                            <Table
+                                columns={eventColumns}
+                                rowKey="event"
+                                expandedRowRender={record => <Table
+                                    columns={dataValueColumns}
+                                    dataSource={record.dataValues}
+                                    rowKey="dataElement"
+                                />}
+                                dataSource={program.currentEventUpdates}
+                            />
+                        </TabPane>
+                        <TabPane tab="Code" key="2">
+                            <pre>{JSON.stringify({events: eventsUpdate}, null, 2)}</pre>
+                        </TabPane>
+                    </Tabs>
+                    {/*<Table>
+                        <TableHead>
+                            <TableRow>
+                                <TableCell>Row</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {program.currentEventUpdates.map((s, k) => {
+                                return (
+                                    <TableRow key={k}>
+                                        <TableCell>
+                                            {JSON.stringify(s, null, 2)}
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })}
+                        </TableBody>
+                    </Table>
                     <TablePagination
                         component="div"
                         count={eventsUpdate.length}
@@ -276,9 +400,16 @@ class Summary extends React.Component {
                         }}
                         onChangePage={program.handleChangeElementPage('evu')}
                         onChangeRowsPerPage={program.handleChangeElementRowsPerPage('evu')}
-                    /></div>}
+                    />*/}
+                </TabContainer>}
                 {value === 5 && <TabContainer>
-                    <Table>
+
+                    <Table
+                        columns={conflictColumns}
+                        rowKey="row"
+                        dataSource={conflicts}
+                    />
+                    {/*<Table>
                         <TableHead>
                             <TableRow>
                                 <TableCell>Row</TableCell>
@@ -318,11 +449,15 @@ class Summary extends React.Component {
                         }}
                         onChangePage={program.handleChangeElementPage('con')}
                         onChangeRowsPerPage={program.handleChangeElementRowsPerPage('con')}
-                    />
+                    />*/}
                 </TabContainer>}
                 {value === 6 && <TabContainer>
-
-                    <Table>
+                    <Table
+                        columns={conflictColumns}
+                        rowKey="row"
+                        dataSource={errors}
+                    />
+                    {/*<Table>
                         <TableHead>
                             <TableRow>
                                 <TableCell>Row</TableCell>
@@ -362,10 +497,10 @@ class Summary extends React.Component {
                         }}
                         onChangePage={program.handleChangeElementPage('err')}
                         onChangeRowsPerPage={program.handleChangeElementRowsPerPage('err')}
-                    />
+                    />*/}
                 </TabContainer>}
                 {value === 7 && <TabContainer>
-                    <Table>
+                    {/* <Table>
                         <TableHead>
                             <TableRow>
                                 <TableCell>Duplicated</TableCell>
@@ -396,7 +531,7 @@ class Summary extends React.Component {
                         }}
                         onChangePage={program.handleChangeElementPage('dup')}
                         onChangeRowsPerPage={program.handleChangeElementRowsPerPage('dup')}
-                    />
+                    />*/}
                 </TabContainer>}
                 {value === 8 && displayResponse && <div><br/><br/><Step6/></div>}
             </div>

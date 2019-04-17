@@ -9,6 +9,7 @@ import TableHead from "@material-ui/core/TableHead";
 import TableRow from "@material-ui/core/TableRow";
 import Badge from '@material-ui/core/Badge';
 import {Tab, Tabs} from '@dhis2/d2-ui-core';
+import Progress from "../progress";
 
 
 const styles = theme => ({
@@ -30,6 +31,9 @@ class Step6 extends React.Component {
         super(props);
         const {IntegrationStore} = props;
         this.integrationStore = IntegrationStore;
+    }
+
+    componentDidMount() {
         this.integrationStore.program.create();
     }
 
@@ -130,6 +134,8 @@ class Step6 extends React.Component {
                     </Table>
                 </Tab>
             </Tabs>
+            <Progress open={this.integrationStore.program.dialogOpen}
+                      onClose={this.integrationStore.program.closeDialog}/>
         </div>
 
     }

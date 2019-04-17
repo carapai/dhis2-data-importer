@@ -22,13 +22,7 @@ import Params from "./Params";
 import LinearProgress from '@material-ui/core/LinearProgress';
 import CircularProgress from "@material-ui/core/CircularProgress";
 import Select from 'react-select';
-// import ReactCountdownClock from "react-countdown-clock";
-
-// import work from 'webworkify-webpack';
-// let w = work(require.resolve('../../worker.js'));
-/*w.addEventListener('message', event => {
-    console.log(event.data);
-});*/
+import Progress from "../progress";
 
 const DialogTitle = withStyles(theme => ({
     root: {
@@ -93,43 +87,33 @@ class Step0 extends React.Component {
         super(props);
         const {IntegrationStore} = props;
         this.integrationStore = IntegrationStore;
-        this.state = {
-            count: 0
-        };
     }
 
     componentDidMount() {
         this.integrationStore.checkDataStore();
     }
 
-    // fetchWebWorker = () => {
-    //     w.postMessage("Fetch Users", this.integrationStore.d2);
-
-    //     w.addEventListener("message", event => {
-    //         console.log(event.data);
-    //         this.setState({
-    //             count: event.data.length
-    //         });
-    //     });
-    // };
-
     render() {
         const {classes} = this.props;
         return <div>
             {this.integrationStore.program.pulling ? <LinearProgress color="secondary"/> : ''}
-            <Table
-                columns={['mappingId', 'displayName']}
-                rows={this.integrationStore.mappings}
-                contextMenuActions={this.integrationStore.tableActions}
-                contextMenuIcons={
-                    {
-                        delete: <Delete/>,
-                        upload: <ArrowUpward/>,
-                        download: <ArrowDownward/>,
-                        template: <CloudDownload/>
+
+            {this.integrationStore.mappings.length > 0 ?
+                <Table
+                    columns={['mappingId', 'mappingName', 'mappingDescription']}
+                    rows={this.integrationStore.mappings}
+                    contextMenuActions={this.integrationStore.tableActions}
+                    contextMenuIcons={
+                        {
+                            delete: <Delete/>,
+                            upload: <ArrowUpward/>,
+                            download: <ArrowDownward/>,
+                            template: <CloudDownload/>
+                        }
                     }
-                }
-                primaryAction={this.integrationStore.useSaved}/>
+                    primaryAction={this.integrationStore.useSaved}/> :
+                <p style={{textAlign: 'center', fontSize: 15}}>There are no items</p>}
+
 
             <Dialog
                 fullWidth={true}
@@ -195,7 +179,7 @@ class Step0 extends React.Component {
                         disabled={this.integrationStore.program.disableCreate || this.integrationStore.program.fetchingEntities === 1}
                         onClick={this.integrationStore.program.create}>
                         {this.integrationStore.program.displayProgress ?
-                            <CircularProgress size={24} thickness={4} color="secondary"/> : 'Insert'}
+                            <CircularProgress size={24} thickness={4} color="secondary"/> : 'Import'}
                     </Button>
                 </DialogActions>
             </Dialog>
@@ -274,10 +258,12 @@ class Step0 extends React.Component {
                         disabled={this.integrationStore.program.disableCreate || this.integrationStore.program.fetchingEntities === 1}
                         onClick={this.integrationStore.program.create}>
                         {this.integrationStore.program.displayProgress ?
-                            <CircularProgress size={24} thickness={4} color="secondary"/> : 'Insert'}
+                            <CircularProgress size={24} thickness={4} color="secondary"/> : 'Import'}
                     </Button>
                 </DialogActions>
             </Dialog>
+            <Progress open={this.integrationStore.dialogOpen}
+                      onClose={this.integrationStore.closeDialog}/>
         </div>
     }
 }

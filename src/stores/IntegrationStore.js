@@ -1,4 +1,4 @@
-import {action, computed, configure, observable, toJS} from 'mobx';
+import {action, computed, configure, observable} from 'mobx';
 import _ from "lodash";
 import saveAs from 'file-saver';
 import {convert, convertAggregate} from '../utils'
@@ -23,13 +23,16 @@ class IntegrationStore {
     @observable skipped = new Set();
     @observable completed = new Set();
     @observable completedAggregate = new Set();
-    @observable steps = ['MAPPINGS', 'PROGRAMS', 'DATA', 'ATTRIBUTES', 'PROGRAM STAGES', 'PRE-IMPORT SUMMARY', 'DATA IMPORT'];
-    @observable aggregateSteps = ['MAPPINGS', 'DATA SETS', 'IMPORT OPTIONS', 'DATA SET MAPPING', 'PRE-IMPORT SUMMARY', 'IMPORT SUMMARY'];
-    @observable totalSteps = 7;
-    @observable totalAggregateSteps = 6;
+    @observable steps = ['MAPPINGS', 'SELECT PROGRAM', 'DATA', 'ATTRIBUTES', 'PROGRAM STAGES', 'PRE-IMPORT SUMMARY', 'DATA IMPORT', 'MAPPING DETAILS'];
+    @observable aggregateSteps = ['MAPPINGS', 'DATA SETS', 'IMPORT OPTIONS', 'DATA SET MAPPING', 'PRE-IMPORT SUMMARY', 'IMPORT SUMMARY', 'MAPPING DETAILS'];
+    @observable totalSteps = 8;
+    @observable totalAggregateSteps = 7;
     @observable multipleCma = {};
     @observable mappings = [];
     @observable tracker;
+    @observable dataElements = [];
+    @observable userGroups = [];
+    @observable search = '';
 
     @observable params = [];
 
@@ -43,7 +46,7 @@ class IntegrationStore {
     @observable schedulerEnabled = true;
 
     @observable isFull = true;
-
+    @observable dialogOpen = false;
     @observable uploadData = false;
     @observable importData = false;
 
@@ -62,6 +65,42 @@ class IntegrationStore {
     @observable jump = false;
     @observable aggregateJump = false;
     @observable loading = false;
+    @observable open = true;
+
+    @observable paging = {
+        d1: {
+            page: 0,
+            rowsPerPage: 10
+        },
+        d2: {
+            page: 0,
+            rowsPerPage: 10
+        },
+        d3: {
+            page: 0,
+            rowsPerPage: 10
+        },
+
+        step1: {
+            page: 0,
+            rowsPerPage: 10
+        }
+    };
+
+    @action setDialogOpen = val => this.dialogOpen = val;
+    @action openDialog = () => this.setDialogOpen(true);
+    @action closeDialog = () => this.setDialogOpen(false);
+
+    @action setOpen = val => this.open = val;
+
+    @action handleDrawerOpen = () => {
+        this.setOpen(true)
+    };
+
+    @action handleDrawerClose = () => {
+        const open = !this.open;
+        this.setOpen(open)
+    };
 
     log = args => {
         // const program = {...args};
@@ -110,19 +149,72 @@ class IntegrationStore {
 
 
     @observable tableActions = {
-        delete: this.delete,
         download: this.import,
         upload: this.upload,
-        template: this.downloadData
+        template: this.downloadData,
+        delete: this.delete
     };
 
     @observable tableAggActions = {
-        delete: this.deleteAgg,
         upload: this.uploadAgg,
         download: this.importAgg,
-        template: this.downloadData
+        template: this.downloadData,
+        delete: this.deleteAgg
+
     };
 
+    @observable otherAggActions = {
+        log: this.log
+    };
+
+    @action setSearch = val => {
+        this.search = val;
+    };
+
+    @action searchDataSets = val => {
+        const programs = this.dataSets.filter(v => {
+            return v
+        });
+
+        this.setPrograms(programs);
+    };
+
+    @action downloadProgramData = () => {
+        const {
+            newTrackedEntityInstances,
+            newEnrollments,
+            newEvents,
+            trackedEntityInstancesUpdate,
+            eventsUpdate
+        } = this.program.processed;
+
+
+        if (newTrackedEntityInstances.length > 0) {
+            const blob = new Blob([JSON.stringify({trackedEntityInstances: newTrackedEntityInstances}, null, 2)], {type: 'application/json'});
+            saveAs(blob, "NewTrackedEntityInstances.json");
+        }
+
+        if (trackedEntityInstancesUpdate.length > 0) {
+            const blob = new Blob([JSON.stringify({trackedEntityInstances: trackedEntityInstancesUpdate}, null, 2)], {type: 'application/json'});
+            saveAs(blob, "TrackedEntityInstancesUpdate.json");
+        }
+
+        if (newEnrollments.length > 0) {
+            const blob = new Blob([JSON.stringify({enrollments: newEnrollments}, null, 2)], {type: 'application/json'});
+            saveAs(blob, "NewEnrollments.json");
+        }
+
+        if (newEvents.length > 0) {
+            const blob = new Blob([JSON.stringify({events: newEvents}, null, 2)], {type: 'application/json'});
+            saveAs(blob, "NewEvents.json");
+        }
+
+        if (newEvents.length > 0) {
+            const blob = new Blob([JSON.stringify({events: eventsUpdate}, null, 2)], {type: 'application/json'});
+            saveAs(blob, "EventsUpdate.json");
+        }
+
+    };
 
     @action setD2 = (d2) => {
         this.d2 = d2;
@@ -135,13 +227,30 @@ class IntegrationStore {
         } else {
             this.activeStep = this.activeStep + 1;
         }
+
+        if (this.activeStep === 8) {
+            this.saveMapping();
+            this.activeStep = 0
+        }
     };
 
     @action setNextAggregationLevel = val => this.activeAggregateStep = val;
 
     @action
-    handleNextAggregate = () => {
-        this.setNextAggregationLevel(this.activeAggregateStep + 1);
+    handleNextAggregate = async () => {
+
+        if (this.dataSet.isDhis2 && this.activeAggregateStep === 3) {
+            // this.setNextAggregationLevel(this.activeAggregateStep + 2)
+            this.setNextAggregationLevel(this.activeAggregateStep + 1);
+            this.handleNextAggregate();
+        } else {
+            this.setNextAggregationLevel(this.activeAggregateStep + 1);
+        }
+
+        if (this.activeAggregateStep === 7) {
+            await this.saveAggregate();
+            this.changeAggregateSet(0)
+        }
     };
 
     @action goFull = () => {
@@ -167,6 +276,8 @@ class IntegrationStore {
     handleAggregateBack = () => {
         if (this.activeAggregateStep === 2 && this.aggregateJump) {
             this.activeAggregateStep = 0;
+        } else if (this.dataSet.isDhis2 && this.activeAggregateStep === 5) {
+            this.activeAggregateStep = this.activeAggregateStep - 2
         } else {
             this.activeAggregateStep = this.activeAggregateStep - 1
         }
@@ -178,8 +289,8 @@ class IntegrationStore {
     };
 
     @action
-    saveAggregate = () => {
-        this.dataSet.saveAggregate(this.aggregates);
+    saveAggregate = async () => {
+        await this.dataSet.saveAggregate(this.aggregates);
     };
 
     @action changeSet = (step) => {
@@ -287,40 +398,46 @@ class IntegrationStore {
 
     @action
     executeEditIfAllowedAgg = async model => {
-        const api = this.d2.Api.getApi();
-        const {dataValues} = await api.get('dataSets/' + model.id + '/dataValueSet', {});
-        model.forms.forEach(f => {
-            const des = f.dataElements.map(de => de.id);
-            f.categoryOptionCombos.forEach(coc => {
+        this.openDialog();
+        try {
+            const api = this.d2.Api.getApi();
+            const {dataValues} = await api.get('dataSets/' + model.id + '/dataValueSet', {});
+            model.forms.forEach(f => {
+                const des = f.dataElements.map(de => de.id);
+                f.categoryOptionCombos.forEach(coc => {
 
-                const filtered = dataValues.filter(dv => {
-                    return dv.categoryOptionCombo === coc.id && des.indexOf(dv.dataElement) !== -1
+                    const filtered = dataValues.filter(dv => {
+                        return dv.categoryOptionCombo === coc.id && des.indexOf(dv.dataElement) !== -1
+                    });
+
+                    const mappings = filtered.map(m => {
+                        return [m.dataElement, null]
+                    });
+
+                    coc.mapping = _.fromPairs(mappings);
                 });
-
-                const mappings = filtered.map(m => {
-                    return [m.dataElement, null]
-                });
-
-                coc.mapping = _.fromPairs(mappings);
             });
-        });
 
-        model = {
-            ...model,
-            dataValues
-        };
-        this.setDataSet(convertAggregate(model, this.d2));
+            model = {
+                ...model,
+                dataValues
+            };
+            this.setDataSet(convertAggregate(model, this.d2));
 
-        const maxAggregate = _.maxBy(this.aggregates, 'aggregateId');
+            const maxAggregate = _.maxBy(this.aggregates, 'aggregateId');
 
 
-        if (maxAggregate) {
-            this.dataSet.setAggregateId(maxAggregate.aggregateId + 1);
-        } else {
-            this.dataSet.setAggregateId(1);
+            if (maxAggregate) {
+                this.dataSet.setAggregateId(maxAggregate.aggregateId + 1);
+            } else {
+                this.dataSet.setAggregateId(1);
+            }
+            await this.handleNextAggregate();
+            this.openDialog();
+        } catch (e) {
+            this.closeDialog();
+            NotificationManager.error(`${e.message} could not fetch data value sets`, 'Error', 5000);
         }
-
-        this.handleNextAggregate();
     };
 
     @action
@@ -339,6 +456,7 @@ class IntegrationStore {
 
     @action
     fetchPrograms = async () => {
+        this.openDialog();
         const api = this.d2.Api.getApi();
         try {
             const {programs} = await api.get('programs', {
@@ -347,28 +465,16 @@ class IntegrationStore {
             });
             this.setPrograms(programs);
             this.toggleLoading(false);
+            this.closeDialog();
         } catch (e) {
-            console.log(e);
+            NotificationManager.error(`${e.message} could not fetch programs`, 'Error', 5000);
+            this.closeDialog();
         }
     };
-
-    @action fetchDataValues = async () => {
-        const api = this.d2.Api.getApi();
-        try {
-            const {dataValues} = await api.get('dataSets/' + this.dataSet.id + '/dataValueSet', {});
-            this.setDataSet({
-                ...this.dataSet,
-                dataValues
-            })
-        } catch (e) {
-            NotificationManager.error(JSON.stringify(e), 'Error', 5000);
-        }
-    };
-
 
     @action
     fetchDataSets = async () => {
-        this.setLoading(true);
+        this.openDialog();
         const api = this.d2.Api.getApi();
         try {
             let {dataSets} = await api.get('dataSets', {
@@ -403,27 +509,30 @@ class IntegrationStore {
                 };
             });
 
-
             this.setDataSets(dataSets);
+            this.closeDialog();
         } catch (e) {
-            NotificationManager.error(JSON.stringify(e), 'Error', 5000);
+            this.closeDialog();
+            NotificationManager.error(`${e.message} could not fetch data sets`, 'Error', 5000);
         }
 
-        this.setLoading(false);
     };
 
 
     @action checkAggregateDataStore = async () => {
+        this.openDialog();
         const val = await this.d2.dataStore.has('bridge');
         if (!val) {
             await this.createAggregateDataStore()
         } else {
             await this.fetchSavedAggregates();
         }
+        this.closeDialog();
     };
 
     @action checkDataStore = async () => {
         this.setLoading(true);
+        this.openDialog();
         const val = await this.d2.dataStore.has('bridge');
         if (!val) {
             await this.createDataStore()
@@ -432,6 +541,7 @@ class IntegrationStore {
         }
 
         this.setLoading(false);
+        this.closeDialog();
     };
 
     @action fetchSavedMappings = async () => {
@@ -443,7 +553,7 @@ class IntegrationStore {
             });
             this.setMappings(processedMappings);
         } catch (e) {
-            NotificationManager.error(JSON.stringify(e), 'Error', 5000);
+            NotificationManager.error(`${e.message} could not fetch saved mappings`, 'Error', 5000);
         }
     };
 
@@ -458,7 +568,7 @@ class IntegrationStore {
             });
             this.setAggregates(processedAggregates);
         } catch (e) {
-            NotificationManager.error('Could not fetch saved aggregate mappings', 'Error', 5000);
+            NotificationManager.error(`${e.message} could not fetch saved aggregate mappings`, 'Error', 5000);
         }
     };
 
@@ -519,6 +629,73 @@ class IntegrationStore {
     @action setUpload = val => this.uploadData = val;
     @action setImportData = val => this.importData = val;
     @action setProgram = val => this.program = val;
+    @action setPaging = val => this.paging = val;
+
+    @action fetchDataElements = () => {
+        this.d2.models.dataElement.list({
+            paging: false,
+            fields: 'id,name,code',
+            filter: 'domainType:eq:AGGREGATE'
+        }).then(action(response => {
+            this.dataElements = response.toArray();
+        }), action(e => {
+            console.log(e);
+        }))
+    };
+
+    @action fetchUserGroups = () => {
+        this.d2.models.userGroups.list({
+            paging: false,
+        }).then(action(response => {
+            this.userGroups = response.toArray();
+        }), action(e => {
+            console.log(e);
+        }))
+    };
+    @action
+    handleChange = (dataElement, group) => event => {
+        console.log(event);
+        // this.setState({ [name]: event.target.checked });
+    };
+
+    @action
+    handleChangeElementPage = what => (event, page) => {
+        const current = this.paging[what];
+        const change = {};
+        if (current) {
+            change.page = page;
+            change.rowsPerPage = current.rowsPerPage;
+            const data = _.fromPairs([
+                [what, change]
+            ]);
+
+            const p = {
+                ...this.paging,
+                ...data
+            };
+
+            this.setPaging(p);
+        }
+    };
+
+    @action
+    handleChangeElementRowsPerPage = what => event => {
+        const current = this.paging[what];
+        const change = {};
+        if (current) {
+            change.rowsPerPage = event.target.value;
+            change.page = current.page;
+            const data = _.fromPairs([
+                [what, change]
+            ]);
+            const p = {
+                ...this.paging,
+                ...data
+            };
+
+            this.setPaging(p);
+        }
+    };
 
     @computed
     get disableNext() {
@@ -532,12 +709,14 @@ class IntegrationStore {
             return !this.program.mandatoryAttributesMapped;
         } else if (this.activeStep === 4) {
             return !this.program.compulsoryDataElements;
-        } else if (this.activeStep === 5) {
-            return this.program.disableCreate;
         }
-        return false;
 
+        // else if (this.activeStep === 5) {
+        //     return this.program.disableCreate;
+        // }
+        return false;
     }
+
 
     @computed
     get disableNextAggregate() {
@@ -570,6 +749,8 @@ class IntegrationStore {
                     || !this.dataSet.dataStartColumn
                     || this.dataSet.dataStartColumn.length === 0
             }
+        } else if (this.activeAggregateStep === 4) {
+            return !this.dataSet.isDhis2 && (!this.dataSet.processed || this.dataSet.processed.length === 0)
         }
         return false;
     }
@@ -579,11 +760,10 @@ class IntegrationStore {
         if (this.activeStep === 0) {
             return 'New Mapping';
         } else if (this.activeStep === 5) {
-            const {conflicts, errors} = this.program.processed;
-            if (errors.length > 0 || conflicts.length > 0) {
-                return 'Submit Rejecting Errors & Conflicts'
-            }
-            return 'Submit'
+            return 'Import';
+        } else if (this.activeStep === 7) {
+
+            return 'Save & Finish'
         } else {
             return 'Next';
         }
@@ -592,10 +772,11 @@ class IntegrationStore {
     @computed
     get nextAggregateLabel() {
         if (this.activeAggregateStep === 0) {
-
             return 'New Mapping';
         } else if (this.activeAggregateStep === 4) {
-            return 'Submit'
+            return 'Import';
+        } else if (this.activeAggregateStep === 6) {
+            return 'Save & Finish'
         } else {
             return 'Next';
         }
@@ -617,6 +798,48 @@ class IntegrationStore {
         } else {
             return 'Finish';
         }
+    }
+
+    @computed get rows() {
+        return this.dataElements.length + 1;
+    }
+
+    @computed get columns() {
+        return this.userGroups.length + 1;
+    }
+
+    @computed get searchedDataSets() {
+        if (this.search !== '') {
+            return this.dataSets.filter(v => {
+                return v.name.toLowerCase().indexOf(this.search.toLowerCase()) > -1;
+            })
+        }
+
+        return this.dataSets;
+
+    }
+
+    @computed get currentDataSets() {
+        const info = this.paging['d1'];
+        return this.searchedDataSets.slice(info.page * info.rowsPerPage, info.page * info.rowsPerPage + info.rowsPerPage);
+
+    }
+
+    @computed get searchedPrograms() {
+        if (this.search !== '') {
+            return this.programs.filter(v => {
+                return v.name.toLowerCase().indexOf(this.search.toLowerCase()) > -1;
+            })
+        }
+
+        return this.programs;
+
+    }
+
+    @computed get currentPrograms() {
+        const info = this.paging['step1'];
+        return this.searchedPrograms.slice(info.page * info.rowsPerPage, info.page * info.rowsPerPage + info.rowsPerPage);
+
     }
 }
 

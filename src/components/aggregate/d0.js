@@ -1,7 +1,7 @@
 import {inject, observer} from "mobx-react";
 import React from "react";
 import {withStyles} from "@material-ui/core/styles";
-import DHIS2Table from "@dhis2/d2-ui-table";
+import Table from "@dhis2/d2-ui-table";
 import Select from 'react-select';
 import red from '@material-ui/core/colors/red';
 
@@ -24,8 +24,7 @@ import Params from "./Params";
 import CircularProgress from "@material-ui/core/CircularProgress";
 import Summary from "./Summary";
 import Checkbox from "@material-ui/core/Checkbox";
-import Progress from "../procgress";
-
+import Progress from "../progress";
 
 const DialogTitle = withStyles(theme => ({
     root: {
@@ -99,21 +98,21 @@ class D0 extends React.Component {
     render() {
         const {classes} = this.props;
         return <div>
-            <DHIS2Table
-                columns={['aggregateId', 'name']}
-                rows={this.integrationStore.aggregates}
-                contextMenuActions={this.integrationStore.tableAggActions}
-                contextMenuIcons={
-                    {
-
-                        delete: <Delete/>,
-                        upload: <ArrowUpward/>,
-                        download: <ArrowDownward/>,
-                        template: <CloudDownload/>
+            {this.integrationStore.aggregates.length > 0 ?
+                <Table
+                    columns={['aggregateId', 'mappingName', 'mappingDescription']}
+                    rows={this.integrationStore.aggregates}
+                    contextMenuActions={this.integrationStore.tableAggActions}
+                    contextMenuIcons={
+                        {
+                            upload: <ArrowUpward/>,
+                            download: <ArrowDownward/>,
+                            template: <CloudDownload/>,
+                            delete: <Delete/>
+                        }
                     }
-                }
-                primaryAction={this.integrationStore.useSavedAggregate}
-            />
+                    primaryAction={this.integrationStore.useSavedAggregate}
+                /> : <p style={{textAlign: 'center', fontSize: 15}}>There are no items</p>}
 
             <Dialog
                 fullWidth={true}
@@ -187,7 +186,7 @@ class D0 extends React.Component {
                         color="primary"
                         disabled={_.keys(this.integrationStore.dataSet.data).length === 0}
                         onClick={this.integrationStore.dataSet.create}>
-                        Insert
+                        Import
                     </Button>
                 </DialogActions>
             </Dialog>
@@ -246,15 +245,6 @@ class D0 extends React.Component {
                                 <Checkbox checked={this.integrationStore.dataSet.isDhis2}
                                           onChange={this.integrationStore.dataSet.onCheckIsDhis2}/> From DHIS2
                             </td>
-
-                            <td width="50%">
-                                {this.integrationStore.dataSet.isDhis2 ? <Select
-                                    placeholder="Identifier scheme"
-                                    value={this.integrationStore.dataSet.dhis2DataSet}
-                                    options={this.integrationStore.dataSet.processedDhis2DataSets}
-                                    onChange={this.integrationStore.dataSet.setDhis2DataSet}
-                                /> : null}
-                            </td>
                         </tr>
                         </tbody>
                     </table>
@@ -284,18 +274,15 @@ class D0 extends React.Component {
                         // disabled={this.integrationStore.disableNextAggregate}
                         onClick={this.integrationStore.dataSet.create}>
                         {this.integrationStore.dataSet.displayProgress ?
-                            <CircularProgress size={24}
-                                              thickness={4} color="secondary"/> : 'Insert'}
+                            <CircularProgress size={24} thickness={4} color="secondary"/> : 'Import'}
                     </Button>
 
                 </DialogActions>
             </Dialog>
-            {this.integrationStore.dataSet.dialogOpen && this.integrationStore.dataSet.closeDialog ?
-                <Progress open={this.integrationStore.dataSet.dialogOpen}
-                          onClose={this.integrationStore.dataSet.closeDialog}/> : null}
+            <Progress open={this.integrationStore.dialogOpen}
+                      onClose={this.integrationStore.closeDialog}/>
         </div>
     }
-
 }
 
 export default withStyles(styles)(D0);

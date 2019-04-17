@@ -51,11 +51,13 @@ class Summary extends React.Component {
         super(props);
         const {IntegrationStore} = props;
         this.integrationStore = IntegrationStore;
+
+        this.state = {
+            value: this.integrationStore.dataSet.isDhis2 ? 1 : 0,
+        };
+
     }
 
-    state = {
-        value: 0,
-    };
 
     handleChange = (event, value) => {
         this.setState({value});
@@ -89,7 +91,7 @@ class Summary extends React.Component {
                 </Tabs>
             </AppBar>
 
-            {value === 0 && <TabContainer>
+            {value === 0 && !this.integrationStore.dataSet.isDhis2 && <TabContainer>
                 <Table>
                     <TableHead>
                         <TableRow>
@@ -187,46 +189,46 @@ class Summary extends React.Component {
                 </Table></TabContainer>}
             {value === 2 && <TabContainer>
                 <Table>
-                <TableHead>
-                    <TableRow>
-                        <TableCell>Affected</TableCell>
-                        <TableCell>Message</TableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    {conflicts.map((s, k) => {
-                        return (
-                            <TableRow key={k}>
-                                <TableCell>
-                                    {s.object}
-                                </TableCell>
-                                <TableCell>
-                                    {s.value}
-                                </TableCell>
-                            </TableRow>
-                        );
-                    })}
-                </TableBody>
-            </Table></TabContainer>}
+                    <TableHead>
+                        <TableRow>
+                            <TableCell>Affected</TableCell>
+                            <TableCell>Message</TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {conflicts.map((s, k) => {
+                            return (
+                                <TableRow key={k}>
+                                    <TableCell>
+                                        {s.object}
+                                    </TableCell>
+                                    <TableCell>
+                                        {s.value}
+                                    </TableCell>
+                                </TableRow>
+                            );
+                        })}
+                    </TableBody>
+                </Table></TabContainer>}
             {value === 3 && <TabContainer>
                 <Table>
-                <TableHead>
-                    <TableRow>
-                        <TableCell>Message</TableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    {errors.map((s, index) => {
-                        return (
-                            <TableRow key={index}>
-                                <TableCell>
-                                    {s.message}
-                                </TableCell>
-                            </TableRow>
-                        );
-                    })}
-                </TableBody>
-            </Table></TabContainer>}
+                    <TableHead>
+                        <TableRow>
+                            <TableCell>Message</TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {errors.map((s, index) => {
+                            return (
+                                <TableRow key={index}>
+                                    <TableCell>
+                                        {s.message}
+                                    </TableCell>
+                                </TableRow>
+                            );
+                        })}
+                    </TableBody>
+                </Table></TabContainer>}
         </div>
     }
 

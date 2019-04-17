@@ -16,21 +16,38 @@ class CategoryOptionCombo {
     @action setColumn = val => this.column = val;
     @action setCategoryOptions = val => this.categoryOptions = val;
     @action setCellAll = de => val => {
-        const obj = _.fromPairs([[de.id, val]]);
-        const c = {...this.cell, ...obj};
-        this.setCell(c);
+        if (val) {
+            const obj = _.fromPairs([[de.id, val]]);
+            const c = {...this.cell, ...obj};
+            this.setCell(c);
+        } else {
+            const final = _.omit(this.cell, [de.id]);
+            this.setCell(final);
+        }
     };
 
     @action setMappingAll = de => val => {
-        const obj = _.fromPairs([[de.id, val]]);
-        const c = {...this.mapping, ...obj};
-        this.setMapping(c);
+        if (val) {
+            const obj = _.fromPairs([[de.id, val]]);
+            const c = {...this.mapping, ...obj};
+            this.setMapping(c);
+        } else {
+            const final = _.omit(this.mapping, [de.id]);
+            this.setMapping(final);
+        }
+
+        console.log(this.mapping);
     };
 
     @action setColumnAll = de => val => {
-        const obj = _.fromPairs([[de.id, val]]);
-        const c = {...this.column, ...obj};
-        this.setColumn(c);
+        if (val) {
+            const obj = _.fromPairs([[de.id, val]]);
+            const c = {...this.column, ...obj};
+            this.setColumn(c);
+        } else {
+            const final = _.omit(this.column, [de.id]);
+            this.setColumn(final);
+        }
     };
 }
 

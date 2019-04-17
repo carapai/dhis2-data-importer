@@ -26,13 +26,15 @@ class Element {
     @action handelMappingChange = (currentData, cocColumn, isDhis2) => val => {
         this.setMapping(val);
         if (!isDhis2 && currentData) {
-            const data = currentData[val.value];
-            let processed = data.map(d => {
-                return {label: d[cocColumn.value], value: d[cocColumn.value]}
-            });
-            processed = _.uniqBy(processed, 'value');
+            if (val) {
+                const data = currentData[val.value];
+                let processed = data.map(d => {
+                    return {label: d[cocColumn.value], value: d[cocColumn.value]}
+                });
+                processed = _.uniqBy(processed, 'value');
 
-            this.setUniqueCategoryOptionCombos(processed);
+                this.setUniqueCategoryOptionCombos(processed);
+            }
         }
     };
 }

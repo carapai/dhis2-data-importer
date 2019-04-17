@@ -1,22 +1,13 @@
 import {inject, observer} from "mobx-react";
 import React from "react";
 import {withStyles} from "@material-ui/core/styles";
-import red from '@material-ui/core/colors/red';
-import LinearProgress from "@material-ui/core/LinearProgress";
 import Table from "@dhis2/d2-ui-table";
+import TablePagination from "@material-ui/core/TablePagination";
+import Progress from "../progress";
+import {InputField} from "@dhis2/d2-ui-core";
 
 
-const styles = theme => ({
-    icon: {
-        margin: theme.spacing.unit * 2,
-    },
-    iconHover: {
-        margin: theme.spacing.unit * 2,
-        '&:hover': {
-            color: red[800],
-        },
-    },
-});
+const styles = theme => ({});
 
 
 @inject('IntegrationStore')
@@ -29,29 +20,45 @@ class D1 extends React.Component {
         super(props);
         const {IntegrationStore} = props;
         this.integrationStore = IntegrationStore;
-        // this.integrationStore.setLoading(true);
-
     }
 
     componentDidMount() {
+        this.integrationStore.setSearch('');
         this.integrationStore.fetchDataSets();
-        // this.integrationStore.setLoading(false);
     }
 
     render() {
-        let progress = '';
-        if (this.integrationStore.loading) {
-            progress = <LinearProgress variant="indeterminate"/>;
-        }
+
         return <div>
-            {progress}
+            <InputField
+                label="Search"
+                type="text"
+                fullWidth
+                value={this.integrationStore.search}
+                onChange={(value) => this.integrationStore.setSearch(value)}/>
             <Table
-                columns={['name']}
-                rows={this.integrationStore.dataSets}
-                contextMenuActions={this.integrationStore.multipleCma}
+                columns={['name', 'code']}
+                rows={this.integrationStore.currentDataSets}
                 primaryAction={this.integrationStore.executeEditIfAllowedAgg}
             />
+            <TablePagination
+                component="div"
+                count={this.integrationStore.searchedDataSets.length}
+                rowsPerPage={this.integrationStore.paging['d1']['rowsPerPage']}
+                page={this.integrationStore.paging['d1']['page']}
+                backIconButtonProps={{
+                    'aria-label': 'Previous Page',
+                }}
+                nextIconButtonProps={{
+                    'aria-label': 'Next Page',
+                }}
+                onChangePage={this.integrationStore.handleChangeElementPage('d1')}
+                onChangeRowsPerPage={this.integrationStore.handleChangeElementRowsPerPage('d1')}
+            />
+            <Progress open={this.integrationStore.dialogOpen}
+                      onClose={this.integrationStore.closeDialog}/>
         </div>
+
     }
 
 }

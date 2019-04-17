@@ -5,20 +5,21 @@ html, body, :global(#root) {
 body {
     padding: 0;
     margin: 0;
-    font-family: 'Roboto', 'Open Sans', sans-serif;
-    font-size: 12px;
-    color: #272727;
+    /*font-family: 'Roboto', 'Open Sans', sans-serif;*/
+    /*color: #272727;*/
     box-sizing: border-box;
 }
+
 a {
     color: #409890;
 }
+
 * {
-    font-size: inherit;
-    box-sizing: inherit;
+    /*font-size: inherit;*/
+    /*box-sizing: inherit;*/
 }
 
-.headerRow {
+/*.headerRow {
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -104,13 +105,13 @@ a {
     flex-direction: row;
     flex-wrap: wrap;
     justify-content: center;
-}
+}*/
 /*.ScrollingBody {
     composes: Body;
     overflow: auto;
     flex: 1 1 auto;
 }*/
-.column {
+/*.column {
     display: flex;
     flex-direction: column;
     flex: 0 0 100%;
@@ -165,10 +166,10 @@ a {
     100% {
         transform: rotate(360deg);
     }
-}
+}*/
 
 
-.App-bottom {
+/*.App-bottom {
     margin-top: 20px;
 }
 
@@ -188,9 +189,9 @@ a {
 .App-right {
     width: 50%;
     display: inline-block;
-}
+}*/
 
-.btn-direct {
+/*.btn-direct {
     background-color: #ddd;
     color: #fff;
     padding: 10px 20px;
@@ -216,4 +217,61 @@ a {
     text-align: center;
     margin-left: 130px;
 
+}*/
+
+/*
+.d2-ui-table__headers__header {
+    height: 50px;
+    padding: 0 1.6rem;
+    vertical-align: middle;
+    border-bottom: 2px solid #E0E0E0;
+    color: black;
+    display: table-cell;
+    font-weight: bold;
+    text-align: left;
+    font-size: 12px;
+    transition: all .3s ease; }*/
+
+
+.d2-ui-table {
+    /*margin: 0 auto;*/
+    /*width: 75vw;*/
 }
+
+.scrollable {
+    max-height: 500px;
+    overflow: auto;
+}
+
+/*.scrollable table {
+    position: relative;
+    border-collapse: collapse;
+}
+
+.scrollable td, th {
+    padding: 0.25em;
+}
+
+.scrollable thead th {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+    background: #000;
+    color: #FFF;
+}
+
+.scrollable thead th:first-child {
+    left: 0;
+    z-index: 1;
+}
+
+.scrollable tbody th {
+    position: -webkit-sticky;
+    position: sticky;
+    left: 0;
+    background: #FFF;
+    border-right: 1px solid #CCC;
+}*/
+
+
+/*td { min-width: 500px; }*/

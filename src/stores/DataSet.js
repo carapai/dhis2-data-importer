@@ -1,7 +1,7 @@
 import {action, computed, observable} from "mobx";
 import _ from 'lodash';
 import XLSX from "xlsx";
-import {encodeData, findAttributeCombo, nest, processMergedCells} from "../utils";
+import {encodeData, findAttributeCombo, nest, processMergedCells, enumerateDates} from "../utils";
 import axios from "axios";
 import alasql from 'alasql';
 import {NotificationManager} from "react-notifications";
@@ -90,12 +90,16 @@ class DataSet {
     @observable levels = [];
     @observable currentLevel;
     @observable selectedDataSet;
+    @observable template = 0;
+    @observable fileName;
 
-    constructor() {
-        if (this.isDhis2) {
+    @observable mappingName;
+    @observable mappingDescription;
+    @observable completeDataSet = true;
+    @observable multiplePeriods = false;
 
-        }
-    }
+    @observable startPeriod = '2017-05-24';
+    @observable endPeriod = '2017-05-24';
 
     @action setDialogOpen = val => this.dialogOpen = val;
     @action openDialog = () => this.setDialogOpen(true);
@@ -135,6 +139,7 @@ class DataSet {
     @action setMapping = val => this.mapping = val;
     @action setDataValues = val => this.dataValues = val;
     @action setTemplateType = val => this.templateType = val;
+    @action setFileName = val => this.fileName = val;
 
 
     @action setSelectedSheet = val => {
@@ -163,7 +168,15 @@ class DataSet {
     @action setOrganisationCell = val => this.organisationCell = val;
     @action setWorkSheet = val => this.workSheet = val;
     @action setPeriod = val => this.period = val;
-    @action handelURLChange = value => this.url = value;
+    @action setCompleteDataSet = val => this.completeDataSet = val;
+    @action handelURLChange = value => {
+        this.url = value;
+        if (this.url !== '') {
+            this.setTemplate(2);
+        } else {
+            this.setTemplate(0);
+        }
+    };
     @action setDisplayProgress = val => this.displayProgress = val;
     @action setDisplayDhis2Progress = val => this.displayDhis2Progress = val;
     @action setPulledData = val => this.pulledData = val;
@@ -179,21 +192,31 @@ class DataSet {
     @action setPassword = val => this.password = val;
     @action setResponseKey = val => this.responseKey = val;
     @action setCurrentLevel = val => this.currentLevel = val;
-    @action addPullingError = val => {
-        this.pullingErrors = [...this.pullingErrors, val];
-    };
-
+    @action addPullingError = val => this.pullingErrors = [...this.pullingErrors, val];
     @action setParams = val => this.params = val;
+    @action setMappingName = val => this.mappingName = val;
+    @action setMappingDescription = val => this.mappingDescription = val;
+
+    @action setStartPeriod = val => this.startPeriod = val;
+    @action setEndPeriod = val => this.endPeriod = val;
 
     @action handleRadioChange = event => {
         this.setTemplateType(event.target.value);
-
         if (this.templateType !== '2') {
             this.periodInExcel = false;
             this.organisationUnitInExcel = false;
             this.attributeCombosInExcel = false;
         }
     };
+
+    @action handleStartPeriodChange = event => {
+        this.setStartPeriod(event.target.value)
+    };
+
+    @action handleEndPeriodChange = event => {
+        this.setEndPeriod(event.target.value)
+    };
+
 
     @action addParam = () => {
         this.params = [...this.params, new Param()]
@@ -251,7 +274,6 @@ class DataSet {
 
     @action loadLevelsAndDataSets = async () => {
         const urlBase = this.getDHIS2Url();
-
         if (urlBase) {
             const dataSetUrl = urlBase + '/dataSets.json';
             const orgUnitLevelUrl = urlBase + '/organisationUnitLevels.json';
@@ -261,23 +283,25 @@ class DataSet {
                 fields: 'name,level'
             });
 
-            const levels = levelResponse.organisationUnitLevels.map(l => {
-                return {label: l.name, value: l.level}
-            });
+            if (levelResponse) {
+                const levels = levelResponse.organisationUnitLevels.map(l => {
+                    return {label: l.name, value: l.level}
+                });
 
-            this.setLevels(levels);
+                this.setLevels(levels);
+            }
 
             const data = await this.callAxios(dataSetUrl, {
                 paging: false,
                 fields: 'id,name'
             });
 
-
-            const dataSets = data.dataSets.map(d => {
-                return {label: d.name, value: d.id};
-            });
-
-            this.setDhis2DataSets(dataSets);
+            if (data) {
+                const dataSets = data.dataSets.map(d => {
+                    return {label: d.name, value: d.id};
+                });
+                this.setDhis2DataSets(dataSets);
+            }
         }
 
     };
@@ -286,10 +310,18 @@ class DataSet {
         if (this.isDhis2 && this.url !== '' && this.username !== '' && this.password !== '') {
             const url = new URL(this.url);
             const dataURL = url.pathname.split('/');
-
             const apiIndex = dataURL.indexOf('api');
 
-            const sliced = dataURL.slice(0, apiIndex + 1);
+            let sliced = [];
+            if (apiIndex !== -1) {
+                sliced = dataURL.slice(0, apiIndex + 1);
+            } else {
+                if (dataURL[dataURL.length - 1] === "") {
+                    sliced = [...dataURL.slice(0, dataURL.length - 1), 'api']
+                } else {
+                    sliced = [...dataURL, 'api']
+                }
+            }
 
             return url.origin + sliced.join('/');
         }
@@ -328,6 +360,16 @@ class DataSet {
             return null;
         }
 
+    };
+
+    @action setTemplate = val => this.template = val;
+
+    @action onCheckCompleteDataSet = async event => {
+        this.completeDataSet = event.target.checked;
+    };
+
+    @action onCheckMultiplePeriods = async event => {
+        this.multiplePeriods = event.target.checked;
     };
 
     @action onCheckIsDhis2 = async event => {
@@ -387,7 +429,7 @@ class DataSet {
         if (accepted.length > 0) {
             this.uploadMessage = '';
             const f = accepted[0];
-
+            this.setFileName(f.name);
             fileReader.onloadstart = (this.onLoadStart);
 
             fileReader.onprogress = (this.onProgress);
@@ -416,6 +458,7 @@ class DataSet {
                     this.setWorkSheet(this.workbook.Sheets[this.selectedSheet.value]);
                 }
                 this.setSheets(sheets);
+                this.setTemplate(1);
 
             };
             if (rABS) {
@@ -531,6 +574,7 @@ class DataSet {
         try {
             const namespace = await this.d2.dataStore.get('bridge');
             namespace.set('aggregates', toBeSaved);
+            NotificationManager.info(`Mapping saved successfully`, 'Success', 5000);
         } catch (e) {
             NotificationManager.error(`Could not save to data store ${JSON.stringify(e)}`, 'Error', 5000);
         }
@@ -550,7 +594,13 @@ class DataSet {
                 let response;
                 if (this.username !== '' && this.password !== '') {
                     this.setPulling(true);
-                    response = await axios.get(this.url + '?' + param, {
+                    let url = this.url;
+
+                    if (this.isDhis2) {
+                        url = this.getDHIS2Url() + '/dataValueSets.json'
+                    }
+
+                    response = await axios.get(url + '?' + param, {
                         params: {},
                         withCredentials: true,
                         auth: {
@@ -589,15 +639,22 @@ class DataSet {
         return api.post('dataValueSets', data, {});
     };
 
+    @action destroy = () => {
+        this.setPulledData(null);
+        this.setWorkSheet(null);
+        this.setWorkbook(null);
+        this.setSelectedSheet(null);
+    };
+
+    @action completeDataSets = () => {
+        const api = this.d2.Api.getApi();
+        return api.post('completeDataSetRegistrations', {completeDataSetRegistrations: this.whatToComplete}, {});
+    };
+
     @action create1 = () => {
         try {
             if (this.processed && this.processed.length > 0) {
-                const insertResults = this.insertDataValues({dataValues: this.processed});
-                this.setPulledData(null);
-                this.setWorkSheet(null);
-                this.setWorkbook(null);
-                this.setSelectedSheet(null);
-                return insertResults
+                return this.insertDataValues({dataValues: this.processed});
             }
         } catch (e) {
             this.setResponses(e);
@@ -615,23 +672,59 @@ class DataSet {
                     const orgUnits = await this.pullOrganisationUnits();
                     const param = new Param();
                     param.setParam('orgUnit');
-                    const all = orgUnits.map(ou => {
-                        param.setValue(ou.id);
-                        this.replaceParam(param);
-                        return this.pullData().then(data => {
-                            return this.create1();
+                    if (this.multiplePeriods) {
+
+                        if (this.startPeriod && this.endPeriod && this.addition && this.additionFormat) {
+                            const periods = enumerateDates(this.startPeriod, this.endPeriod, this.addition, this.additionFormat);
+                            const pp = new Param();
+                            pp.setParam('period');
+                            for (const p of periods) {
+                                pp.setValue(p);
+                                this.replaceParam(pp);
+                                const all = orgUnits.map(ou => {
+                                    param.setValue(ou.id);
+                                    this.replaceParam(param);
+                                    return this.pullData().then(data => {
+                                        return this.create1();
+                                    });
+                                });
+                                const results = await Promise.all(all);
+                                const filtered = results.filter(r => {
+                                    return r
+                                });
+                                await this.completeDataSets();
+                                this.destroy();
+                                this.setResponses(filtered);
+                            }
+
+                        } else {
+                            NotificationManager.warning('Either period type not supported or start and end date not provided', 'Warning');
+                        }
+                    } else {
+                        const all = orgUnits.map(ou => {
+                            param.setValue(ou.id);
+                            this.replaceParam(param);
+                            return this.pullData().then(data => {
+                                return this.create1();
+                            });
                         });
-                    });
 
-                    const results = await Promise.all(all);
-                    const filtered = results.filter(r => {
-                        return r
-                    });
+                        const results = await Promise.all(all);
+                        const filtered = results.filter(r => {
+                            return r
+                        });
 
-                    this.setResponses(filtered);
+                        await this.completeDataSets();
+                        this.destroy();
+                        this.setResponses(filtered);
+                    }
+
+
                 }
             } else {
                 const results = await this.create1();
+                await this.completeDataSets();
+                this.destroy();
                 this.setResponses(results);
             }
         } catch (e) {
@@ -691,15 +784,20 @@ class DataSet {
     };
 
     @action setMappingAll2 = de => val => {
-        let value = val.value;
-        value = {...value, column: de.column};
-        val = {
-            ...val,
-            value
-        };
-        const obj = _.fromPairs([[de.name, val]]);
-        const c = {...this.cell2, ...obj};
-        this.setCell2(c);
+        if (val && val.value) {
+            let value = val.value;
+            value = {...value, column: de.column};
+            val = {
+                ...val,
+                value
+            };
+            const obj = _.fromPairs([[de.name, val]]);
+            const c = {...this.cell2, ...obj};
+            this.setCell2(c);
+        } else {
+            const final = _.omit(this.cell2, [de.name]);
+            this.setCell2(final);
+        }
     };
 
     @action loadSame = () => {
@@ -730,6 +828,16 @@ class DataSet {
 
     @action
     handleChangeRowsPerPage = event => this.rowsPerPage = event.target.value;
+
+    @action
+    handleMappingNameChange = value => {
+        this.mappingName = value;
+    };
+
+    @action
+    handleMappingDescriptionChange = value => {
+        this.mappingDescription = value;
+    };
 
     @computed get processedResponses() {
         let errors = [];
@@ -1001,15 +1109,22 @@ class DataSet {
                                 let period;
                                 if (!this.periodInExcel) {
                                     period = this.period;
-                                } else {
-                                    period = data[this.periodColumn]['v'];
+                                } else if (this.periodColumn) {
+                                    const p = data[this.periodColumn.value]['v'];
+                                    period = p.toString();
                                 }
 
 
                                 if (!this.organisationUnitInExcel) {
                                     orgUnit = this.organisation.value
                                 } else {
-                                    orgUnit = data[this.organisationCell]['v'];
+                                    const ou = data[this.organisationCell.value]['v'];
+                                    const foundOU = dataSetUnits[ou];
+                                    if (foundOU) {
+                                        orgUnit = foundOU;
+                                    } else {
+                                        NotificationManager.error(`Organisation unit ${ou} not found`);
+                                    }
                                 }
 
                                 let found;
@@ -1073,6 +1188,9 @@ class DataSet {
                 }
             });
         } else if (this.templateType === '4') {
+            let periodMissing = false;
+            let valueMissing = false;
+            let orgUnitMissing = false;
             this.rows.forEach(i => {
                 const rowData = this.categoryCombo.categories.map(category => {
                     const optionCell = category.mapping.value + i;
@@ -1081,7 +1199,6 @@ class DataSet {
                 });
 
                 const found = findAttributeCombo(this, rowData, false);
-
                 if (found) {
                     _.forOwn(this.cell2, v => {
                         const oCell = this.orgUnitColumn.value + i;
@@ -1089,7 +1206,7 @@ class DataSet {
                         const vCell = v.value.column + i;
                         const ouVal = this.data[oCell];
                         const periodVal = this.data[pCell];
-                        const ou = ouVal ? ouVal['v'] : '';
+                        const ou = ouVal ? ouVal['v'].toLowerCase() : '';
                         const period = periodVal ? periodVal['v'] : null;
                         const val = this.data[vCell];
                         const value = val ? val.v : null;
@@ -1104,16 +1221,61 @@ class DataSet {
                                 attributeOptionCombo: found.id,
                                 categoryOptionCombo: v.value.categoryOptionCombo
                             }];
+                        } else {
+                            if (!orgUnit) {
+                                orgUnitMissing = true;
+                            }
+                            if (!period) {
+                                periodMissing = true;
+                            }
+
+                            if (!value) {
+                                valueMissing = true;
+                            }
                         }
 
                     });
                 }
             });
+
+            if (orgUnitMissing) {
+                NotificationManager.warning(`Some rows are missing organisation units, will be ignored`);
+            }
+            if (periodMissing) {
+                NotificationManager.warning(`Some rows are missing periods, will be ignored`);
+            }
+
+            if (valueMissing) {
+                NotificationManager.warning(`Some rows are missing values, will be ignored`);
+            }
         }
+        dataValues = dataValues.filter(dv => {
+            return dv.orgUnit && dv.period
+        });
         if (dataValues.length > 0) {
             return alasql('SELECT orgUnit,dataElement,attributeOptionCombo,categoryOptionCombo,period,SUM(`value`) AS `value` FROM ? GROUP BY orgUnit,dataElement,attributeOptionCombo,categoryOptionCombo,period', [dataValues]);
         }
+
+
         return dataValues
+
+    }
+
+    @computed get whatToComplete() {
+        const p = this.processed.map(d => {
+            return _.pick(d, ['orgUnit', 'period']);
+        });
+
+        return _.uniqWith(p, _.isEqual).map(p => {
+            return {dataSet: this.id, organisationUnit: p.orgUnit, period: p.period}
+        });
+    }
+
+    @computed get finalData() {
+
+        return this.processed.map((v, k) => {
+            return {...v, id: k}
+        })
 
     }
 
@@ -1230,7 +1392,11 @@ class DataSet {
                 'responseKey',
                 'isDhis2',
                 'selectedDataSet',
-                'currentLevel'
+                'currentLevel',
+                'template',
+                'mappingName',
+                'mappingDescription',
+                'completeDataSet'
             ])
     }
 
@@ -1245,6 +1411,50 @@ class DataSet {
             return this.processed.slice(this.page * this.rowsPerPage, this.page * this.rowsPerPage + this.rowsPerPage);
         }
         return [];
+    }
+
+    @computed get addition() {
+        switch (this.periodType) {
+            case 'Daily':
+                return 'days';
+            case 'Weekly':
+                return 'weeks';
+            case 'Monthly':
+                return 'months';
+            case 'Quarterly':
+                return 'quarters';
+            case 'Yearly':
+            case 'FinancialJuly':
+            case 'FinancialApril':
+            case 'FinancialOct':
+                return 'years';
+
+            default:
+                return null
+        }
+    }
+
+    @computed get additionFormat() {
+        switch (this.periodType) {
+            case 'Daily':
+                return 'YYYYMMDD';
+            case 'Weekly':
+                return 'YYYY[W]WW';
+            case 'Monthly':
+                return 'YYYYMM';
+            case 'Quarterly':
+                return 'YYYY[Q]Q';
+            case 'Yearly':
+                return 'YYYY';
+            case 'FinancialJuly':
+                return 'YYYY[July]';
+            case 'FinancialApril':
+                return 'YYYY[April]';
+            case 'FinancialOct':
+                return 'YYYY[Oct]';
+            default:
+                return null
+        }
     }
 }
 

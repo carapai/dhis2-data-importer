@@ -13,9 +13,15 @@ import {inject, observer} from "mobx-react";
 import {InputField} from "@dhis2/d2-ui-core";
 import FormGroup from '@material-ui/core/FormGroup';
 import Params from "./Params";
+import Grid from "@material-ui/core/Grid";
+import { Tabs} from 'antd';
 
+const TabPane = Tabs.TabPane;
 
 const styles = theme => ({
+    root: {
+        flexGrow: 1,
+    },
     icon: {
         margin: theme.spacing.unit * 2,
     },
@@ -41,6 +47,7 @@ const items = [{
     label: 'code',
 }];
 
+
 @inject('IntegrationStore')
 @observer
 class Step2 extends React.Component {
@@ -51,7 +58,19 @@ class Step2 extends React.Component {
         super(props);
         const {IntegrationStore} = props;
         this.integrationStore = IntegrationStore;
+
+        this.state = {
+            value: 0,
+        };
     }
+
+    handleChange = (event, value) => {
+        this.setState({value});
+    };
+
+    handleChangeIndex = index => {
+        this.setState({value: index});
+    };
 
     render() {
         let progress = '';
@@ -72,298 +91,258 @@ class Step2 extends React.Component {
             {pull}
             {progress}
             {program.uploaded}
-            <table width="100%">
-                <tbody>
-                <tr>
-                    <td valign="top">
-                        <ol>
-                            <li>
-                                <table width="100%">
-                                    <tbody>
-                                    <tr>
-                                        <td>Upload file to import OR &nbsp;&nbsp;&nbsp;Enter URL and pull</td>
-                                    </tr>
-                                    <tr>
-                                        <td valign="top">
-                                            <section>
-                                                <div className="dropzone">
-                                                    <Dropzone
-                                                        accept=".csv, .xls, .xlsx"
-                                                        onDrop={program.onDrop}>
-                                                        <p align="center">Drop files here</p>
-                                                        <p align="center">
-                                                            <Icon className={classes.icon} color="primary"
-                                                                  style={{fontSize: 48}}>
-                                                                add_circle
-                                                            </Icon>
-                                                        </p>
-                                                        <p align="center"
-                                                           style={{color: 'red'}}>{program.uploadMessage}</p>
-                                                    </Dropzone>
-                                                </div>
-                                            </section>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td valign="top" align="right">
-                                            <InputField
-                                                label="URL"
-                                                type="text"
-                                                fullWidth
-                                                value={program.url}
-                                                onChange={(value) => program.handelURLChange(value)}
-                                            />
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <InputField
-                                                label="Response key"
-                                                type="text"
-                                                fullWidth
-                                                value={program.responseKey}
-                                                onChange={(value) => program.setResponseKey(value)}/>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <InputField
-                                                label="Username"
-                                                type="text"
-                                                fullWidth
-                                                value={program.username}
-                                                onChange={(value) => program.setUsername(value)}/>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <InputField
-                                                label="Password"
-                                                type="text"
-                                                fullWidth
-                                                value={program.password}
-                                                onChange={(value) => program.setPassword(value)}/>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <Params/>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <Button
-                                                variant="contained"
-                                                color="primary"
-                                                disabled={!program.url}
-                                                onClick={program.pullData}>
-                                                Pull
-                                            </Button>
-                                        </td>
-                                    </tr>
-                                    </tbody>
-                                </table>
-                            </li>
-                        </ol>
 
-                    </td>
-                    <td valign="top" colSpan="2">
-                        <ol start="2">
-                            <li>
-                                File Options
-                                <br/>
-                                <br/>
-                                <table width="100%">
-                                    <tbody>
-                                    <tr>
-                                        <td>
-                                            <Select
-                                                placeholder="Select sheet"
-                                                value={program.selectedSheet}
-                                                options={program.sheets}
-                                                onChange={program.setSelectedSheet}
-                                            />
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <InputField
-                                                label="Header row"
-                                                type="number"
-                                                fullWidth
-                                                value={program.headerRow}
-                                                onChange={(value) => program.handelHeaderRowChange(value)}
-                                            />
-                                        </td>
-                                    </tr>
+            <Grid container spacing={8}>
+                <Grid item xs={6}>
+                    <ol start="1">
+                        <li>
+                            Select Data Source
+                            <div className={classes.root}>
+                                <Tabs defaultActiveKey="1">
+                                    <TabPane tab="Upload Excel/CSV" key="1">
+                                        <section>
+                                            <div className="dropzone">
+                                                <Dropzone
+                                                    accept=".csv, .xls, .xlsx"
+                                                    onDrop={program.onDrop}>
+                                                    <p align="center">Drop files here</p>
+                                                    <p align="center">
+                                                        <Icon className={classes.icon} color="primary"
+                                                              style={{fontSize: 48}}>
+                                                            add_circle
+                                                        </Icon>
+                                                    </p>
+                                                    <p align="center">{program.fileName}</p>
+                                                    <p align="center"
+                                                       style={{color: 'red'}}>{program.uploadMessage}</p>
+                                                </Dropzone>
+                                            </div>
+                                        </section>
+                                    </TabPane>
+                                    <TabPane tab="Import from API" key="2">
+                                        <InputField
+                                            label="URL"
+                                            type="text"
+                                            fullWidth
+                                            value={program.url}
+                                            onChange={(value) => program.handelURLChange(value)}
+                                        />
+                                        <InputField
+                                            label="Response key"
+                                            type="text"
+                                            fullWidth
+                                            value={program.responseKey}
+                                            onChange={(value) => program.setResponseKey(value)}/>
 
-                                    <tr>
-                                        <td>
-                                            <InputField
-                                                label="Data start row"
-                                                type="number"
-                                                fullWidth
-                                                value={program.dataStartRow}
-                                                onChange={(value) => program.handelDataRowStartChange(value)}
-                                            />
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <FormHelperText>For Excel, all sheets should have same header and data start
-                                                rows</FormHelperText>
-                                        </td>
-                                    </tr>
-                                    </tbody>
-                                </table>
-                            </li>
-                        </ol>
+                                        <InputField
+                                            label="Username"
+                                            type="text"
+                                            fullWidth
+                                            value={program.username}
+                                            onChange={(value) => program.setUsername(value)}/>
 
-                        <ol start="3">
-                            <li>
-                                Organisation unit options
-                                <table width="100%">
-                                    <tbody>
-                                    <tr>
-                                        <td>
-                                            <Select
-                                                placeholder="Organisation unit column"
-                                                value={program.orgUnitColumn}
-                                                options={program.columns}
-                                                onChange={program.handleOrgUnitSelectChange}
-                                            />
-                                            <FormHelperText>For new tracked entities and events, this column will be
-                                                used as organisation unit</FormHelperText>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <Select
-                                                placeholder="Identifier scheme"
-                                                value={program.orgUnitStrategy}
-                                                options={items}
-                                                onChange={program.handleOrgUnitStrategySelectChange}
-                                            />
-                                            <FormHelperText>Organisation units will searched using uid by default
-                                                please change if your organisation unit column is not
-                                                uid</FormHelperText>
-                                        </td>
-                                    </tr>
-                                    </tbody>
-                                </table>
-                            </li>
-                        </ol>
-                    </td>
-                </tr>
-                <tr>
-                    <td valign="top" colSpan="3">
-                        <ol start="4">
-                            <li>
-                                Advanced Options
-                            </li>
-                        </ol>
-                    </td>
-                </tr>
+                                        <InputField
+                                            label="Password"
+                                            type="text"
+                                            fullWidth
+                                            value={program.password}
+                                            onChange={(value) => program.setPassword(value)}/>
 
-                <tr>
-                    <td valign="top" className={classes.space}>
-                        Events
-                    </td>
-                    <td valign="top" colSpan="2">
-                        Enrollments & Entities
-                    </td>
-                </tr>
+                                        <Params/>
 
-                <tr>
-                    <td valign="top">
-                        <FormGroup row>
-                            <FormControlLabel
-                                control={
-                                    <Checkbox
-                                        checked={program.updateEvents}
-                                        onChange={program.handleUpdateEventsCheck}
-                                    />}
-                                label="Update events"
-                            />
-                            <FormControlLabel
-                                control={
-                                    <Checkbox
-                                        checked={program.createNewEvents}
-                                        onChange={program.handleCreateNewEventsCheck}
-                                    />}
-                                label="Create new events"
-                            />
-                        </FormGroup>
-                    </td>
-                    <td valign="top" colSpan="2">
-                        <FormGroup row>
-                            <FormControlLabel
-                                control={
-                                    <Checkbox
-                                        disabled={!program.isTracker}
-                                        checked={program.createEntities}
-                                        onChange={program.handleCreateEntitiesCheck}
-                                    />}
-                                label="Create new entities"
-                            />
-                            <FormControlLabel
-                                control={
-                                    <Checkbox
-                                        disabled={!program.isTracker}
-                                        checked={program.updateEntities}
-                                        onChange={program.handleUpdateEntitiesCheck}
-                                    />}
-                                label="Update entities"
-                            />
-                            <FormControlLabel
-                                control={
-                                    <Checkbox
-                                        disabled={!program.isTracker}
-                                        checked={program.createNewEnrollments}
-                                        onChange={program.handleCreateNewEnrollmentsCheck}
-                                    />}
-                                label="Create new enrollments"
-                            />
-                        </FormGroup>
-                    </td>
-                </tr>
-                <tr>
-                    <td valign="top" width="50%">
-                        <Select
-                            placeholder="Event date column"
-                            value={program.eventDateColumn}
-                            options={program.columns}
-                            onChange={program.handleEventDateColumnSelectChange}
+                                        <Button
+                                            variant="contained"
+                                            color="primary"
+                                            disabled={!program.url}
+                                            onClick={program.pullData}>
+                                            Pull
+                                        </Button>
+                                    </TabPane>
+                                </Tabs>
+                            </div>
+                        </li>
+                    </ol>
+                </Grid>
+                <Grid item xs={6}>
+                    <Grid container spacing={8}>
+                        <Grid item xs={12}>
+                            <ol start="2">
+                                <li>
+                                    File Options
+                                    <Select
+                                        placeholder="Select sheet"
+                                        value={program.selectedSheet}
+                                        options={program.sheets}
+                                        onChange={program.setSelectedSheet}
+                                    />
+                                    <InputField
+                                        label="Header row"
+                                        type="number"
+                                        fullWidth
+                                        value={program.headerRow}
+                                        onChange={(value) => program.handelHeaderRowChange(value)}
+                                    />
+                                    <InputField
+                                        label="Data start row"
+                                        type="number"
+                                        fullWidth
+                                        value={program.dataStartRow}
+                                        onChange={(value) => program.handelDataRowStartChange(value)}
+                                    />
+                                    <FormHelperText>For Excel, all sheets should have same header and data start
+                                        rows</FormHelperText>
+                                </li>
+                            </ol>
+                        </Grid>
+                    </Grid>
+
+                    <Grid container spacing={8}>
+                        <Grid item xs={12}>
+                            <ol start="3">
+                                <li>
+                                    Organisation unit options
+                                    <Select
+                                        placeholder="Organisation unit column"
+                                        value={program.orgUnitColumn}
+                                        options={program.columns}
+                                        onChange={program.handleOrgUnitSelectChange}
+                                    />
+                                    <FormHelperText>For new tracked entities and events, this column will be
+                                        used as organisation unit</FormHelperText>
+                                    <Select
+                                        placeholder="Identifier scheme"
+                                        value={program.orgUnitStrategy}
+                                        options={items}
+                                        onChange={program.handleOrgUnitStrategySelectChange}
+                                    />
+                                    <FormHelperText>Organisation units will searched using uid by default
+                                        please change if your organisation unit column is not
+                                        uid</FormHelperText>
+                                </li>
+                            </ol>
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </Grid>
+
+            <Grid container spacing={8}>
+                <Grid item xs={12}>
+                    <ol start="4">
+                        <li>
+                            Advanced Options
+                        </li>
+                    </ol>
+                </Grid>
+            </Grid>
+
+            <Grid container spacing={8}>
+                <Grid item xs={6}>
+                    Events Options
+                </Grid>
+
+                <Grid item xs={6}>
+                    Enrollments & Entities Options
+                </Grid>
+            </Grid>
+
+            <Grid container spacing={8}>
+                <Grid item xs={6}>
+                    <FormGroup row>
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={program.updateEvents}
+                                    onChange={program.handleUpdateEventsCheck}
+                                />}
+                            label="Update events"
                         />
-                        <FormHelperText>Program stage events will updated or created based on this column. Non
-                            repeatable with latest values while repeatable with updates if same or new otherwise.
-                            Should be a valid date</FormHelperText>
-                    </td>
-                    <td valign="top" width="25%">
-                        <Select
-                            placeholder="Enrollment date column"
-                            value={program.enrollmentDateColumn}
-                            disabled={!program.createNewEnrollments}
-                            options={program.columns}
-                            onChange={program.handleEnrollmentDateColumnSelectChange}
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={program.createNewEvents}
+                                    onChange={program.handleCreateNewEventsCheck}
+                                />}
+                            label="Create new events"
                         />
-                        <FormHelperText>Should be a valid date<br/>&nbsp;</FormHelperText>
-                    </td>
-                    <td width="25%">
-                        <Select
-                            placeholder="Incident date column"
-                            value={program.incidentDateColumn}
-                            disabled={!program.createNewEnrollments}
-                            options={program.columns}
-                            onChange={program.handleIncidentDateColumnSelectChange}
+                    </FormGroup>
+                </Grid>
+
+                <Grid item xs={6}>
+                    <FormGroup row>
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    disabled={!program.isTracker}
+                                    checked={program.createEntities}
+                                    onChange={program.handleCreateEntitiesCheck}
+                                />}
+                            label="Create new entities"
                         />
-                        <FormHelperText>Should be a valid date<br/>&nbsp;</FormHelperText>
-                    </td>
-                </tr>
-                </tbody>
-            </table>
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    disabled={!program.isTracker}
+                                    checked={program.updateEntities}
+                                    onChange={program.handleUpdateEntitiesCheck}
+                                />}
+                            label="Update entities"
+                        />
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    disabled={!program.isTracker}
+                                    checked={program.createNewEnrollments}
+                                    onChange={program.handleCreateNewEnrollmentsCheck}
+                                />}
+                            label="Create new enrollments"
+                        />
+                    </FormGroup>
+                </Grid>
+            </Grid>
+
+
+            <Grid container spacing={8}>
+                <Grid item xs={6}>
+                    <Select
+                        placeholder="Event date column"
+                        value={program.eventDateColumn}
+                        options={program.columns}
+                        onChange={program.handleEventDateColumnSelectChange}
+                    />
+                    <FormHelperText>Program stage events will updated or created based on this column. Non
+                        repeatable with latest values while repeatable with updates if same or new otherwise.
+                        Should be a valid date</FormHelperText>
+                </Grid>
+
+                <Grid item xs={6}>
+                    <Grid container spacing={8}>
+                        <Grid item xs={6}>
+                            <Select
+                                placeholder="Enrollment date column"
+                                value={program.enrollmentDateColumn}
+                                disabled={!program.createNewEnrollments}
+                                options={program.columns}
+                                onChange={program.handleEnrollmentDateColumnSelectChange}
+                            />
+                            <FormHelperText>Should be a valid date<br/>&nbsp;</FormHelperText>
+                        </Grid>
+
+                        <Grid item xs={6}>
+                            <Select
+                                placeholder="Incident date column"
+                                value={program.incidentDateColumn}
+                                disabled={!program.createNewEnrollments}
+                                options={program.columns}
+                                onChange={program.handleIncidentDateColumnSelectChange}
+                            />
+                            <FormHelperText>Should be a valid date<br/>&nbsp;</FormHelperText>
+                        </Grid>
+                    </Grid>
+
+                </Grid>
+            </Grid>
         </div>
     }
 }
 
-export default withStyles(styles)(Step2);
+export default withStyles(styles, {withTheme: true})(Step2);

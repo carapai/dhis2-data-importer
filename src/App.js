@@ -1,28 +1,43 @@
 import React, {Component} from 'react';
 import {HashRouter as Router, Route} from "react-router-dom";
 import {NotificationContainer} from 'react-notifications';
+import Card from "@material-ui/core/Card";
+import CardContent from "@material-ui/core/CardContent";
 import 'react-notifications/lib/notifications.css';
 
-import './App.css';
 import {Provider} from "mobx-react";
-import PropTypes from 'prop-types';
+import * as PropTypes from 'prop-types';
 import IntegrationStore from './stores/IntegrationStore'
 import Program from './components/program';
 
 import D2UIApp from '@dhis2/d2-ui-app';
 import Aggregate from "./components/aggregate";
-import IconButton from "@material-ui/core/IconButton";
-import Drawer from "@material-ui/core/Drawer";
-import ChevronLeftIcon from "@material-ui/icons/ChevronLeft";
-import ChevronRightIcon from "@material-ui/icons/ChevronRight";
-import List from "@material-ui/core/List";
-import {mainListItems} from "./components/listItems";
-import classNames from "classnames";
 import {withStyles} from "@material-ui/core/styles";
 import styles from "./components/styles";
 import HeaderBar from '@dhis2/d2-ui-header-bar';
+import {Link} from "react-router-dom";
+
+
+import {
+    Layout, Menu, Icon,
+} from 'antd';
+
+
+import './App.css';
+import "antd/dist/antd.css";
+
+
+const {
+    Content, Sider,
+} = Layout;
 
 class App extends Component {
+
+    onCollapse = (collapsed) => {
+        console.log(collapsed);
+        this.setState({collapsed});
+    };
+
     constructor(props) {
         super(props);
         const {d2} = props;
@@ -49,7 +64,7 @@ class App extends Component {
         d2.i18n.translations['about_dhis2'] = 'About DHIS2';
         d2.i18n.translations['aggregate_id'] = 'Id';
         d2.i18n.translations['upload'] = 'Upload Excel/CSV';
-        // d2.i18n.translations['import'] = 'Import';
+        d2.i18n.translations['code'] = 'Code';
         d2.i18n.translations['download'] = 'Import from API';
         d2.i18n.translations['template'] = 'Download Template';
         d2.i18n.translations['year'] = 'Year';
@@ -85,8 +100,7 @@ class App extends Component {
 
         this.state = {
             d2,
-            baseUrl: props.baseUrl,
-            open: true
+            baseUrl: props.baseUrl
         };
     }
 
@@ -94,66 +108,55 @@ class App extends Component {
         return {d2: this.state.d2};
     }
 
-    handleDrawerOpen = () => {
-        this.setState({open: true});
-    };
-
-    handleDrawerClose = () => {
-        const open = !this.state.open;
-        this.setState({open});
-    };
-
-    getIcon = open => {
-        if (open) {
-            return <IconButton onClick={this.handleDrawerClose}>
-                <ChevronLeftIcon/>
-            </IconButton>
-        } else {
-            return <IconButton onClick={this.handleDrawerClose}>
-                <ChevronRightIcon/>
-            </IconButton>
-        }
-    };
-
     render() {
         const {classes} = this.props;
         return (
             <Provider IntegrationStore={IntegrationStore}>
                 <Router>
-                    <div>
+                    <D2UIApp>
                         <HeaderBar d2={this.state.d2}/>
-                        <div className={classes.root}>
-                            <Drawer
-                                variant="permanent"
-                                classes={{
-                                    paper: classNames(classes.drawerPaper, !this.state.open && classes.drawerPaperClose)
-                                }}
-                                open={this.state.open}
+                        <Layout>
+                            <Sider
+                                collapsible
+                                collapsed={this.state.collapsed}
+                                onCollapse={this.onCollapse}
                             >
-                                <div className={classes.toolbarIcon}>
-                                    {this.getIcon(this.state.open)}
-                                </div>
-                                {/*<Divider/>*/}
-                                <List>{mainListItems}</List>
-                                {/*<Divider/>
-                                <List>{secondaryListItems}</List>*/}
-                            </Drawer>
-                            <main className={classes.content}>
                                 <div className={classes.appBarSpacer}/>
-                                <D2UIApp>
-                                    <Route
-                                        exact
-                                        path='/'
-                                        component={() => <Program d2={this.state.d2}
-                                                                  baseUrl={this.state.baseUrl}/>}/>
-                                    <Route
-                                        path='/aggregates'
-                                        component={() => <Aggregate d2={this.state.d2}/>}/>
-                                </D2UIApp>
-                            </main>
-                        </div>
+                                <Menu theme="dark" defaultSelectedKeys={['1']} mode="inline">
+                                    <Menu.Item key="1">
+                                        <Link to="/">
+                                            <Icon type="pie-chart"/>
+                                            <span>Tracker</span>
+                                        </Link>
+                                    </Menu.Item>
+                                    <Menu.Item key="2">
+                                        <Link to="/aggregates">
+                                            <Icon type="desktop"/>
+                                            <span>Aggregate</span>
+                                        </Link>
+                                    </Menu.Item>
+                                </Menu>
+                            </Sider>
+                            <Layout>
+                                <Content>
+                                    <Card>
+                                        <CardContent style={{minHeight: '100vh'}}>
+                                            <div className={classes.appBarSpacer}/>
+                                            <Route
+                                                exact
+                                                path='/'
+                                                component={() => <Program d2={this.state.d2}
+                                                                          baseUrl={this.state.baseUrl}/>}/>
+                                            <Route
+                                                path='/aggregates'
+                                                component={() => <Aggregate d2={this.state.d2}/>}/>
+                                        </CardContent>
+                                    </Card>
+                                </Content>
+                            </Layout>
+                        </Layout>
                         <NotificationContainer/>
-                    </div>
+                    </D2UIApp>
                 </Router>
             </Provider>
         );

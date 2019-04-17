@@ -46,7 +46,8 @@ const styles = theme => ({
         transition: theme.transitions.create("width", {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.enteringScreen
-        })
+        }),
+        height: "100vh",
     },
     drawerPaperClose: {
         overflowX: "hidden",
@@ -54,17 +55,19 @@ const styles = theme => ({
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.leavingScreen
         }),
-        width: theme.spacing.unit * 7,
+        width: '100%',
         [theme.breakpoints.up("sm")]: {
             width: theme.spacing.unit * 9
-        }
+        },
+        height: "100vh",
     },
     // appBarSpacer: theme.mixins.toolbar,
     appBarSpacer: {marginTop: 48},
     content: {
+        // width: '90%',
         flexGrow: 1,
         padding: theme.spacing.unit,
-        height: "100vh",
+        height: "98.5vh",
         // overflow: "auto"
     },
     chartContainer: {

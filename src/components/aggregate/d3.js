@@ -1,7 +1,6 @@
 import {inject, observer} from 'mobx-react';
 import React from 'react';
 import {withStyles} from '@material-ui/core/styles';
-// import pixelWidth from 'string-pixel-width';
 import Select from 'react-select';
 
 import Table from "@material-ui/core/Table";
@@ -9,6 +8,7 @@ import TableBody from "@material-ui/core/TableBody";
 import TableCell from "@material-ui/core/TableCell";
 import TableHead from "@material-ui/core/TableHead";
 import TableRow from "@material-ui/core/TableRow";
+import {Done, Clear, DoneAll} from '@material-ui/icons'
 
 
 const styles = theme => ({
@@ -34,14 +34,16 @@ class D3 extends React.Component {
     displayMapping = (de) => {
 
         if (this.integrationStore.dataSet.templateType === '1') {
-            return <td>
+            return <TableCell width="300">
                 <Select
                     placeholder="Select mapping"
+                    isClearable
+                    isSearchable
                     value={de.mapping}
                     options={this.integrationStore.dataSet.uniqueDataElements}
                     onChange={de.handelMappingChange(this.integrationStore.dataSet.data, this.integrationStore.dataSet.categoryOptionComboColumn, this.integrationStore.dataSet.isDhis2)}
                 />
-            </td>
+            </TableCell>
         }
 
         return null;
@@ -61,6 +63,8 @@ class D3 extends React.Component {
             return <Select
                 placeholder="Select cell"
                 value={coc.cell[de.id]}
+                isClearable
+                isSearchable
                 options={this.integrationStore.dataSet.cells}
                 onChange={coc.setCellAll(de)}
             />
@@ -68,12 +72,16 @@ class D3 extends React.Component {
         } else if (this.integrationStore.dataSet.templateType === '3') {
             return <Select
                 placeholder="Select cell"
+                isClearable
+                isSearchable
                 value={coc.column[de.id]}
                 options={this.integrationStore.dataSet.cellColumns}
                 onChange={coc.setColumnAll(de)}
             />
         } else if (this.integrationStore.dataSet.templateType === '1') {
             return <Select
+                isClearable
+                isSearchable
                 placeholder="Select cell"
                 value={coc.mapping[de.id]}
                 options={de.uniqueCategoryOptionCombos}
@@ -86,6 +94,8 @@ class D3 extends React.Component {
     displayDynamicCell = de => {
         return <Select
             placeholder="Select cell"
+            isClearable
+            isSearchable
             value={this.integrationStore.dataSet.cell2[de.name]}
             options={this.integrationStore.dataSet.allCategoryOptionCombos}
             onChange={this.integrationStore.dataSet.setMappingAll2(de)}
@@ -98,80 +108,92 @@ class D3 extends React.Component {
         let displayMappingHeader = null;
         let display = null;
         if (this.integrationStore.dataSet.templateType === '1') {
-            displayMappingHeader = <th>
+            displayMappingHeader = <TableCell width="400">
                 Mapping
-            </th>;
+            </TableCell>;
         }
 
         if (this.integrationStore.dataSet.templateType !== '4') {
             display = dataSet.forms.map((form, k) => {
                 return (
-                    <div key={k}>
-                        <table width="100%">
-                            <thead>
-                            <tr>
-                                <th>
+                    <div key={k} className="scrollable">
+                        <Table width={form.categoryOptionCombos.length * 300 + 600}
+                               style={{minWidth: '100%'}}>
+                            <TableHead>
+                            <TableRow>
+                                <TableCell>
                                     Data Element
-                                </th>
+                                </TableCell>
 
                                 {displayMappingHeader}
 
                                 {form.categoryOptionCombos.map(coc => {
-                                    return <th key={coc.id}>
-                                        {/*<div style={{width: pixelWidth(coc.name, {size: 13.5})}}>{coc.name}</div>*/}
+                                    return <TableCell key={coc.id} width="300">
                                         {coc.name}
-                                    </th>
+                                    </TableCell>
                                 })}
-                            </tr>
-                            </thead>
-                            <tbody>
+                                <TableCell width="50">Status</TableCell>
+                            </TableRow>
+                            </TableHead>
+                            <TableBody>
                             {form.dataElements.map(de => {
-                                return <tr key={de.id}>
-                                    <td>
-                                        {/*<div style={{width: pixelWidth(de.name, {size: 13.5})}}></div>*/}
+                                return <TableRow key={de.id}>
+                                    <TableCell style={{minWidth: 400}}>
                                         {de.name}
-                                    </td>
+                                    </TableCell>
 
                                     {this.displayMapping(de)}
 
                                     {form.categoryOptionCombos.map(coc => {
-                                        return <td key={de.id + coc.id}>
+                                        return <TableCell key={de.id + coc.id}>
                                             {this.displayCell(de, coc)}
-                                        </td>
+                                        </TableCell>
                                     })}
-                                </tr>
+                                    <TableCell>
+                                        {form.status[de.id].all ? <DoneAll/> : form.status[de.id].some ? <Done/> :
+                                            <Clear/>}
+                                    </TableCell>
+                                </TableRow>
                             })}
-                            </tbody>
-                        </table>
+                            </TableBody>
+                        </Table>
                     </div>
                 );
             });
         } else {
-            // display = JSON.stringify(this.integrationStore.dataSet.mergedCellsWithDataElementRow, null, 2);
-            display = <Table width="100%">
-                <TableHead>
-                    <TableRow>
-                        <TableCell>
-                            Data Element
-                        </TableCell>
-                        <TableCell>
-                            Mapping
-                        </TableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    {this.integrationStore.dataSet.mergedCellsWithDataElementRow.map(de => {
-                        return <TableRow key={de.column} hover>
+            display = <div className="scrollable">
+                <Table>
+                    <TableHead>
+                        <TableRow>
                             <TableCell>
-                                {de.name}
+                                Data Element
                             </TableCell>
                             <TableCell>
-                                {this.displayDynamicCell(de)}
+                                Mapping
+                            </TableCell>
+                            <TableCell>
+                                Status
                             </TableCell>
                         </TableRow>
-                    })}
-                </TableBody>
-            </Table>
+                    </TableHead>
+                    <TableBody>
+                        {this.integrationStore.dataSet.mergedCellsWithDataElementRow.map(de => {
+                            return <TableRow key={de.column} hover>
+                                <TableCell>
+                                    {de.name}
+                                </TableCell>
+                                <TableCell>
+                                    {this.displayDynamicCell(de)}
+                                </TableCell>
+
+                                <TableCell>
+                                    {!!this.integrationStore.dataSet.cell2[de.name] ? <Done/> : <Clear/>}
+                                </TableCell>
+                            </TableRow>
+                        })}
+                    </TableBody>
+                </Table>
+            </div>
         }
 
         return (<div>

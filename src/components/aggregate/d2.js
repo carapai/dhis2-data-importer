@@ -11,12 +11,15 @@ import Select from 'react-select';
 import FormControlLabel from "@material-ui/core/FormControlLabel";
 import Checkbox from "@material-ui/core/Checkbox";
 import FormGroup from '@material-ui/core/FormGroup';
+import TextField from '@material-ui/core/TextField';
 
 import Radio from '@material-ui/core/Radio';
 import Params from "./Params";
-import Progress from "../procgress";
+import Progress from "../progress";
 
 import {createParam} from '../../utils'
+import Grid from "@material-ui/core/Grid";
+import {Tabs} from "antd";
 
 const styles = theme => ({
     block: {
@@ -37,6 +40,11 @@ const styles = theme => ({
         flexWrap: 'nowrap',
         flexDirection: 'row',
     },
+    textField: {
+        marginLeft: theme.spacing.unit,
+        marginRight: theme.spacing.unit,
+        width: 200,
+    },
 });
 
 const items = [{
@@ -53,6 +61,9 @@ const items = [{
     label: 'code',
 }];
 
+const TabPane = Tabs.TabPane;
+
+
 @inject('IntegrationStore')
 @observer
 class D2 extends React.Component {
@@ -66,94 +77,75 @@ class D2 extends React.Component {
     }
 
     fileOptions = () => {
-        return <td valign="top">
-            <ol start="4">
-                <li>
-                    File Options
-                    <br/>
-                    <br/>
-                    <table width="100%">
-                        <tbody>
-                        <tr>
-                            <td>
-                                <Select
-                                    placeholder="Select sheet"
-                                    value={this.integrationStore.dataSet.selectedSheet}
-                                    options={this.integrationStore.dataSet.sheets}
-                                    onChange={this.integrationStore.dataSet.setSelectedSheet}
-                                />
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <InputField
-                                    label="Header row"
-                                    type="number"
-                                    fullWidth
-                                    value={this.integrationStore.dataSet.headerRow}
-                                    onChange={(value) => this.integrationStore.dataSet.handelHeaderRowChange(value)}
-                                />
-                            </td>
-                        </tr>
+        return <Grid container spacing={8}>
+            <Grid item xs={12}>
+                <ol start="4">
+                    <li>
+                        File Options
+                        <br/>
+                        <br/>
+                        <Select
+                            placeholder="Select sheet"
+                            value={this.integrationStore.dataSet.selectedSheet}
+                            options={this.integrationStore.dataSet.sheets}
+                            onChange={this.integrationStore.dataSet.setSelectedSheet}
+                            isClearable
+                            isSearchable
+                        />
 
-                        <tr>
-                            <td>
-                                <InputField
-                                    label="Data start row"
-                                    type="number"
-                                    fullWidth
-                                    value={this.integrationStore.dataSet.dataStartRow}
-                                    onChange={(value) => this.integrationStore.dataSet.handelDataRowStartChange(value)}
-                                />
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <FormHelperText>For Excel, all sheets should have same header and data start
-                                    rows</FormHelperText>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </li>
-            </ol>
+                        <InputField
+                            label="Header row"
+                            type="number"
+                            fullWidth
+                            value={this.integrationStore.dataSet.headerRow}
+                            onChange={(value) => this.integrationStore.dataSet.handelHeaderRowChange(value)}
+                        />
+                        <InputField
+                            label="Data start row"
+                            type="number"
+                            fullWidth
+                            value={this.integrationStore.dataSet.dataStartRow}
+                            onChange={(value) => this.integrationStore.dataSet.handelDataRowStartChange(value)}
+                        />
+                        <FormHelperText>For Excel, all sheets should have same header and data start
+                            rows</FormHelperText>
+                    </li>
+                    <li>
+                        Organization unit and period options
+                        <Select
+                            placeholder="Organisation unit column"
+                            value={this.integrationStore.dataSet.orgUnitColumn}
+                            options={this.integrationStore.dataSet.columns}
+                            onChange={this.integrationStore.dataSet.setOrgUnitColumn}
+                            isClearable
+                            isSearchable
+                        />
+                        <FormHelperText>For new tracked entities and events, this column will be
+                            used as organisation unit</FormHelperText>
 
-            <ol start="5">
-                <li>
-                    Organization unit and period options
-                    <table width="100%">
-                        <tbody>
-                        <tr>
-                            <td>
-                                {/*<pre>{JSON.stringify(this.integrationStore.dataSet.data, null, 2)}</pre>*/}
-                                <Select
-                                    placeholder="Organisation unit column"
-                                    value={this.integrationStore.dataSet.orgUnitColumn}
-                                    options={this.integrationStore.dataSet.columns}
-                                    onChange={this.integrationStore.dataSet.setOrgUnitColumn}
-                                />
-                                <FormHelperText>For new tracked entities and events, this column will be
-                                    used as organisation unit</FormHelperText>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <Select
-                                    placeholder="Identifier scheme"
-                                    value={this.integrationStore.dataSet.orgUnitStrategy}
-                                    options={items}
-                                    onChange={this.integrationStore.dataSet.setOrgUnitStrategy}
-                                />
-                                <FormHelperText>Organisation units will searched using uid by default
-                                    please change if your organisation unit column is not
-                                    uid</FormHelperText>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </li>
-            </ol>
-        </td>
+                        <Select
+                            placeholder="Identifier scheme"
+                            value={this.integrationStore.dataSet.orgUnitStrategy}
+                            options={items}
+                            onChange={this.integrationStore.dataSet.setOrgUnitStrategy}
+                            isClearable
+                            isSearchable
+                        />
+                        <FormHelperText>Organisation units will searched using uid by default
+                            please change if your organisation unit column is not
+                            uid</FormHelperText>
+                        <Checkbox checked={this.integrationStore.dataSet.completeDataSet}
+                                  onChange={this.integrationStore.dataSet.onCheckCompleteDataSet}
+                                  value="complete"/> Complete Data Sets
+                    </li>
+                </ol>
+            </Grid>
+            <Grid item xs={6}>
+                <ol start="5">
+
+                </ol>
+            </Grid>
+        </Grid>
     };
 
     fixedFileOptions = () => {
@@ -169,6 +161,8 @@ class D2 extends React.Component {
             value={this.integrationStore.dataSet.organisation}
             options={this.integrationStore.dataSet.organisations}
             onChange={this.integrationStore.dataSet.setOrganisation}
+            isClearable
+            isSearchable
         />;
 
         if (this.integrationStore.dataSet.periodInExcel) {
@@ -177,6 +171,8 @@ class D2 extends React.Component {
                 value={this.integrationStore.dataSet.periodColumn}
                 options={this.integrationStore.dataSet.cells}
                 onChange={this.integrationStore.dataSet.setPeriodColumn}
+                isClearable
+                isSearchable
             />
         }
 
@@ -186,70 +182,42 @@ class D2 extends React.Component {
                 value={this.integrationStore.dataSet.organisationCell}
                 options={this.integrationStore.dataSet.cells}
                 onChange={this.integrationStore.dataSet.setOrganisationCell}
+                isClearable
+                isSearchable
             />;
 
-            orgStrategy = <tr>
-                <td>
-                    <Select
-                        placeholder="Identifier scheme"
-                        value={this.integrationStore.dataSet.orgUnitStrategy}
-                        options={items}
-                        onChange={this.integrationStore.dataSet.setOrgUnitStrategy}
-                    />
-                </td>
-            </tr>
+            orgStrategy = <Select
+                placeholder="Identifier scheme"
+                value={this.integrationStore.dataSet.orgUnitStrategy}
+                options={items}
+                onChange={this.integrationStore.dataSet.setOrgUnitStrategy}
+                isClearable
+                isSearchable
+            />
+
         }
 
-        /*if(this.integrationStore.dataSet.multipleOrganisations){
-            orgStrategy = <tr>
-                <td>
-                    <Select
-                        placeholder="Identifier scheme"
-                        value={this.integrationStore.dataSet.orgUnitStrategy}
-                        options={items}
-                        onChange={this.integrationStore.dataSet.setOrgUnitStrategy}
-                    />
-                </td>
-            </tr>
-        }*/
 
-        return <td valign="top">
-            <ol start="4">
-                <li>
-                    File Options
-                    <br/>
-                    <br/>
-                    <table width="100%">
-                        <tbody>
-                        <tr>
-                            <td>
-                                <Select
-                                    placeholder="Select sheet"
-                                    value={this.integrationStore.dataSet.selectedSheet}
-                                    options={this.integrationStore.dataSet.sheets}
-                                    onChange={this.integrationStore.dataSet.setSelectedSheet}
-                                />
-                            </td>
-                        </tr>
+        return <ol start="4">
+            <li>
+                File Options
+                <Select
+                    placeholder="Select sheet"
+                    value={this.integrationStore.dataSet.selectedSheet}
+                    options={this.integrationStore.dataSet.sheets}
+                    onChange={this.integrationStore.dataSet.setSelectedSheet}
+                    isClearable
+                    isSearchable
+                />
+                <br/>
+                {organisation}
+                <br/>
+                {orgStrategy}
+                <br/>
+                {period}
 
-                        <tr>
-                            <td width="50%">
-                                {organisation}
-                            </td>
-                        </tr>
-
-                        {orgStrategy}
-
-                        <tr>
-                            <td width="50%">
-                                {period}
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </li>
-            </ol>
-        </td>
+            </li>
+        </ol>
     };
 
     dynamicFileOptions = () => {
@@ -259,6 +227,8 @@ class D2 extends React.Component {
             value={this.integrationStore.dataSet.orgUnitColumn}
             options={this.integrationStore.dataSet.cellColumns}
             onChange={this.integrationStore.dataSet.setOrgUnitColumn}
+            isClearable
+            isSearchable
         />;
 
         let period = <Select
@@ -266,87 +236,60 @@ class D2 extends React.Component {
             value={this.integrationStore.dataSet.periodColumn}
             options={this.integrationStore.dataSet.cellColumns}
             onChange={this.integrationStore.dataSet.setPeriodColumn}
+            isClearable
+            isSearchable
         />;
 
 
-        let orgStrategy = <tr>
-            <td>
-                <Select
-                    placeholder="Identifier scheme"
-                    value={this.integrationStore.dataSet.orgUnitStrategy}
-                    options={items}
-                    onChange={this.integrationStore.dataSet.setOrgUnitStrategy}
-                />
-            </td>
-        </tr>;
+        let orgStrategy = <Select
+            placeholder="Identifier scheme"
+            value={this.integrationStore.dataSet.orgUnitStrategy}
+            options={items}
+            onChange={this.integrationStore.dataSet.setOrgUnitStrategy}
+            isClearable
+            isSearchable
+        />;
 
-        return <td valign="top">
-            <ol start="4">
-                <li>
-                    File Options
+        return <ol start="4">
+            <li>
+                File Options
+                <br/>
+                <br/>
+                <Grid item xs={6}>
+
+                    <Select
+                        placeholder="Select sheet"
+                        value={this.integrationStore.dataSet.selectedSheet}
+                        options={this.integrationStore.dataSet.sheets}
+                        onChange={this.integrationStore.dataSet.setSelectedSheet}
+                        isClearable
+                        isSearchable
+                    />
+                    <InputField
+                        label="Data start row"
+                        type="number"
+                        fullWidth
+                        value={this.integrationStore.dataSet.dataStartRow}
+                        onChange={(value) => this.integrationStore.dataSet.handelDataRowStartChange(value)}
+                    />
+                    <Select
+                        placeholder="Data start column"
+                        value={this.integrationStore.dataSet.dataStartColumn}
+                        options={this.integrationStore.dataSet.cellColumns}
+                        onChange={this.integrationStore.dataSet.setDataStartColumn}
+                        isClearable
+                        isSearchable
+                    />
+                    <FormHelperText>If your data elements are alphabetically arranged please select column
+                        where data starts to guess columns</FormHelperText>
+                    {organisation}
                     <br/>
+                    {orgStrategy}
                     <br/>
-                    <table width="100%">
-                        <tbody>
-                        <tr>
-                            <td>
-                                <Select
-                                    placeholder="Select sheet"
-                                    value={this.integrationStore.dataSet.selectedSheet}
-                                    options={this.integrationStore.dataSet.sheets}
-                                    onChange={this.integrationStore.dataSet.setSelectedSheet}
-                                />
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td>
-                                <InputField
-                                    label="Data start row"
-                                    type="number"
-                                    fullWidth
-                                    value={this.integrationStore.dataSet.dataStartRow}
-                                    onChange={(value) => this.integrationStore.dataSet.handelDataRowStartChange(value)}
-                                />
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td>
-                                <Select
-                                    placeholder="Data start column"
-                                    value={this.integrationStore.dataSet.dataStartColumn}
-                                    options={this.integrationStore.dataSet.cellColumns}
-                                    onChange={this.integrationStore.dataSet.setDataStartColumn}
-                                />
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td>
-                                <FormHelperText>If your data elements are alphabetically arranged please select column
-                                    where data starts to guess columns</FormHelperText>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td width="50%">
-                                {organisation}
-                            </td>
-                        </tr>
-
-                        {orgStrategy}
-
-                        <tr>
-                            <td width="50%">
-                                {period}
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </li>
-            </ol>
-        </td>
+                    {period}
+                </Grid>
+            </li>
+        </ol>
     };
 
     dynamicFileOptions2 = () => {
@@ -356,6 +299,8 @@ class D2 extends React.Component {
             value={this.integrationStore.dataSet.orgUnitColumn}
             options={this.integrationStore.dataSet.cellColumns}
             onChange={this.integrationStore.dataSet.setOrgUnitColumn}
+            isClearable
+            isSearchable
         />;
 
         let period = <Select
@@ -363,128 +308,92 @@ class D2 extends React.Component {
             value={this.integrationStore.dataSet.periodColumn}
             options={this.integrationStore.dataSet.cellColumns}
             onChange={this.integrationStore.dataSet.setPeriodColumn}
+            isClearable
+            isSearchable
         />;
 
 
-        let orgStrategy = <tr>
-            <td>
+        let orgStrategy = <Select
+            placeholder="Identifier scheme"
+            value={this.integrationStore.dataSet.orgUnitStrategy}
+            options={items}
+            onChange={this.integrationStore.dataSet.setOrgUnitStrategy}
+            isClearable
+            isSearchable
+        />;
+
+        return <ol start="4">
+            <li>
+                File Options
+
                 <Select
-                    placeholder="Identifier scheme"
-                    value={this.integrationStore.dataSet.orgUnitStrategy}
-                    options={items}
-                    onChange={this.integrationStore.dataSet.setOrgUnitStrategy}
+                    placeholder="Select sheet"
+                    value={this.integrationStore.dataSet.selectedSheet}
+                    options={this.integrationStore.dataSet.sheets}
+                    onChange={this.integrationStore.dataSet.setSelectedSheet}
+                    isClearable
+                    isSearchable
                 />
-            </td>
-        </tr>;
-
-        return <td valign="top">
-            <ol start="4">
-                <li>
-                    File Options
-                    <br/>
-                    <br/>
-                    <table width="100%">
-                        <tbody>
-                        <tr>
-                            <td>
-                                <Select
-                                    placeholder="Select sheet"
-                                    value={this.integrationStore.dataSet.selectedSheet}
-                                    options={this.integrationStore.dataSet.sheets}
-                                    onChange={this.integrationStore.dataSet.setSelectedSheet}
-                                />
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td>
-                                <InputField
-                                    label="Data Element row"
-                                    type="number"
-                                    fullWidth
-                                    value={this.integrationStore.dataSet.headerRow}
-                                    onChange={(value) => this.integrationStore.dataSet.handelHeaderRowChange(value)}
-                                />
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td>
-                                <InputField
-                                    label="Data start row"
-                                    type="number"
-                                    fullWidth
-                                    value={this.integrationStore.dataSet.dataStartRow}
-                                    onChange={(value) => this.integrationStore.dataSet.handelDataRowStartChange(value)}
-                                />
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td>
-                                <Select
-                                    placeholder="Data start column"
-                                    value={this.integrationStore.dataSet.dataStartColumn}
-                                    options={this.integrationStore.dataSet.cellColumns}
-                                    onChange={this.integrationStore.dataSet.setDataStartColumn}
-                                />
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td>
-                                <FormHelperText>If your data elements are alphabetically arranged please select column
-                                    where data starts to guess columns</FormHelperText>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td width="50%">
-                                {organisation}
-                            </td>
-                        </tr>
-
-                        {orgStrategy}
-
-                        <tr>
-                            <td width="50%">
-                                {period}
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </li>
-            </ol>
-        </td>
+                <br/>
+                <InputField
+                    label="Data Element row"
+                    type="number"
+                    fullWidth
+                    value={this.integrationStore.dataSet.headerRow}
+                    onChange={(value) => this.integrationStore.dataSet.handelHeaderRowChange(value)}
+                />
+                <br/>
+                <InputField
+                    label="Data start row"
+                    type="number"
+                    fullWidth
+                    value={this.integrationStore.dataSet.dataStartRow}
+                    onChange={(value) => this.integrationStore.dataSet.handelDataRowStartChange(value)}
+                />
+                <br/>
+                <Select
+                    placeholder="Data start column"
+                    value={this.integrationStore.dataSet.dataStartColumn}
+                    options={this.integrationStore.dataSet.cellColumns}
+                    onChange={this.integrationStore.dataSet.setDataStartColumn}
+                    isClearable
+                    isSearchable
+                />
+                <FormHelperText>If your data elements are alphabetically arranged please select column
+                    where data starts to guess columns</FormHelperText>
+                <br/>
+                {organisation}
+                <br/>
+                {orgStrategy}
+                <br/>
+                {period}
+            </li>
+        </ol>
     };
 
     attributeOptions = () => {
         if (this.integrationStore.dataSet.categoryCombo.categories.length > 0) {
-            return <tr>
-                <td colSpan="2">
-                    <ol start="6">
-                        <li>
-                            Data Set Attribute Combination
-                            <table width="100%">
-                                <tbody>
-                                <tr>
-                                    {this.integrationStore.dataSet.categoryCombo.categories.map(category => {
-                                        return <td key={category.id}>
-                                            <Select
-                                                placeholder={category.name + ' column'}
-                                                value={category.mapping}
-                                                options={this.integrationStore.dataSet.columns}
-                                                onChange={category.setMapping}
-                                            />
-                                        </td>
-                                    })}
-                                </tr>
-                                </tbody>
-                            </table>
-                        </li>
-                    </ol>
-                </td>
-            </tr>
+            return <ol start="6">
+                <li>
+                    Data Set Attribute Combination
+                    <Grid container spacing={8}>
+
+                        {this.integrationStore.dataSet.categoryCombo.categories.map(category => {
+                            return <Grid key={category.id} item
+                                         xs={12 / this.integrationStore.dataSet.categoryCombo.categories.length}>
+                                <Select
+                                    placeholder={category.name + ' column'}
+                                    value={category.mapping}
+                                    options={this.integrationStore.dataSet.columns}
+                                    onChange={category.setMapping}
+                                    isClearable
+                                    isSearchable
+                                />
+                            </Grid>
+                        })}
+                    </Grid>
+                </li>
+            </ol>
         }
         return null;
     };
@@ -492,31 +401,26 @@ class D2 extends React.Component {
 
     dynamicAttributeOptions = () => {
         if (this.integrationStore.dataSet.categoryCombo.categories.length > 0) {
-            return <tr>
-                <td colSpan="2">
-                    <ol start="5">
-                        <li>
-                            Data Set Attribute Combination
-                            <table width="100%">
-                                <tbody>
-                                <tr>
-                                    {this.integrationStore.dataSet.categoryCombo.categories.map(category => {
-                                        return <td key={category.id}>
-                                            <Select
-                                                placeholder={category.name + ' column'}
-                                                value={category.mapping}
-                                                options={this.integrationStore.dataSet.cellColumns}
-                                                onChange={category.setMapping}
-                                            />
-                                        </td>
-                                    })}
-                                </tr>
-                                </tbody>
-                            </table>
-                        </li>
-                    </ol>
-                </td>
-            </tr>
+            return <ol start="5">
+                <li>
+                    Data Set Attribute Combination
+                    <Grid container spacing={8}>
+                        {this.integrationStore.dataSet.categoryCombo.categories.map(category => {
+                            return <Grid key={category.id} item
+                                         xs={12 / this.integrationStore.dataSet.categoryCombo.categories.length}>
+                                <Select
+                                    placeholder={category.name + ' column'}
+                                    value={category.mapping}
+                                    options={this.integrationStore.dataSet.cellColumns}
+                                    onChange={category.setMapping}
+                                    isClearable
+                                    isSearchable
+                                />
+                            </Grid>
+                        })}
+                    </Grid>
+                </li>
+            </ol>
         }
 
         return null;
@@ -526,111 +430,102 @@ class D2 extends React.Component {
     fixedAttributeOptions = () => {
         if (this.integrationStore.dataSet.categoryCombo.categories.length > 0) {
             if (this.integrationStore.dataSet.attributeCombosInExcel) {
-                return <tr>
-                    <td colSpan="2">
-                        <ol start="5">
-                            <li>
-                                Data Set Attribute Combination
-                                <table width="100%">
-                                    <tbody>
-                                    <tr>
-                                        {this.integrationStore.dataSet.categoryCombo.categories.map(category => {
-                                            return <td key={category.id}>
-                                                <Select
-                                                    placeholder={category.name}
-                                                    value={category.mapping}
-                                                    options={this.integrationStore.dataSet.cells}
-                                                    onChange={category.setMapping}
-                                                />
-                                            </td>
-                                        })}
-                                    </tr>
-                                    </tbody>
-                                </table>
-                            </li>
-                        </ol>
-                    </td>
-                </tr>
+                return <ol start="5">
+                    <li>
+                        Data Set Attribute Combination
+                        <Grid container spacing={8}>
+                            {this.integrationStore.dataSet.categoryCombo.categories.map(category => {
+                                return <Grid key={category.id}
+                                             xs={12 / this.integrationStore.dataSet.categoryCombo.categories.length}>
+                                    <Select
+                                        placeholder={category.name}
+                                        value={category.mapping}
+                                        options={this.integrationStore.dataSet.cells}
+                                        onChange={category.setMapping}
+                                        isClearable
+                                        isSearchable
+                                    />
+                                </Grid>
+                            })}
+                        </Grid>
+                    </li>
+                </ol>
             } else {
-                return <tr>
-                    <td colSpan="2">
-                        <ol start="5">
-                            <li>
-                                Data Set Attribute Combination
-                                <table width="100%">
-                                    <tbody>
-                                    <tr>
-                                        {this.integrationStore.dataSet.categoryCombo.categories.map(category => {
-                                            return <td key={category.id}>
-                                                <Select
-                                                    placeholder={category.name}
-                                                    defaultValue={category.options[0]}
-                                                    value={category.mapping}
-                                                    options={category.options}
-                                                    onChange={category.setMapping}
-                                                />
-                                            </td>
-                                        })}
-                                    </tr>
-                                    </tbody>
-                                </table>
-                            </li>
-                        </ol>
-                    </td>
-                </tr>
+                return <ol start="5">
+                    <li>
+                        Data Set Attribute Combination
+                        <Grid container spacing={8}>
+                            {this.integrationStore.dataSet.categoryCombo.categories.map(category => {
+                                return <Grid item key={category.id}
+                                             xs={12 / this.integrationStore.dataSet.categoryCombo.categories.length}>
+                                    <Select
+                                        placeholder={category.name}
+                                        defaultValue={category.options[0]}
+                                        value={category.mapping}
+                                        options={category.options}
+                                        onChange={category.setMapping}
+                                        isClearable
+                                        isSearchable
+                                    />
+                                </Grid>
+                            })}
+
+                        </Grid>
+                    </li>
+                </ol>
             }
         }
         return null;
     };
 
     dataSetColumns = () => {
-        return <tr>
-            <td colSpan="2">
-                <ol start={this.integrationStore.dataSet.categoryCombo.categories.length > 0 ? 7 : 6}>
-                    <li>
-                        Import options
-                        <table width="100%">
-                            <tbody>
-                            <tr>
-                                <td>
-                                    <Select
-                                        placeholder="Data element column"
-                                        value={this.integrationStore.dataSet.dataElementColumn}
-                                        options={this.integrationStore.dataSet.columns}
-                                        onChange={this.integrationStore.dataSet.setDataElementColumn}
-                                    />
-                                </td>
-                                <td>
-                                    <Select
-                                        placeholder="Category option combination column"
-                                        value={this.integrationStore.dataSet.categoryOptionComboColumn}
-                                        options={this.integrationStore.dataSet.columns}
-                                        onChange={this.integrationStore.dataSet.setCategoryOptionComboColumn}
-                                    />
-                                </td>
-                                <td>
-                                    <Select
-                                        placeholder="Period column"
-                                        value={this.integrationStore.dataSet.periodColumn}
-                                        options={this.integrationStore.dataSet.columns}
-                                        onChange={this.integrationStore.dataSet.setPeriodColumn}
-                                    />
-                                </td>
-                                <td>
-                                    <Select
-                                        placeholder="Data value column"
-                                        value={this.integrationStore.dataSet.dataValueColumn}
-                                        options={this.integrationStore.dataSet.columns}
-                                        onChange={this.integrationStore.dataSet.setDataValueColumn}
-                                    />
-                                </td>
-                            </tr>
-                            </tbody>
-                        </table>
-                    </li>
-                </ol>
-            </td>
-        </tr>
+        return <ol start={this.integrationStore.dataSet.categoryCombo.categories.length > 0 ? 7 : 6}>
+            <li>
+                Import options
+                <Grid spacing={8} container>
+                    <Grid xs={3} item>
+                        <Select
+                            placeholder="Data element column"
+                            value={this.integrationStore.dataSet.dataElementColumn}
+                            options={this.integrationStore.dataSet.columns}
+                            onChange={this.integrationStore.dataSet.setDataElementColumn}
+                            isClearable
+                            isSearchable
+                        />
+                    </Grid>
+                    <Grid xs={3} item>
+                        <Select
+                            placeholder="Category option combination column"
+                            value={this.integrationStore.dataSet.categoryOptionComboColumn}
+                            options={this.integrationStore.dataSet.columns}
+                            onChange={this.integrationStore.dataSet.setCategoryOptionComboColumn}
+                            isClearable
+                            isSearchable
+                        />
+                    </Grid>
+                    <Grid xs={3} item>
+                        <Select
+                            placeholder="Period column"
+                            value={this.integrationStore.dataSet.periodColumn}
+                            options={this.integrationStore.dataSet.columns}
+                            onChange={this.integrationStore.dataSet.setPeriodColumn}
+                            isClearable
+                            isSearchable
+                        />
+                    </Grid>
+                    <Grid xs={3} item>
+                        <Select
+                            placeholder="Data value column"
+                            value={this.integrationStore.dataSet.dataValueColumn}
+                            options={this.integrationStore.dataSet.columns}
+                            onChange={this.integrationStore.dataSet.setDataValueColumn}
+                            isClearable
+                            isSearchable
+                        />
+                    </Grid>
+                </Grid>
+            </li>
+        </ol>
     };
 
 
@@ -644,115 +539,162 @@ class D2 extends React.Component {
 
         let pullSection = null;
 
+        const uploadSection = <section>
+                <div className="dropzone">
+                    <Dropzone
+                        accept=".csv, .xls, .xlsx"
+                        onDrop={dataSet.onDrop}>
+                        <p align="center">Drop files here</p>
+                        <p align="center">
+                            <Icon className={classes.icon} color="primary"
+                                  style={{fontSize: 48}}>
+                                add_circle
+                            </Icon>
+                        </p>
+                        <p align="center">{dataSet.fileName}</p>
+                        <p align="center"
+                           style={{color: 'red'}}>{dataSet.uploadMessage}</p>
+                    </Dropzone>
+                </div>
+            </section>
+        ;
+
         if (dataSet.templateType === "1") {
 
             fileOptions = this.dataSetColumns();
             columns = this.fileOptions();
             attributesCombos = this.attributeOptions();
-            pullSection = <tr>
-                <td valign="top">
 
-                    <table width="100%">
-                        <tbody>
-                        <tr>
-                            <td>
-                                <InputField
-                                    label="URL"
-                                    type="text"
-                                    fullWidth
-                                    value={dataSet.url}
-                                    onChange={(value) => dataSet.handelURLChange(value)}/>
-                            </td>
-                        </tr>
-                        <tr>
+            pullSection = <div>
+                <Grid container spacing={8}>
+                    <Grid item xs={12}>
+                        <InputField
+                            label="URL"
+                            type="text"
+                            fullWidth
+                            value={dataSet.url}
+                            onChange={(value) => dataSet.handelURLChange(value)}/>
 
-                            <td width="33%">
-                                <InputField
-                                    label="Username"
-                                    type="text"
-                                    fullWidth
-                                    value={dataSet.username}
-                                    onChange={(value) => dataSet.setUsername(value)}/>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td width="33%">
-                                <InputField
-                                    label="Password"
-                                    type="text"
-                                    fullWidth
-                                    value={dataSet.password}
-                                    onChange={(value) => this.integrationStore.dataSet.setPassword(value)}/>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <InputField
-                                    label="Response key"
-                                    type="text"
-                                    fullWidth
-                                    value={this.integrationStore.dataSet.responseKey}
-                                    onChange={(value) => this.integrationStore.dataSet.setResponseKey(value)}/>
-                                <FormHelperText>If the response is not an array, specify the key which holds the
-                                    array</FormHelperText>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <Checkbox checked={this.integrationStore.dataSet.isDhis2}
-                                          onChange={this.integrationStore.dataSet.onCheckIsDhis2} value="checked"/> From
-                                DHIS2
+                    </Grid>
+                </Grid>
+
+                <Grid container spacing={8}>
+                    <Grid item xs={6}>
+                        <InputField
+                            label="Username"
+                            type="text"
+                            fullWidth
+                            value={dataSet.username}
+                            onChange={(value) => dataSet.setUsername(value)}/>
+                    </Grid>
+                    <Grid item xs={6}>
+                        <InputField
+                            label="Password"
+                            type="text"
+                            fullWidth
+                            value={dataSet.password}
+                            onChange={(value) => this.integrationStore.dataSet.setPassword(value)}/>
+                    </Grid>
+                </Grid>
+                <Grid container spacing={8}>
+                    <Grid item xs={6}>
+                        <InputField
+                            label="Response key"
+                            type="text"
+                            fullWidth
+                            value={this.integrationStore.dataSet.responseKey}
+                            onChange={(value) => this.integrationStore.dataSet.setResponseKey(value)}/>
+                        <FormHelperText>If the response is not an array, specify the key which holds the
+                            array</FormHelperText>
+                    </Grid>
+                </Grid>
+
+                <Grid container spacing={8}>
+                    <Grid item xs={12}>
+                        <Checkbox checked={this.integrationStore.dataSet.isDhis2}
+                                  onChange={this.integrationStore.dataSet.onCheckIsDhis2} value="checked"/> From
+                        DHIS2
+
+                        {this.integrationStore.dataSet.isDhis2 ? <div>
+                                <Select
+                                    placeholder="Select data set to import"
+                                    value={this.integrationStore.dataSet.selectedDataSet}
+                                    options={this.integrationStore.dataSet.dhis2DataSets}
+                                    onChange={this.integrationStore.dataSet.setDhis2DataSetChange}
+                                    isClearable
+                                    isSearchable
+                                />
                                 <br/>
-                                {this.integrationStore.dataSet.isDhis2 ? <div>
-                                        <Select
-                                            placeholder="Identifier scheme"
-                                            value={this.integrationStore.dataSet.selectedDataSet}
-                                            options={this.integrationStore.dataSet.dhis2DataSets}
-                                            onChange={this.integrationStore.dataSet.setDhis2DataSetChange}
-                                        />
-                                        <br/>
-                                        <Select
-                                            placeholder="Organisation unit level"
-                                            value={this.integrationStore.dataSet.currentLevel}
-                                            options={this.integrationStore.dataSet.levels}
-                                            onChange={this.integrationStore.dataSet.setCurrentLevel}
-                                        />
-                                        <br/>
+                                <Select
+                                    placeholder="Organisation unit level"
+                                    value={this.integrationStore.dataSet.currentLevel}
+                                    options={this.integrationStore.dataSet.levels}
+                                    onChange={this.integrationStore.dataSet.setCurrentLevel}
+                                    isClearable
+                                    isSearchable
+                                />
+                                <br/>
 
-                                        <PeriodPicker
-                                            periodType={this.integrationStore.dataSet.periodType}
-                                            onPickPeriod={(value) => this.integrationStore.dataSet.replaceParam(createParam({
-                                                param: 'period',
-                                                value:value
-                                            }))}
-                                        />
-                                    </div>
-                                    : null}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <Params/>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                    {/*<InputField
-                        label="URL"
-                        type="text"
-                        fullWidth
-                        value={dataSet.url}
-                        onChange={(value) => dataSet.handelURLChange(value)}
-                    />*/}
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        disabled={!dataSet.url || dataSet.isDhis2}
-                        onClick={dataSet.pullData}>
-                        Pull
-                    </Button>
-                </td>
-            </tr>
+                                <Checkbox checked={this.integrationStore.dataSet.multiplePeriods}
+                                          onChange={this.integrationStore.dataSet.onCheckMultiplePeriods}
+                                          value="checked"/> Multiple Periods
+
+                                {this.integrationStore.dataSet.multiplePeriods ? <div>
+                                    <Grid container spacing={8}>
+                                        <Grid item xs={6}>
+                                            <TextField
+                                                id="startDate"
+                                                label="Start Date"
+                                                type="date"
+                                                value={this.integrationStore.dataSet.startPeriod}
+                                                className={classes.textField}
+                                                InputLabelProps={{
+                                                    shrink: true,
+                                                }}
+                                                onChange={this.integrationStore.dataSet.handleStartPeriodChange}
+                                            />
+                                        </Grid>
+
+                                        <Grid item xs={6}>
+                                            <TextField
+                                                id="endDate"
+                                                label="End Date"
+                                                type="date"
+                                                value={this.integrationStore.dataSet.endPeriod}
+                                                className={classes.textField}
+                                                InputLabelProps={{
+                                                    shrink: true,
+                                                }}
+                                                onChange={this.integrationStore.dataSet.handleEndPeriodChange}
+                                            />
+                                        </Grid>
+                                    </Grid>
+                                </div> : <div>
+                                    <PeriodPicker
+                                        periodType={this.integrationStore.dataSet.periodType}
+                                        onPickPeriod={(value) => this.integrationStore.dataSet.replaceParam(createParam({
+                                            param: 'period',
+                                            value: value
+                                        }))}
+                                    />
+                                </div>}
+                            </div>
+                            : null}
+
+                        <Params/>
+
+                    </Grid>
+                </Grid>
+                <br/>
+                <br/>
+                <Button
+                    variant="contained"
+                    color="primary"
+                    disabled={!dataSet.url || dataSet.isDhis2}
+                    onClick={dataSet.pullData}>
+                    Pull
+                </Button>
+            </div>
 
         } else if (dataSet.templateType === "2") {
             columns = this.fixedFileOptions();
@@ -769,151 +711,117 @@ class D2 extends React.Component {
         }
 
         return <div>
-            <table width="100%">
-                <tbody>
-                <tr>
-                    <td colSpan="2">
-                        <ol start="1">
-                            <li>
-                                Options
-                                <FormGroup row>
-                                    <FormControlLabel
-                                        control={
-                                            <Radio
-                                                checked={dataSet.templateType === "1"}
-                                                onChange={dataSet.handleRadioChange}
-                                                value="1"
-                                            />
-                                        }
-                                        label="Excel/CSV/API Line Listing"
-                                    />
-                                    <FormControlLabel
-                                        control={
-                                            <Radio
-                                                checked={dataSet.templateType === "2"}
-                                                onChange={dataSet.handleRadioChange}
-                                                value="2"
-                                            />
-                                        }
-                                        label="Fixed excel template"
-                                    />
-                                    {/*<FormControlLabel
-                                        control={
-                                            <Radio
-                                                checked={dataSet.templateType === "3"}
-                                                onChange={dataSet.handleRadioChange}
-                                                value="3"
+            <Grid container spacing={8}>
+                <Grid item xs={6}>
+                    <ol start="1">
+                        <li>
+                            Options
+                            <FormGroup row>
+                                <FormControlLabel
+                                    control={
+                                        <Radio
+                                            checked={dataSet.templateType === "1"}
+                                            onChange={dataSet.handleRadioChange}
+                                            value="1"
+                                        />
+                                    }
+                                    label="Excel/CSV/API Line Listing"
+                                />
 
-                                            />
-                                        }
-                                        label="Dynamic excel (Excel columns letters)"
-                                    />*/}
-                                    <FormControlLabel
-                                        control={
-                                            <Radio
-                                                checked={dataSet.templateType === "4"}
-                                                onChange={dataSet.handleRadioChange}
-                                                value="4"
-                                            />
-                                        }
-                                        label="Dynamic excel template"
-                                    />
+                                <FormControlLabel
+                                    control={
+                                        <Radio
+                                            checked={dataSet.templateType === "4"}
+                                            onChange={dataSet.handleRadioChange}
+                                            value="4"
+                                        />
+                                    }
+                                    label="Excel Tabular Data"
+                                />
+                                <FormControlLabel
+                                    control={
+                                        <Radio
+                                            checked={dataSet.templateType === "2"}
+                                            onChange={dataSet.handleRadioChange}
+                                            value="2"
+                                        />
+                                    }
+                                    label="Excel Form"
+                                />
 
-                                </FormGroup>
-                            </li>
+                            </FormGroup>
+                        </li>
 
-                        </ol>
-                    </td>
-                </tr>
-                <tr>
-                    <td colSpan="2">
-                        <ol start="2">
-                            <li>
-                                Options
-                                <FormGroup row>
+                    </ol>
+                </Grid>
+                <Grid item xs={6}>
+                    <ol start="2">
+                        <li>
+                            Options
+                            <FormGroup row>
+                                <FormControlLabel
+                                    control={
+                                        <Checkbox
+                                            checked={dataSet.periodInExcel}
+                                            onChange={dataSet.handlePeriodInExcel}
+                                            disabled={dataSet.disableCheckBox1}
+                                        />
+                                    }
+                                    label="Period provided"
+                                />
+                                <FormControlLabel
+                                    control={
+                                        <Checkbox
+                                            checked={dataSet.organisationUnitInExcel}
+                                            onChange={dataSet.handleOrganisationInExcel}
+                                            disabled={dataSet.disableCheckBox2}
+                                        />
+                                    }
+                                    label="Organisation provided"
+                                />
+
+                                {this.integrationStore.dataSet.categoryCombo.categories.length > 0 ?
                                     <FormControlLabel
                                         control={
                                             <Checkbox
-                                                checked={dataSet.periodInExcel}
-                                                onChange={dataSet.handlePeriodInExcel}
-                                                disabled={dataSet.disableCheckBox1}
+                                                checked={dataSet.attributeCombosInExcel}
+                                                onChange={dataSet.handleAttributeCombosInExcel}
+                                                disabled={dataSet.disableCheckBox4}
                                             />
                                         }
-                                        label="Period provided"
-                                    />
-                                    <FormControlLabel
-                                        control={
-                                            <Checkbox
-                                                checked={dataSet.organisationUnitInExcel}
-                                                onChange={dataSet.handleOrganisationInExcel}
-                                                disabled={dataSet.disableCheckBox2}
-                                            />
-                                        }
-                                        label="Organisation provided"
-                                    />
-
-                                    {this.integrationStore.dataSet.categoryCombo.categories.length > 0 ?
-                                        <FormControlLabel
-                                            control={
-                                                <Checkbox
-                                                    checked={dataSet.attributeCombosInExcel}
-                                                    onChange={dataSet.handleAttributeCombosInExcel}
-                                                    disabled={dataSet.disableCheckBox4}
-                                                />
-                                            }
-                                            label="Dataset attribute combo provided"
-                                        /> : null}
+                                        label="Dataset attribute combo provided"
+                                    /> : null}
 
 
-                                </FormGroup>
-                            </li>
+                            </FormGroup>
+                        </li>
 
-                        </ol>
-                    </td>
-                </tr>
-                <tr>
-                    <td valign="top" width="50%">
-                        <ol start="3">
-                            <li>
-                                <table width="100%">
-                                    <tbody>
-                                    <tr>
-                                        <td>Upload file to import or enter url</td>
-                                    </tr>
-                                    <tr>
-                                        <td valign="top">
-                                            <section>
-                                                <div className="dropzone">
-                                                    <Dropzone
-                                                        accept=".csv, .xls, .xlsx"
-                                                        onDrop={dataSet.onDrop}>
-                                                        <p align="center">Drop files here</p>
-                                                        <p align="center">
-                                                            <Icon className={classes.icon} color="primary"
-                                                                  style={{fontSize: 48}}>
-                                                                add_circle
-                                                            </Icon>
-                                                        </p>
-                                                        <p align="center"
-                                                           style={{color: 'red'}}>{dataSet.uploadMessage}</p>
-                                                    </Dropzone>
-                                                </div>
-                                            </section>
-                                        </td>
-                                    </tr>
+                    </ol>
+                </Grid>
+            </Grid>
+            <Grid container spacing={8}>
+                <Grid item xs={6}>
+                    <ol start="3">
+                        <li>
+                            Options
+                            <Tabs defaultActiveKey="1">
+                                <TabPane tab="Upload Excel/CSV" key="1">
+                                    {uploadSection}
+                                </TabPane>
+                                <TabPane tab="Import from API" key="2">
                                     {pullSection}
-                                    </tbody>
-                                </table>
-                            </li>
-                        </ol>
-                    </td>
+                                </TabPane>
+                            </Tabs>
+                        </li>
+                    </ol>
+                </Grid>
+                <Grid item xs={6}>
                     {columns}
-                </tr>
-                {attributesCombos}
-                {fileOptions}
-                </tbody>
-            </table>
+                </Grid>
+            </Grid>
 
+            {attributesCombos}
+            {fileOptions}
             <Progress open={this.integrationStore.dataSet.dialogOpen}
                       onClose={this.integrationStore.dataSet.closeDialog}/>
         </div>
