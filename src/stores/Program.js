@@ -544,25 +544,6 @@ class Program {
 
             const results = await Promise.all(all);
 
-            // const ids = results.map(r => {
-            //     const {trackedEntityInstances} = r;
-            //     return trackedEntityInstances.map(t => {
-            //         return t.trackedEntityInstance;
-            //     })
-            // });
-
-            // const entities = _.chunk(_.flatten(ids), 50).map(ids => ids.join(';'));
-
-            // const all1 = entities.map(entityGroup => {
-            //     return api.get('trackedEntityInstances', {
-            //         paging: false,
-            //         trackedEntityInstance: entityGroup,
-
-            //     })
-            // });
-
-            // const results1 = await Promise.all(all1);
-
             for (let instance of results) {
                 const {
                     trackedEntityInstances
@@ -734,7 +715,7 @@ class Program {
             namespace.set('mappings', toBeSaved);
             NotificationManager.successes('Success', 'Mapping saved successfully', 5000);
         } catch (e) {
-            NotificationManager.error('Error', JSON.stringify(e), 5000);
+            NotificationManager.error('Error', `Could not save mapping ${e.message}`, 5000);
         }
     };
 
@@ -759,15 +740,13 @@ class Program {
 
     @action scheduleProgram = mappings => {
         if (this.scheduleTime !== 0) {
-            setInterval(action(() => {
-                if (this.running) {
-
-                } else {
+            setInterval(action(async () => {
+                if (!this.running) {
                     this.setRunning(true);
-                    this.pullData();
-                    this.create();
+                    await this.pullData();
+                    await this.create();
                     this.lastRun = moment(new Date()).format('YYYY-MM-DD HH:mm:ss');
-                    this.saveMapping(mappings);
+                    await this.saveMapping(mappings);
                     this.setRunning(false);
                 }
             }), this.scheduleTime * 60 * 1000);
@@ -1010,6 +989,10 @@ class Program {
     @computed
     get isTracker() {
         return this.programType === 'WITH_REGISTRATION';
+    }
+
+    @computed get allOrganisationUnits() {
+        return _.fromPairs(this.organisationUnits.map(ou => [ou.id, ou.name]));
     }
 
 
@@ -1705,8 +1688,12 @@ class Program {
                 return {...a, name: this.processedAttributes[a.attribute]};
             });
 
-            return {...tei, attributes}
+            return {...tei, attributes, orgUnit: this.allOrganisationUnits[tei.orgUnit]}
         })
+    }
+
+    @computed get allStages() {
+        return _.fromPairs(this.programStages.map(s => [s.id, s.name]));
     }
 
     @computed get currentNewEnrollments() {
@@ -1714,12 +1701,9 @@ class Program {
             newEnrollments
         } = this.processed;
 
-        const info = this.paging['nel'];
-
-        if (newEnrollments && newEnrollments.length > 0) {
-            return newEnrollments.slice(info.page * info.rowsPerPage, info.page * info.rowsPerPage + info.rowsPerPage);
-        }
-        return [];
+        return newEnrollments.map(e => {
+            return {...e, orgUnit: this.allOrganisationUnits[e.orgUnit]}
+        })
     }
 
     @computed get currentNewEvents() {
@@ -1732,7 +1716,12 @@ class Program {
                 return {...e, name: this.processedDataElements[e.dataElement]};
             });
 
-            return {...event, dataValues}
+            return {
+                ...event,
+                dataValues,
+                orgUnit: this.allOrganisationUnits[event.orgUnit],
+                programStage: this.allStages[event.programStage]
+            }
         });
     }
 
@@ -1746,7 +1735,7 @@ class Program {
                 return {...a, name: this.processedAttributes[a.attribute]};
             });
 
-            return {...tei, attributes}
+            return {...tei, attributes, orgUnit: this.allOrganisationUnits[tei.orgUnit]}
         });
     }
 
@@ -1760,7 +1749,12 @@ class Program {
                 return {...e, name: this.processedDataElements[e.dataElement]};
             });
 
-            return {...event, dataValues}
+            return {
+                ...event,
+                dataValues,
+                orgUnit: this.allOrganisationUnits[event.orgUnit],
+                programStage: this.allStages[event.programStage]
+            }
         });
     }
 

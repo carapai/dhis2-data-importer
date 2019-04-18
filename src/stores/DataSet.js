@@ -138,7 +138,15 @@ class DataSet {
     @action setCategoryCombo = val => this.categoryCombo = val;
     @action setMapping = val => this.mapping = val;
     @action setDataValues = val => this.dataValues = val;
-    @action setTemplateType = val => this.templateType = val;
+    @action setTemplateType = val => {
+        this.templateType = val;
+        const forms = this.forms.map(f => {
+            f.setTemplateType(val);
+            return f;
+        });
+
+        this.setForms(forms);
+    };
     @action setFileName = val => this.fileName = val;
 
 
@@ -1028,6 +1036,13 @@ class DataSet {
         return _.every(mappings);
     }
 
+    @computed get orgUniNames() {
+        return _.fromPairs(this.organisationUnits.map(o => {
+            return [o.id, o.name];
+
+        }))
+    }
+
     @computed get processed() {
         let data = this.data;
         let dataValues = [];
@@ -1271,11 +1286,37 @@ class DataSet {
         });
     }
 
-    @computed get finalData() {
+    @computed get allAttributeCombos() {
+        return _.fromPairs(this.categoryCombo.categoryOptionCombos.map(v => [v.id, v.name]));
+    }
 
+    @computed get allDataElements() {
+        let dataElements = {};
+        let categoryOptionCombos = {};
+
+        for (const f of this.forms) {
+            for (const e of f.dataElements) {
+                dataElements = {...dataElements, [e.id]: e.name}
+            }
+            for (const c of f.categoryOptionCombos) {
+                categoryOptionCombos = {...categoryOptionCombos, [c.id]: c.name}
+            }
+        }
+        return {dataElements, categoryOptionCombos};
+    }
+
+    @computed get finalData() {
+        const {dataElements, categoryOptionCombos} = this.allDataElements;
         return this.processed.map((v, k) => {
-            return {...v, id: k}
-        })
+            return {
+                ...v,
+                id: k,
+                orgUnit: this.orgUniNames[v.orgUnit],
+                dataElement: dataElements[v.dataElement],
+                categoryOptionCombo: categoryOptionCombos[v.categoryOptionCombo],
+                attributeOptionCombo: this.allAttributeCombos[v.attributeOptionCombo]
+            }
+        });
 
     }
 

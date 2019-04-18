@@ -102,9 +102,8 @@ class Aggregate extends React.Component {
                         </div>
                     ) : (
                         <div>
-                            <div
-                                className={classes.instructions}>{this.getStepContent(this.integrationStore.activeAggregateStep)}</div>
-                            <table width="100%">
+                            <div className={classes.instructions}>{this.getStepContent(this.integrationStore.activeAggregateStep)}</div>
+                            <table width="100%" style={{bottom: 0}}>
                                 <tbody>
                                 <tr>
                                     <td width="33%" align="left">
@@ -130,6 +129,15 @@ class Aggregate extends React.Component {
                                         </Button>
                                     </td>
                                     <td width="33%" valign="top" align="right">
+                                        <Button
+                                            disabled={this.integrationStore.disableNextAggregate}
+                                            variant="contained"
+                                            color="primary"
+                                            onClick={this.integrationStore.downloadAggregateData}
+                                            className={this.integrationStore.activeAggregateStep !== 4 ? classes.hidden : classes.button}
+                                        >
+                                            Download
+                                        </Button>
                                         <Button
                                             disabled={this.integrationStore.disableNextAggregate}
                                             variant="contained"

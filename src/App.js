@@ -34,7 +34,6 @@ const {
 class App extends Component {
 
     onCollapse = (collapsed) => {
-        console.log(collapsed);
         this.setState({collapsed});
     };
 
@@ -97,6 +96,8 @@ class App extends Component {
         d2.i18n.translations['Q2'] = 'Q2';
         d2.i18n.translations['Q3'] = 'Q3';
         d2.i18n.translations['Q4'] = 'Q4';
+        d2.i18n.translations['mapping_name'] = 'Mapping Name';
+        d2.i18n.translations['mapping_description'] = 'Mapping Description';
 
         this.state = {
             d2,

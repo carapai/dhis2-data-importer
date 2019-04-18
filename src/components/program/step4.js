@@ -27,6 +27,7 @@ import ListItem from "@material-ui/core/ListItem";
 import ListItemText from "@material-ui/core/ListItemText";
 import Dialog from "@material-ui/core/Dialog";
 import FormControlLabel from '@material-ui/core/FormControlLabel';
+import {Clear, Done} from "@material-ui/icons";
 
 
 const styles = theme => ({
@@ -170,6 +171,7 @@ class Step4 extends React.Component {
                                         <TableCell>Uniquely Identifies Event</TableCell>
                                         <TableCell>Data Element Mapping</TableCell>
                                         <TableCell>Options Mapping</TableCell>
+                                        <TableCell>Mapping Status</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
@@ -251,6 +253,9 @@ class Step4 extends React.Component {
                                                 </TableCell>
                                                 <TableCell>
                                                     {de}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {!!s.column.value ? <Done/> : <Clear/>}
                                                 </TableCell>
                                             </TableRow>
                                         );

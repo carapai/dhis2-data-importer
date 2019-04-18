@@ -24,7 +24,7 @@ class IntegrationStore {
     @observable completed = new Set();
     @observable completedAggregate = new Set();
     @observable steps = ['MAPPINGS', 'SELECT PROGRAM', 'DATA', 'ATTRIBUTES', 'PROGRAM STAGES', 'PRE-IMPORT SUMMARY', 'DATA IMPORT', 'MAPPING DETAILS'];
-    @observable aggregateSteps = ['MAPPINGS', 'DATA SETS', 'IMPORT OPTIONS', 'DATA SET MAPPING', 'PRE-IMPORT SUMMARY', 'IMPORT SUMMARY', 'MAPPING DETAILS'];
+    @observable aggregateSteps = ['MAPPINGS', 'SELECT DATA SET', 'IMPORT OPTIONS', 'DATA SET MAPPING', 'PRE-IMPORT SUMMARY', 'IMPORT SUMMARY', 'MAPPING DETAILS'];
     @observable totalSteps = 8;
     @observable totalAggregateSteps = 7;
     @observable multipleCma = {};
@@ -216,6 +216,13 @@ class IntegrationStore {
 
     };
 
+    @action downloadAggregateData = () => {
+        const dataValues = this.dataSet.processed;
+
+        const blob = new Blob([JSON.stringify({dataValues}, null, 2)], {type: 'application/json'});
+        saveAs(blob, "DataValues.json");
+    };
+
     @action setD2 = (d2) => {
         this.d2 = d2;
     };
@@ -242,7 +249,7 @@ class IntegrationStore {
         if (this.dataSet.isDhis2 && this.activeAggregateStep === 3) {
             // this.setNextAggregationLevel(this.activeAggregateStep + 2)
             this.setNextAggregationLevel(this.activeAggregateStep + 1);
-            this.handleNextAggregate();
+            await this.handleNextAggregate();
         } else {
             this.setNextAggregationLevel(this.activeAggregateStep + 1);
         }

@@ -715,7 +715,7 @@ class D2 extends React.Component {
                 <Grid item xs={6}>
                     <ol start="1">
                         <li>
-                            Options
+                            Choose Import Type
                             <FormGroup row>
                                 <FormControlLabel
                                     control={
@@ -803,7 +803,7 @@ class D2 extends React.Component {
                 <Grid item xs={6}>
                     <ol start="3">
                         <li>
-                            Options
+                            Select Data Source
                             <Tabs defaultActiveKey="1">
                                 <TabPane tab="Upload Excel/CSV" key="1">
                                     {uploadSection}

@@ -45,17 +45,21 @@ TabContainer.propTypes = {
 };
 
 const columns = [
-    {title: 'Tracked Entity Instance ID', dataIndex: 'trackedEntityInstance', key: 'trackedEntityInstance'}
+    {title: 'Tracked Entity Instance ID', dataIndex: 'trackedEntityInstance', key: 'trackedEntityInstance'},
+    {title: 'Organisation', dataIndex: 'orgUnit', key: 'orgUnit'}
 ];
 
 const eventColumns = [
-    {title: 'Event ID', dataIndex: 'event', key: 'event'}
+    {title: 'Event ID', dataIndex: 'event', key: 'event'},
+    {title: 'Organisation', dataIndex: 'orgUnit', key: 'orgUnit'},
+    {title: 'Program Stage', dataIndex: 'programStage', key: 'programStage'}
 ];
 
 const enrollmentColumns = [
     {title: 'Enrollment ID', dataIndex: 'enrollment', key: 'enrollment'},
     {title: 'Incident Date', dataIndex: 'incidentDate', key: 'incidentDate'},
     {title: 'Enrollment Date', dataIndex: 'enrollmentDate', key: 'enrollmentDate'},
+    {title: 'Organisation', dataIndex: 'orgUnit', key: 'orgUnit'}
 ];
 
 const conflictColumns = [
@@ -92,7 +96,6 @@ class Summary extends React.Component {
             value: 0,
         };
     }
-
 
 
     handleChange = (event, value) => {
@@ -160,7 +163,7 @@ class Summary extends React.Component {
                             />
                         </TabPane>
                         <TabPane tab="Code" key="2">
-                            <pre>{JSON.stringify({trackedEntityInstances: newTrackedEntityInstances}, null, 2)}</pre>
+                            <pre>{JSON.stringify({trackedEntityInstances: newTrackedEntityInstances})}</pre>
                         </TabPane>
                     </Tabs>
 
@@ -175,7 +178,7 @@ class Summary extends React.Component {
                                 return (
                                     <TableRow key={k}>
                                         <TableCell>
-                                            {JSON.stringify(s, null, 2)}
+                                            {JSON.stringify(s)}
                                         </TableCell>
                                     </TableRow>
                                 );
@@ -203,12 +206,12 @@ class Summary extends React.Component {
                         <TabPane tab="Preview" key="1">
                             <Table
                                 columns={enrollmentColumns}
-                                dataSource={newEnrollments}
+                                dataSource={program.currentNewEnrollments}
                                 rowKey="enrollment"
                             />
                         </TabPane>
                         <TabPane tab="Code" key="2">
-                            <pre>{JSON.stringify({enrollments: newEnrollments}, null, 2)}</pre>
+                            <pre>{JSON.stringify({enrollments: newEnrollments})}</pre>
                         </TabPane>
                     </Tabs>
 
@@ -223,7 +226,7 @@ class Summary extends React.Component {
                                 return (
                                     <TableRow key={k}>
                                         <TableCell>
-                                            {JSON.stringify(s, null, 2)}
+                                            {JSON.stringify(s)}
                                         </TableCell>
                                     </TableRow>
                                 );
@@ -261,7 +264,7 @@ class Summary extends React.Component {
                             />
                         </TabPane>
                         <TabPane tab="Code" key="2">
-                            <pre>{JSON.stringify({events: newEvents}, null, 2)}</pre>
+                            <pre>{JSON.stringify({events: newEvents})}</pre>
                         </TabPane>
                     </Tabs>
 
@@ -277,7 +280,7 @@ class Summary extends React.Component {
                                 return (
                                     <TableRow key={k}>
                                         <TableCell>
-                                            {JSON.stringify(s, null, 2)}
+                                            {JSON.stringify(s)}
                                         </TableCell>
                                     </TableRow>
                                 );
@@ -314,7 +317,7 @@ class Summary extends React.Component {
                             />
                         </TabPane>
                         <TabPane tab="Code" key="2">
-                            <pre>{JSON.stringify({trackedEntityInstances: trackedEntityInstancesUpdate}, null, 2)}</pre>
+                            <pre>{JSON.stringify({trackedEntityInstances: trackedEntityInstancesUpdate})}</pre>
                         </TabPane>
                     </Tabs>
                     {/*<Table>
@@ -328,7 +331,7 @@ class Summary extends React.Component {
                                 return (
                                     <TableRow key={k}>
                                         <TableCell>
-                                            {JSON.stringify(s, null, 2)}
+                                            {JSON.stringify(s)}
                                         </TableCell>
                                     </TableRow>
                                 );
@@ -366,7 +369,7 @@ class Summary extends React.Component {
                             />
                         </TabPane>
                         <TabPane tab="Code" key="2">
-                            <pre>{JSON.stringify({events: eventsUpdate}, null, 2)}</pre>
+                            <pre>{JSON.stringify({events: eventsUpdate})}</pre>
                         </TabPane>
                     </Tabs>
                     {/*<Table>
@@ -380,7 +383,7 @@ class Summary extends React.Component {
                                 return (
                                     <TableRow key={k}>
                                         <TableCell>
-                                            {JSON.stringify(s, null, 2)}
+                                            {JSON.stringify(s)}
                                         </TableCell>
                                     </TableRow>
                                 );

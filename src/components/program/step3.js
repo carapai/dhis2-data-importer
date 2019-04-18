@@ -20,6 +20,7 @@ import DialogTitle from "@material-ui/core/DialogTitle";
 import List from "@material-ui/core/List";
 import ListItem from "@material-ui/core/ListItem";
 import ListItemText from "@material-ui/core/ListItemText";
+import {Clear, Done} from "@material-ui/icons";
 
 
 const styles = theme => ({
@@ -47,31 +48,6 @@ class Step3 extends React.Component {
         const {program} = this.integrationStore;
 
         return <div>
-
-            {/*<table width="100%">
-                <tbody>
-                <tr>
-                    <td width="10%">Latitude Column</td>
-                    <td width="40%">
-                        <Select
-                            placeholder="Select one"
-                            options={program.columns}
-                            value={program.latitudeColumn}
-                            onChange={program.setLatitudeColumn}
-                        />
-                    </td>
-                    <td width="10%">Longitude Column</td>
-                    <td width="40%">
-                        <Select
-                            placeholder="Select one"
-                            options={program.columns}
-                            value={program.longitudeColumn}
-                            onChange={program.setLongitudeColumn}
-                        />
-                    </td>
-                </tr>
-                </tbody>
-            </table>*/}
 
             <InputField
                 label="Filter"
@@ -131,6 +107,7 @@ class Step3 extends React.Component {
                         </TableCell>
                         <TableCell>Attribute mapping</TableCell>
                         <TableCell>Options Mapping</TableCell>
+                        <TableCell>Mapping Status</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -185,11 +162,9 @@ class Step3 extends React.Component {
                             </div>;
                         }
                         return (
-                            <TableRow key={n.trackedEntityAttribute.id} hover selected={!!n.column}
-                                      classes={classes}>
+                            <TableRow key={n.trackedEntityAttribute.id} hover>
                                 <TableCell>
                                     {n.trackedEntityAttribute.displayName}
-                                    {/*<pre>{JSON.stringify(n, null, 2)}</pre>*/}
                                 </TableCell>
                                 <TableCell>
                                     <Checkbox disabled checked={n.trackedEntityAttribute.unique}/>
@@ -208,6 +183,9 @@ class Step3 extends React.Component {
 
                                 <TableCell>
                                     {de}
+                                </TableCell>
+                                <TableCell>
+                                    {!!n.column ? <Done/> : <Clear/>}
                                 </TableCell>
                             </TableRow>
                         );

@@ -64,7 +64,7 @@ class D4 extends React.Component {
                 />
             </TabPane>
             <TabPane tab="Code" key="2">
-                <pre>{JSON.stringify(dataSet.processed)}</pre>
+                <pre>{JSON.stringify({dataValues:dataSet.processed})}</pre>
             </TabPane>
         </Tabs>
     }
