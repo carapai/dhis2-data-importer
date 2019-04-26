@@ -6,10 +6,12 @@ class Form {
     @observable categoryOptionCombos = [];
     @observable dataElements = [];
     @observable templateType = '1';
+    @observable name;
 
     @action setCategoryOptionCombos = val => this.categoryOptionCombos = val;
     @action setDataElements = val => this.dataElements = val;
     @action setTemplateType = val => this.templateType = val;
+    @action setName = val => this.name = val;
 
     @computed get status() {
         let map = {};

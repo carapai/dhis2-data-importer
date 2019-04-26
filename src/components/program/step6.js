@@ -2,14 +2,15 @@ import React from "react";
 import {withStyles} from "@material-ui/core/styles/index";
 import {inject, observer} from "mobx-react/index";
 import LinearProgress from '@material-ui/core/LinearProgress';
-import Table from "@material-ui/core/Table";
-import TableBody from "@material-ui/core/TableBody";
-import TableCell from "@material-ui/core/TableCell";
-import TableHead from "@material-ui/core/TableHead";
-import TableRow from "@material-ui/core/TableRow";
+// import Table from "@material-ui/core/Table";
+// import TableBody from "@material-ui/core/TableBody";
+// import TableCell from "@material-ui/core/TableCell";
+// import TableHead from "@material-ui/core/TableHead";
+// import TableRow from "@material-ui/core/TableRow";
 import Badge from '@material-ui/core/Badge';
 import {Tab, Tabs} from '@dhis2/d2-ui-core';
 import Progress from "../progress";
+import {Table} from 'antd';
 
 
 const styles = theme => ({
@@ -20,6 +21,23 @@ const styles = theme => ({
         padding: `0 ${theme.spacing.unit * 2}px`,
     },
 });
+
+const successesColumns = [
+    {title: 'Type', dataIndex: 'type', key: 'type'},
+    {title: 'Reference', dataIndex: 'reference', key: 'reference'},
+    {title: 'Imported', dataIndex: 'imported', key: 'imported'},
+    {title: 'Updated', dataIndex: 'updated', key: 'updated'},
+    {title: 'Deleted', dataIndex: 'deleted', key: 'deleted'}
+];
+
+const conflictColumns = [
+    {title: 'Affected', dataIndex: 'object', key: 'object'},
+    {title: 'Message', dataIndex: 'value', key: 'value'}
+];
+
+const errorColumns = [
+    {title: 'Message', dataIndex: 'value', key: 'value'}
+];
 
 @inject('IntegrationStore')
 @observer
@@ -34,7 +52,9 @@ class Step6 extends React.Component {
     }
 
     componentDidMount() {
-        this.integrationStore.program.create();
+        if(this.integrationStore.program.totalImports > 0){
+            this.integrationStore.program.create();
+        }
     }
 
     render() {
@@ -52,7 +72,13 @@ class Step6 extends React.Component {
             <Tabs>
                 <Tab label={<Badge className={classes.padding} color="secondary"
                                    badgeContent={successes.length}>Successes</Badge>}>
-                    <Table>
+
+                    <Table
+                        columns={successesColumns}
+                        dataSource={successes}
+                        rowKey="reference"
+                    />
+                    {/*<Table>
                         <TableHead>
                             <TableRow>
                                 <TableCell>Type</TableCell>
@@ -85,11 +111,16 @@ class Step6 extends React.Component {
                                 );
                             })}
                         </TableBody>
-                    </Table>
+                    </Table>*/}
                 </Tab>
                 <Tab label={<Badge className={classes.padding} color="secondary"
                                    badgeContent={conflicts.length}>Conflicts</Badge>}>
-                    <Table>
+                    <Table
+                        columns={conflictColumns}
+                        dataSource={conflicts}
+                        rowKey="object"
+                    />
+                    {/* <Table>
                         <TableHead>
                             <TableRow>
                                 <TableCell>Affected</TableCell>
@@ -110,11 +141,17 @@ class Step6 extends React.Component {
                                 );
                             })}
                         </TableBody>
-                    </Table>
+                    </Table>*/}
                 </Tab>
                 <Tab label={<Badge className={classes.padding} color="secondary"
                                    badgeContent={errors.length}>Errors</Badge>}>
-                    <Table>
+
+                    <Table
+                        columns={errorColumns}
+                        dataSource={errors}
+                        rowKey="message"
+                    />
+                    {/*<Table>
                         <TableHead>
                             <TableRow>
                                 <TableCell>Message</TableCell>
@@ -131,7 +168,7 @@ class Step6 extends React.Component {
                                 );
                             })}
                         </TableBody>
-                    </Table>
+                    </Table>*/}
                 </Tab>
             </Tabs>
             <Progress open={this.integrationStore.program.dialogOpen}

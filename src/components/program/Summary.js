@@ -52,6 +52,7 @@ const columns = [
 const eventColumns = [
     {title: 'Event ID', dataIndex: 'event', key: 'event'},
     {title: 'Organisation', dataIndex: 'orgUnit', key: 'orgUnit'},
+    {title: 'Event Date', dataIndex: 'eventDate', key: 'eventDate'},
     {title: 'Program Stage', dataIndex: 'programStage', key: 'programStage'}
 ];
 
@@ -78,6 +79,10 @@ const dataValueColumns = [
     {title: 'UID', dataIndex: 'dataElement', key: 'dataElement'},
     {title: 'Name', dataIndex: 'name', key: 'name'},
     {title: 'Value', dataIndex: 'value', key: 'value'}
+];
+
+const duplicateColumns = [
+    {title: 'Row', dataIndex: 'identifier', key: 'identifier'}
 ];
 
 const TabPane = Tabs.TabPane;
@@ -153,7 +158,7 @@ class Summary extends React.Component {
                         <TabPane tab="Preview" key="1">
                             <Table
                                 columns={columns}
-                                rowKey="trackedEntityInstances"
+                                rowKey="trackedEntityInstance"
                                 expandedRowRender={record => <Table
                                     columns={attributeColumns}
                                     dataSource={record.attributes}
@@ -308,6 +313,7 @@ class Summary extends React.Component {
                         <TabPane tab="Preview" key="1">
                             <Table
                                 columns={columns}
+                                rowKey="trackedEntityInstance"
                                 expandedRowRender={record => <Table
                                     columns={attributeColumns}
                                     dataSource={record.attributes}
@@ -503,6 +509,12 @@ class Summary extends React.Component {
                     />*/}
                 </TabContainer>}
                 {value === 7 && <TabContainer>
+
+                    <Table
+                        columns={duplicateColumns}
+                        rowKey="identifier"
+                        dataSource={duplicates}
+                    />
                     {/* <Table>
                         <TableHead>
                             <TableRow>

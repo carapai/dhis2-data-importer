@@ -25,6 +25,11 @@ const styles = theme => ({
     },
     instructions: {
         marginTop: theme.spacing.unit,
+        marginBottom: theme.spacing.unit,
+        minHeight: '75vh'
+    },
+    instructions2: {
+        marginTop: theme.spacing.unit,
         marginBottom: theme.spacing.unit
     },
     space: {
@@ -95,14 +100,15 @@ class Aggregate extends React.Component {
                 <div>
                     {this.integrationStore.allAggregateStepsCompleted() ? (
                         <div>
-                            <Typography className={classes.instructions}>
+                            <Typography className={classes.instructions2}>
                                 All steps completed - you&quot;re finished
                             </Typography>
                             <Button onClick={this.handleResetAggregate}>Reset</Button>
                         </div>
                     ) : (
                         <div>
-                            <div className={classes.instructions}>{this.getStepContent(this.integrationStore.activeAggregateStep)}</div>
+                            <div
+                                className={classes.instructions}>{this.getStepContent(this.integrationStore.activeAggregateStep)}</div>
                             <table width="100%" style={{bottom: 0}}>
                                 <tbody>
                                 <tr>

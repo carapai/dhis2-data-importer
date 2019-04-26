@@ -175,6 +175,8 @@ class Step3 extends React.Component {
                                 <TableCell>
                                     <Select
                                         placeholder="Select one"
+                                        isClearable
+                                        isSearchable
                                         value={n.column}
                                         options={program.columns}
                                         onChange={n.setColumn}

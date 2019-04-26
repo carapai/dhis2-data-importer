@@ -143,6 +143,7 @@ class Step0 extends React.Component {
                                                 add_circle
                                             </Icon>
                                         </p>
+                                        <p align="center">{this.integrationStore.program.fileName}</p>
                                         <p
                                             align="center"
                                             style={{

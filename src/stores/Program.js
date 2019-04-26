@@ -5,9 +5,7 @@ import {
 } from 'mobx';
 import _ from 'lodash';
 import moment from 'moment';
-import {
-    generateUid
-} from 'd2/uid';
+
 import {
     NotificationManager
 } from 'react-notifications';
@@ -16,7 +14,7 @@ import XLSX from 'xlsx';
 
 import axios from 'axios';
 import {
-    encodeData
+    encodeData, groupEntities, isTracker, processProgramData, programUniqueAttribute, programUniqueColumn
 } from "../utils";
 import Param from "./Param";
 
@@ -43,14 +41,11 @@ class Program {
     @observable headerRow = 1;
     @observable dataStartRow = 2;
 
-    @observable createNewEvents = false;
     @observable createNewEnrollments = false;
 
-    @observable updateEvents = true;
     @observable createEntities = false;
     @observable updateEntities = true;
 
-    @observable eventDateColumn = '';
     @observable enrollmentDateColumn = '';
     @observable incidentDateColumn = '';
 
@@ -206,14 +201,6 @@ class Program {
     @action
     handleOrgUnitStrategySelectChange = value => this.orgUnitStrategy = value;
 
-    @action
-    handleCreateNewEventsCheck = event => {
-        this.createNewEvents = event.target.checked;
-
-        if (!this.createNewEvents && !this.updateEvents) {
-            this.eventDateColumn = null;
-        }
-    };
 
     @action
     handleCreateNewEnrollmentsCheck = event => {
@@ -225,13 +212,6 @@ class Program {
         }
     };
 
-    @action
-    handleUpdateEventsCheck = event => {
-        this.updateEvents = event.target.checked;
-        if (!this.createNewEvents && !this.updateEvents) {
-            this.eventDateColumn = null;
-        }
-    };
 
     @action
     handleChangeElementPage = what => (event, page) => {
@@ -475,9 +455,7 @@ class Program {
     @action setOrgUnitStrategy = val => this.orgUnitStrategy = val;
     @action setHeaderRow = val => this.headerRow = val;
     @action setDataStartRow = val => this.dataStartRow = val;
-    @action setCreateNewEvents = val => this.createNewEvents = val;
     @action setCreateNewEnrollments = val => this.createNewEnrollments = val;
-    @action setEventDateColumn = val => this.eventDateColumn = val;
     @action setEnrollmentDateColumn = val => this.enrollmentDateColumn = val;
     @action setIncidentDateColumn = val => this.incidentDateColumn = val;
     @action setUrl = val => this.url = val;
@@ -494,7 +472,12 @@ class Program {
     @action setDuplicates = val => this.duplicates = val;
     @action setLongitudeColumn = val => this.longitudeColumn = val;
     @action setLatitudeColumn = val => this.latitudeColumn = val;
-    @action setSelectedSheet = val => this.selectedSheet = val;
+    @action setSelectedSheet = async val => {
+        this.selectedSheet = val;
+        if (this.uniqueIds) {
+            await this.searchTrackedEntities();
+        }
+    };
     @action setWorkbook = val => this.workbook = val;
     @action setSheets = val => this.sheets = val;
     @action setFetchingEntities = val => this.fetchingEntities = val;
@@ -504,7 +487,6 @@ class Program {
     @action setTrackedEntity = val => this.trackedEntity = val;
     @action setTrackedEntityType = val => this.trackedEntityType = val;
     @action setRunning = val => this.running = val;
-    @action setUpdateEvents = val => this.updateEvents = val;
     @action setUpdateEnrollments = val => this.updateEnrollments = val;
     @action setCreateEntities = val => this.createEntities = val;
     @action setUpdateEntities = val => this.updateEntities = val;
@@ -528,7 +510,7 @@ class Program {
     searchTrackedEntities = async () => {
         let instances = [];
         const api = this.d2.Api.getApi();
-        if (this.uniqueIds) {
+        if (this.uniqueIds.length > 0) {
             this.setFetchingEntities(1);
             const all = this.uniqueIds.map(uniqueId => {
                 return api.get('trackedEntityInstances', {
@@ -550,7 +532,6 @@ class Program {
                 } = instance;
                 instances = [...instances, ...trackedEntityInstances];
             }
-            // console.log(JSON.stringify(instances));
             this.setTrackedEntityInstances(instances);
             this.setFetchingEntities(2);
         }
@@ -585,10 +566,14 @@ class Program {
     @action
     updateDHISEvents = (eventsUpdate) => {
         const api = this.d2.Api.getApi();
-        return eventsUpdate.map(event => {
-            return api.update('events/' + event['event'], event, {});
+        const events = eventsUpdate.map(event => {
+            return event.dataValues.map(dataValue => {
+                return {event: {...event, dataValues: [dataValue]}, dataElement: dataValue.dataElement};
+            });
         });
-
+        return _.flatten(events).map(ev => {
+            return api.update('events/' + ev.event.event + '/' + ev.dataElement, ev.event, {})
+        })
     };
 
     @action setResponses = val => {
@@ -618,6 +603,7 @@ class Program {
                     const instancesResults = await this.insertTrackedEntityInstance({
                         trackedEntityInstances: tei
                     });
+                    instancesResults.type = 'trackedEntityInstance';
                     this.setResponses(instancesResults);
                 }
             }
@@ -630,6 +616,7 @@ class Program {
                 const chunkedTEI = _.chunk(trackedEntityInstancesUpdate, 250);
                 for (const tei of chunkedTEI) {
                     const instancesResults = await this.insertTrackedEntityInstance({trackedEntityInstances: tei});
+                    instancesResults.type = 'trackedEntityInstance';
                     this.setResponses(instancesResults);
                 }
             }
@@ -644,6 +631,7 @@ class Program {
                     const enrollmentsResults = await this.insertEnrollment({
                         enrollments: enrollments
                     });
+                    enrollmentsResults.type = 'enrollment';
                     this.setResponses(enrollmentsResults);
                 }
             }
@@ -658,6 +646,8 @@ class Program {
                     const eventsResults = await this.insertEvent({
                         events
                     });
+
+                    eventsResults.type = 'enrollment';
                     this.setResponses(eventsResults);
                 }
             }
@@ -670,7 +660,7 @@ class Program {
                 const chunkedEvents = _.chunk(eventsUpdate, 250);
 
                 for (const events of chunkedEvents) {
-                    const eventsResults = await this.insertEvent({events});
+                    const eventsResults = await Promise.all(this.updateDHISEvents(events));
                     this.setResponses(eventsResults);
                 }
 
@@ -679,10 +669,9 @@ class Program {
             this.setResponses(e);
         }
 
-
         this.setPulledData(null);
         this.setWorkbook(null);
-        this.setSelectedSheet(null);
+        await this.setSelectedSheet(null);
         this.setDisplayProgress(false);
         this.closeDialog();
     };
@@ -713,13 +702,13 @@ class Program {
         try {
             const namespace = await this.d2.dataStore.get('bridge');
             namespace.set('mappings', toBeSaved);
-            NotificationManager.successes('Success', 'Mapping saved successfully', 5000);
+            NotificationManager.success('Success', 'Mapping saved successfully', 5000);
         } catch (e) {
             NotificationManager.error('Error', `Could not save mapping ${e.message}`, 5000);
         }
     };
 
-    @action deleteMapping = mappings => {
+    @action deleteMapping = async mappings => {
         const mapping = _.findIndex(mappings, {
             mappingId: this.mappingId
         });
@@ -728,15 +717,10 @@ class Program {
         mappings = mappings.map(p => {
             return p.canBeSaved;
         });
-        this.d2.dataStore.get('bridge').then(action(namespace => {
-            namespace.set('mappings', mappings);
-        }), this.fetchProgramsError);
-    };
 
-    @action.bound
-    fetchProgramsError(error) {
-        this.error = "error"
-    }
+        const namespace = await this.d2.dataStore.get('bridge');
+        namespace.set('mappings', mappings);
+    };
 
     @action scheduleProgram = mappings => {
         if (this.scheduleTime !== 0) {
@@ -796,12 +780,12 @@ class Program {
     };
 
     @action loadDefaultDataElements = programStage => () => {
-        if (this.createNewEvents || this.updateEvents) {
+        if (programStage.createNewEvents || programStage.updateEvents) {
             programStage.dataElements.forEach(de => {
                 const match = this.columns.find(column => {
                     return column.value === de.dataElement.name;
                 });
-                if (match && !de.column.value) {
+                if (match && !de.column) {
                     de.setColumn(match);
                 }
             });
@@ -899,7 +883,6 @@ class Program {
                 'organisationUnits',
                 'headerRow',
                 'dataStartRow',
-                'createNewEvents',
                 'updateEvents',
                 'createNewEnrollments',
                 'createEntities',
@@ -937,27 +920,36 @@ class Program {
         let successes = [];
 
         this.responses.forEach(response => {
+            const type = response.type;
             if (response['httpStatusCode'] === 200) {
+                const rep = response['response'];
                 const {
-                    importSummaries
-                } = response['response'];
+                    importSummaries,
+                    importCount
+                } = rep;
 
-                if (importSummaries) {
+                if (importCount) {
+                    successes = [...successes, {
+                        ...importCount,
+                        type: 'Event',
+                        reference: rep.reference
+                    }];
+                } else if (importSummaries) {
                     importSummaries.forEach(importSummary => {
                         const {
                             importCount,
                             reference,
-                            href
                         } = importSummary;
-                        const url = this.getLocation(href);
-                        const pathNames = url.pathname.split('/');
-                        const type = pathNames.slice(-2, -1)[0];
                         successes = [...successes, {
                             ...importCount,
                             type,
                             reference
                         }];
                     });
+                }
+
+                if (importSummaries) {
+
                 }
             } else if (response['httpStatusCode'] === 409) {
                 _.forEach(response['response']['importSummaries'], (s) => {
@@ -978,9 +970,26 @@ class Program {
                 }];
             }
         });
+        const pro = _.groupBy(successes, 'reference');
+
+        let s = [];
+
+        _.forOwn(pro, (d, k) => {
+            const reduced = _.reduce(d, (result, value) => {
+                result.updated = result.updated + value.updated;
+                result.imported = result.imported + value.imported;
+                result.deleted = result.deleted + value.deleted;
+                return result
+            }, {updated: 0, imported: 0, deleted: 0});
+
+            reduced.type = d[0]['type'];
+            reduced.reference = k;
+            s = [...s, reduced]
+        });
+
         return {
             errors,
-            successes,
+            successes: s,
             conflicts
         }
     }
@@ -988,7 +997,7 @@ class Program {
 
     @computed
     get isTracker() {
-        return this.programType === 'WITH_REGISTRATION';
+        return isTracker(this)
     }
 
     @computed get allOrganisationUnits() {
@@ -1016,30 +1025,13 @@ class Program {
 
     @computed
     get uniqueAttribute() {
-        const unique = this.programTrackedEntityAttributes.filter(a => {
-            return a.trackedEntityAttribute.unique;
-        });
-
-        if (unique.length > 0) {
-            return unique[0]['trackedEntityAttribute']['id'];
-        }
-
-        return null;
-
+        return programUniqueAttribute(this)
     }
 
 
     @computed
     get uniqueColumn() {
-        const unique = this.programTrackedEntityAttributes.filter(a => {
-            return a.trackedEntityAttribute.unique && a.column;
-        });
-
-        if (unique.length > 0) {
-            return unique[0]['column']['value'];
-        }
-
-        return null;
+        return programUniqueColumn(this)
     }
 
     @computed
@@ -1058,19 +1050,7 @@ class Program {
 
     @computed
     get searchedInstances() {
-        const entities = this.trackedEntityInstances.map(e => {
-            const uniqueAttribute = _.find(e.attributes, {
-                attribute: this.uniqueAttribute
-            });
-            const val = uniqueAttribute ? uniqueAttribute['value'] : null;
-            return {
-                ...e,
-                ..._.fromPairs([
-                    [this.uniqueAttribute, val]
-                ])
-            }
-        });
-        return _.groupBy(entities, this.uniqueAttribute);
+        return groupEntities(this.uniqueAttribute, this.trackedEntityInstances)
     }
 
     @computed
@@ -1102,9 +1082,9 @@ class Program {
 
             if (me.length === 0) {
                 mapped = true;
-            } else if (this.createNewEvents && pse.length > 0 && me.length > 0 && _.difference(pse, me).length === 0) {
+            } else if ((ps.createNewEvents || ps.updateEvents) && pse.length > 0 && me.length > 0 && _.difference(pse, me).length === 0) {
                 mapped = true;
-            } else if (this.createNewEvents && pse.length > 0 && me.length > 0 && _.difference(pse, me).length > 0) {
+            } else if ((ps.createNewEvents || ps.updateEvents) && pse.length > 0 && me.length > 0 && _.difference(pse, me).length > 0) {
                 mapped = false;
             }
             compulsory = [...compulsory, {
@@ -1117,548 +1097,9 @@ class Program {
 
     @computed
     get processed() {
-        let data = this.data;
-
-        let eventsUpdate = [];
-        let trackedEntityInstancesUpdate = [];
-
-        let newEvents = [];
-        let newEnrollments = [];
-        let newTrackedEntityInstances = [];
-
-        let duplicates = [];
-        let conflicts = [];
-        let errors = [];
-        if (this.uniqueColumn) {
-            data = data.filter(d => {
-                return d[this.uniqueColumn] !== null && d[this.uniqueColumn] !== undefined;
-            });
-            let clients = _.groupBy(data, this.uniqueColumn);
-            let newClients = [];
-            _.forOwn(clients, (data, client) => {
-                const previous = this.searchedInstances[client] || [];
-                newClients = [...newClients, {
-                    client,
-                    data,
-                    previous
-                }];
-            });
-            data = newClients;
-        } else if (data && data.length > 0) {
-            data = data.map((data, i) => {
-                return {
-                    data: [data],
-                    client: i + 1,
-                    previous: []
-                };
-            });
-        }
-
-        if (data && data.length > 0) {
-            data.forEach(client => {
-                let events = [];
-                let allAttributes = [];
-                let currentData = client.data;
-                let enrollmentDates = [];
-                let orgUnits = [];
-                let identifierElements = {};
-                currentData.forEach(d => {
-                    this.programStages.forEach(stage => {
-                        let dataValues = [];
-                        let eventDate;
-                        if ((this.createNewEvents || this.updateEvents) && this.dataSource === 2) {
-                            eventDate = d[this.eventDateColumn.value];
-                        } else if (this.createNewEvents || this.updateEvents) {
-                            const date = moment(d[this.eventDateColumn.value], 'YYYY-MM-DD');
-                            if (date.isValid()) {
-                                eventDate = date.format('YYYY-MM-DD');
-                            }
-                        }
-
-                        const mapped = stage.programStageDataElements.filter(e => {
-                            return e.column && e.column.value
-                        });
-
-                        identifierElements[stage.id] = {
-                            elements: mapped.filter(e => {
-                                return e.dataElement.identifiesEvent;
-                            }).map(e => e.dataElement.id),
-                            event: stage.eventDateIdentifiesEvent
-                        };
-                        // Coordinates
-                        let coordinate = null;
-                        if (stage.latitudeColumn && stage.longitudeColumn) {
-                            coordinate = {
-                                latitude: d[stage.latitudeColumn.value],
-                                longitude: d[stage.longitudeColumn.value]
-                            };
-                        }
-                        if (eventDate && mapped.length > 0) {
-                            mapped.forEach(e => {
-                                const value = d[e.column.value];
-                                const type = e.dataElement.valueType;
-                                const optionsSet = e.dataElement.optionSet;
-                                const validatedValue = this.validateValue(type, value, optionsSet);
-
-                                if (value !== '' && validatedValue !== null) {
-                                    dataValues = [...dataValues, {
-                                        dataElement: e.dataElement.id,
-                                        value: validatedValue
-                                    }];
-                                } else if (value !== undefined) {
-                                    conflicts = [...conflicts, {
-                                        error: optionsSet === null ? 'Invalid value ' + value + ' for value type ' + type : 'Invalid value: ' + value + ', expected: ' + _.map(optionsSet.options, o => {
-                                            return o.code
-                                        }).join(','),
-                                        row: client.client,
-                                        column: e.column.value
-                                    }]
-                                }
-                            });
-
-                            let event = {
-                                dataValues,
-                                eventDate,
-                                programStage: stage.id,
-                                program: this.id,
-                                event: generateUid()
-                            };
-
-                            if (coordinate) {
-                                event = {
-                                    ...event,
-                                    coordinate
-                                }
-                            }
-
-                            if (stage.completeEvents) {
-                                event = {
-                                    ...event,
-                                    ...{
-                                        status: 'COMPLETED',
-                                        completedDate: event['eventDate']
-                                    }
-                                }
-                            }
-
-                            events = [...events, event];
-                        }
-                    });
-
-                    const mappedAttributes = this.programTrackedEntityAttributes.filter(a => {
-                        return a.column && a.column.value
-                    });
-
-                    let attributes = [];
-
-                    mappedAttributes.forEach(a => {
-                        const value = d[a.column.value];
-                        const type = a.valueType;
-                        const optionsSet = a.trackedEntityAttribute.optionSet;
-                        const validatedValue = this.validateValue(type, value, optionsSet);
-
-                        if (value !== '' && validatedValue !== null) {
-                            attributes = [...attributes, {
-                                attribute: a.trackedEntityAttribute.id,
-                                value: validatedValue
-                            }]
-                        } else if (value !== undefined) {
-                            conflicts = [...conflicts, {
-                                error: !optionsSet ? 'Invalid value ' + value + ' for value type ' + type : 'Invalid value ' + value + ' choose from options: ' +
-                                    _.map(optionsSet.options, o => o.code).join(','),
-                                row: client.client,
-                                column: a.column.value
-                            }]
-                        }
-
-                    });
-
-                    if (attributes.length > 0) {
-                        allAttributes = [...allAttributes, attributes];
-                    }
-
-                    if (this.isTracker && this.enrollmentDateColumn && this.incidentDateColumn) {
-                        const enrollmentDate = moment(d[this.enrollmentDateColumn.value], 'YYYY-MM-DD');
-                        const incidentDate = moment(d[this.incidentDateColumn.value], 'YYYY-MM-DD');
-
-                        if (enrollmentDate.isValid() && incidentDate.isValid()) {
-                            enrollmentDates = [...enrollmentDates, {
-                                enrollmentDate: enrollmentDate.format('YYYY-MM-DD'),
-                                incidentDate: incidentDate.format('YYYY-MM-DD')
-                            }]
-                        }
-                    }
-
-                    if (this.orgUnitColumn !== '') {
-                        orgUnits = [...orgUnits, d[this.orgUnitColumn.value]]
-                    }
-                });
-                let groupedEvents = _.groupBy(events, 'programStage');
-
-                if (client.previous.length > 1) {
-                    duplicates = [...duplicates, client.previous]
-                } else if (client.previous.length === 1) {
-                    client.previous.forEach(p => {
-                        let enrollments = p['enrollments'];
-                        if (this.updateEntities) {
-                            const nAttributes = _.differenceWith(allAttributes[0], p['attributes'], _.isEqual);
-                            if (nAttributes.length > 0) {
-                                const mergedAttributes = _.unionBy(allAttributes[0], p['attributes'], 'attribute');
-                                let tei;
-
-                                if (this.trackedEntityType && this.trackedEntityType.id) {
-                                    tei = {
-                                        ..._.pick(p, ['orgUnit', 'trackedEntityInstance', 'trackedEntityType']),
-                                        attributes: mergedAttributes
-                                    };
-                                } else if (this.trackedEntity) {
-                                    tei = {
-                                        ..._.pick(p, ['orgUnit', 'trackedEntityInstance', 'trackedEntity']),
-                                        attributes: mergedAttributes
-                                    };
-                                }
-                                trackedEntityInstancesUpdate = [...trackedEntityInstancesUpdate, tei];
-                            }
-                        }
-                        events = events.map(e => {
-                            return {
-                                ...e,
-                                trackedEntityInstance: p['trackedEntityInstance'],
-                                orgUnit: p['orgUnit']
-                            }
-                        });
-
-                        groupedEvents = _.groupBy(events, 'programStage');
-                        const enrollmentIndex = _.findIndex(enrollments, {
-                            program: this.id
-                        });
-                        if (enrollmentIndex === -1 && this.createNewEnrollments && enrollmentDates.length > 0) {
-                            let enroll = {
-                                program: this.id,
-                                orgUnit: p['orgUnit'],
-                                trackedEntityInstance: p['trackedEntityInstance'],
-                                ...enrollmentDates[0]
-                            };
-                            newEnrollments = [...newEnrollments, enroll];
-                            if (this.createNewEvents) {
-                                _.forOwn(groupedEvents, (evs, stage) => {
-                                    const stageEventFilters = identifierElements[stage];
-                                    const stageInfo = _.find(this.programStages, {
-                                        id: stage
-                                    });
-                                    const {
-                                        repeatable
-                                    } = stageInfo;
-
-                                    evs = this.removeDuplicates(evs, stageEventFilters);
-
-                                    if (!repeatable) {
-                                        const ev = _.maxBy(evs, 'eventDate');
-                                        if (ev.dataValues.length > 0) {
-                                            newEvents = [...newEvents, ev];
-                                        }
-                                    } else {
-                                        newEvents = [...newEvents, ...evs];
-                                    }
-                                });
-                            } else {
-                                console.log('Ignoring not creating new events');
-                            }
-                            enrollments = [...enrollments, enroll];
-                            p = {
-                                ...p,
-                                enrollments
-                            }
-                        } else if (enrollmentIndex === -1 && enrollmentDates.length === 0) {
-                            console.log('Ignoring new enrollments');
-                        } else if (enrollmentIndex !== -1) {
-                            let enrollment = enrollments[enrollmentIndex];
-                            let enrollmentEvents = enrollment['events'];
-                            _.forOwn(groupedEvents, (evs, stage) => {
-                                const stageInfo = _.find(this.programStages, {
-                                    id: stage
-                                });
-                                const {
-                                    repeatable
-                                } = stageInfo;
-
-                                const stageEventFilters = identifierElements[stage];
-
-                                evs = this.removeDuplicates(evs, stageEventFilters);
-
-                                if (repeatable) {
-                                    evs.forEach(e => {
-                                        const eventIndex = this.searchEvent(enrollmentEvents, stageEventFilters, stage, e);
-                                        if (eventIndex !== -1 && this.updateEvents) {
-                                            const stageEvent = enrollmentEvents[eventIndex];
-                                            const merged = _.unionBy(e['dataValues'], stageEvent['dataValues'], 'dataElement');
-                                            const differingElements = _.differenceWith(e['dataValues'], stageEvent['dataValues'], _.isEqual);
-                                            if (merged.length > 0 && differingElements.length > 0) {
-                                                const mergedEvent = {
-                                                    ...stageEvent,
-                                                    dataValues: merged
-                                                };
-                                                eventsUpdate = [...eventsUpdate, mergedEvent];
-                                            }
-                                        } else if (eventIndex === -1 && this.createNewEvents) {
-                                            newEvents = [...newEvents, e];
-                                        }
-                                    });
-                                } else {
-                                    let foundEvent = _.find(enrollmentEvents, {
-                                        programStage: stage
-                                    });
-                                    let max = _.maxBy(evs, 'eventDate');
-                                    if (foundEvent && this.updateEvents) {
-                                        const merged = _.unionBy(max['dataValues'], foundEvent['dataValues'], 'dataElement');
-                                        const differingElements = _.differenceWith(max['dataValues'], foundEvent['dataValues'], _.isEqual);
-                                        if (merged.length > 0 && differingElements.length > 0) {
-                                            const mergedEvent = {
-                                                ...foundEvent,
-                                                dataValues: merged
-                                            };
-                                            eventsUpdate = [...eventsUpdate, mergedEvent];
-                                        }
-                                    } else if (!foundEvent && this.createNewEvents) {
-                                        newEvents = [...newEvents, max];
-                                    }
-                                }
-                            });
-                        }
-                    });
-                } else if (this.createEntities || this.createNewEnrollments || this.createNewEvents) {
-                    orgUnits = _.uniq(orgUnits);
-                    let orgUnit;
-                    if (orgUnits.length > 1) {
-                        errors = [...errors, {
-                            error: 'Entity belongs to more than one organisation unit',
-                            row: client.client
-                        }]
-                    } else if (orgUnits.length === 1) {
-                        orgUnit = this.searchOrgUnit(orgUnits[0]);
-                        if (orgUnit) {
-                            if (this.isTracker) {
-                                const trackedEntityInstance = generateUid();
-
-                                if (this.createEntities) {
-                                    let tei = {
-                                        orgUnit: orgUnit.id,
-                                        attributes: allAttributes[0],
-                                        trackedEntityInstance
-                                    };
-
-                                    if (this.trackedEntityType && this.trackedEntityType.id) {
-                                        tei = {
-                                            ...tei,
-                                            trackedEntityType: this.trackedEntityType.id
-                                        }
-                                    } else if (this.trackedEntity && this.trackedEntity.id) {
-                                        tei = {
-                                            ...tei,
-                                            trackedEntity: this.trackedEntity.id
-                                        }
-                                    }
-                                    newTrackedEntityInstances = [...newTrackedEntityInstances, tei];
-                                }
-
-                                if (this.createNewEnrollments) {
-
-                                    let enrollment = {
-                                        orgUnit: orgUnit.id,
-                                        program: this.id,
-                                        trackedEntityInstance,
-                                        ...enrollmentDates[0],
-                                        enrollment: generateUid()
-                                    };
-
-                                    newEnrollments = [...newEnrollments, enrollment];
-
-                                }
-
-                                if (this.createNewEvents) {
-                                    _.forOwn(groupedEvents, (evs, stage) => {
-                                        const stageEventFilters = identifierElements[stage];
-                                        const stageInfo = _.find(this.programStages, {
-                                            id: stage
-                                        });
-                                        const {
-                                            repeatable
-                                        } = stageInfo;
-                                        evs = evs.map(e => {
-                                            return {
-                                                ...e,
-                                                orgUnit: orgUnit.id,
-                                                event: generateUid(),
-                                                trackedEntityInstance
-                                            }
-                                        });
-
-                                        evs = this.removeDuplicates(evs, stageEventFilters);
-
-                                        if (!repeatable) {
-                                            newEvents = [...newEvents, _.maxBy(evs, 'eventDate')];
-                                        } else {
-                                            newEvents = [...newEvents, ...evs]
-                                        }
-                                    });
-                                }
-                            } else if (!this.isTracker && this.createNewEvents) {
-                                events = events.map(e => {
-                                    return {
-                                        ...e,
-                                        orgUnit: orgUnit.id
-                                    }
-                                });
-                                newEvents = [...newEvents, ...events];
-                            }
-                        } else {
-                            errors = [...errors, {
-                                error: 'Organisation unit ' + orgUnits[0] + ' not found using strategy ' +
-                                    this.orgUnitStrategy.value,
-                                row: client.client
-                            }]
-                        }
-                    } else if (orgUnits.length === 0) {
-                        errors = [...errors, {
-                            error: 'Organisation unit missing',
-                            row: client.client
-                        }]
-                    }
-                }
-            });
-        }
-
-        return {
-            newTrackedEntityInstances,
-            newEnrollments,
-            newEvents,
-            trackedEntityInstancesUpdate,
-            eventsUpdate,
-            conflicts,
-            duplicates,
-            errors
-        }
+        return processProgramData(this.data, this, this.uniqueColumn, this.searchedInstances, this.isTracker);
     }
 
-    removeDuplicates = (evs, stageEventFilters) => {
-        if (stageEventFilters && stageEventFilters.elements && stageEventFilters.event) {
-            evs = _.uniqBy(evs, v => {
-                const filteredAndSame = stageEventFilters.elements.map(se => {
-                    const foundPrevious = _.filter(v.dataValues, {
-                        dataElement: se
-                    });
-                    if (foundPrevious.length > 0) {
-                        const exists = foundPrevious[0].value;
-                        return {
-                            exists
-                        };
-                    } else {
-                        return {
-                            exists: false
-                        }
-                    }
-                });
-
-                if (_.some(filteredAndSame, {
-                    'exists': false
-                })) {
-                    return v.event;
-                } else {
-                    return JSON.stringify([v.eventDate, filteredAndSame])
-                }
-            });
-
-        } else if (stageEventFilters && stageEventFilters.elements) {
-
-            evs = _.uniqBy(evs, v => {
-                const filteredAndSame = stageEventFilters.elements.map(se => {
-                    const foundPrevious = _.filter(v.dataValues, {
-                        dataElement: se
-                    });
-                    if (foundPrevious.length > 0) {
-                        const exists = foundPrevious[0].value;
-                        return {
-                            exists
-                        };
-                    } else {
-                        return {
-                            exists: false
-                        }
-                    }
-                });
-
-                if (_.some(filteredAndSame, {
-                    'exists': false
-                })) {
-                    return v.event;
-                } else {
-                    return JSON.stringify([filteredAndSame])
-                }
-            });
-
-        } else if (stageEventFilters && stageEventFilters.event) {
-            evs = _.uniqBy(evs, v => {
-                return v.eventDate;
-            });
-        }
-
-        return evs;
-    };
-
-    searchEvent = (enrollmentEvents, stageEventFilters, stage, e) => {
-        return _.findIndex(enrollmentEvents, item => {
-            if (!stageEventFilters) {
-                return false
-            } else if (stageEventFilters.elements && stageEventFilters.event) {
-                const filteredAndSame = stageEventFilters.elements.map(se => {
-                    const foundPrevious = _.filter(item.dataValues, {
-                        dataElement: se
-                    });
-                    const foundCurrent = _.filter(e.dataValues, {
-                        dataElement: se
-                    });
-                    if (foundCurrent.length > 0 && foundPrevious.length > 0) {
-                        const exists = foundPrevious[0].value === foundCurrent[0].value;
-                        return {
-                            exists
-                        };
-                    } else {
-                        return {
-                            exists: false
-                        }
-                    }
-                });
-                return item.programStage === stage &&
-                    moment(item.eventDate, 'YYYY-MM-DD').format('YYYY-MM-DD') ===
-                    moment(e.eventDate, 'YYYY-MM-DD').format('YYYY-MM-DD') &&
-                    _.every(filteredAndSame, 'exists');
-            } else if (stageEventFilters.elements) {
-                const filteredAndSame = stageEventFilters.elements.map(se => {
-                    const foundPrevious = _.filter(item.dataValues, {
-                        dataElement: se
-                    });
-                    const foundCurrent = _.filter(e.dataValues, {
-                        dataElement: se
-                    });
-                    if (foundCurrent.length > 0 && foundPrevious > 0) {
-                        return {
-                            exists: foundPrevious[0].value === foundCurrent[0].value
-                        };
-                    } else {
-                        return {
-                            exists: false
-                        }
-                    }
-                });
-
-                return item.programStage === stage && _.every(filteredAndSame, 'exists')
-            } else if (stageEventFilters.event) {
-                return item.programStage === stage &&
-                    moment(item.eventDate, 'YYYY-MM-DD').format('YYYY-MM-DD') ===
-                    moment(e.eventDate, 'YYYY-MM-DD').format('YYYY-MM-DD')
-            }
-        });
-    };
 
     @computed get processedAttributes() {
         const data = this.programTrackedEntityAttributes.map(item => {
@@ -1797,124 +1238,17 @@ class Program {
         return [];
     }
 
-    validText(dataType, value) {
-        switch (dataType) {
-            case 'TEXT':
-            case 'LONG_TEXT':
-                return value;
-            case 'NUMBER':
-                return !isNaN(value);
-            case 'EMAIL':
-                const re = /\S+@\S+\.\S+/;
-                return re.test(String(value).toLowerCase());
-            case 'BOOLEAN':
-                return value === false || value === true;
-            case 'TRUE_ONLY':
-                return value + '' === true + '';
-            case 'PERCENTAGE':
-                return value >= 0 && value <= 100;
-            case 'INTEGER':
-                return !isNaN(value) && !isNaN(parseInt(value, 10));
-            case 'DATE':
-            case 'DATETIME':
-            case 'TIME':
-                return moment(value).isValid();
-            case 'UNIT_INTERVAL':
-                return value >= 0 && value <= 1;
-            case 'INTEGER_NEGATIVE':
-                return Number.isInteger(value) && value >= 0;
-            case 'NEGATIVE_INTEGER':
-                return Number.isInteger(value) && value < 0;
-            case 'INTEGER_ZERO_OR_POSITIVE':
-            case 'AGE':
-                return Number.isInteger(value) && value >= 0;
-            default:
-                return true
-        }
-    }
+    @computed get totalImports() {
+        const {
+            newTrackedEntityInstances,
+            newEnrollments,
+            newEvents,
+            trackedEntityInstancesUpdate,
+            eventsUpdate
+        } = this.processed;
 
-    validateValue(dataType, value, optionSet) {
-        if (optionSet) {
-            const options = optionSet.options.map(o => {
-                return {
-                    code: o.code,
-                    value: o.value
-                }
-            });
-            const coded = _.find(options, o => {
-                return value + '' === o.code + '' || value + '' === o.value + '';
-            });
-            if (coded !== undefined && coded !== null) {
-                return coded.code;
-            }
-        } else if (this.validText(dataType, value)) {
-            if (dataType === 'DATETIME') {
-                return moment(value).format('YYYY-MM-DD HH:mm:ss');
-            } else if (dataType === 'DATE') {
-                return moment(value).format('YYYY-MM-DD');
-            } else if (dataType === 'TIME') {
-                return moment(value).format('HH:mm');
-            }
-            return value;
-            /*const numeric = /^(-?0|-?[1-9]\d*)(\.\d+)?$/;
-            const int = /^(0|-?[1-9]\d*)$/;
-            const posInt = /^[1-9]\d*$/;
-            const posOrZero = /(^0$)|(^[1-9]\d*$)/;
-            const neg = /^-[1-9]\d*$/;*/
-        }
-        return null;
-    }
+        return newTrackedEntityInstances.length + newEnrollments.length + newEvents.length + trackedEntityInstancesUpdate.length + eventsUpdate.length;
 
-    searchOrgUnit(val) {
-        switch (this.orgUnitStrategy.value) {
-            case 'uid':
-                return _.find(this.organisationUnits, {
-                    id: val
-                });
-            case 'code':
-                return _.find(this.organisationUnits, {
-                    code: val
-                });
-            case 'name':
-                return _.find(this.organisationUnits, {
-                    name: val
-                });
-            case 'auto':
-                const s1 = _.find(this.organisationUnits, {
-                    id: val
-                });
-                const s2 = _.find(this.organisationUnits, {
-                    code: val
-                });
-                const s3 = _.find(this.organisationUnits, {
-                    name: val
-                });
-                if (s1 !== undefined) {
-                    return s1;
-                } else if (s2 !== undefined) {
-                    return s2;
-                } else if (s3 !== undefined) {
-                    return s3;
-                } else {
-                    return undefined;
-                }
-            default:
-                return undefined;
-        }
-    }
-
-    getLocation(href) {
-        const match = href.match(/^(https?:)\/\/(([^:/?#]*)(?::([0-9]+))?)([/]?[^?#]*)(\?[^#]*|)(#.*|)$/);
-        return match && {
-            href: href,
-            protocol: match[1],
-            host: match[2],
-            hostname: match[3],
-            port: match[4],
-            pathname: match[5],
-            search: match[6],
-            hash: match[7]
-        }
     }
 
 }

@@ -19,6 +19,9 @@ class ProgramStage {
     @observable completeEvents = false;
     @observable longitudeColumn;
     @observable latitudeColumn;
+    @observable createNewEvents = false;
+    @observable updateEvents = true;
+    @observable eventDateColumn;
 
     constructor(id, name, displayName, repeatable, programStageDataElements) {
         this.id = id;
@@ -64,6 +67,27 @@ class ProgramStage {
     @action setLongitudeColumn = value => this.longitudeColumn = value;
     @action setLatitudeColumn = value => this.latitudeColumn = value;
     @action setCompleteEvents = value => this.completeEvents = value;
+    @action setEventDateColumn = value => this.eventDateColumn = value;
+    @action setCreateNewEvents = val => this.createNewEvents = val;
+    @action setUpdateEvents = val => this.updateEvents = val;
+
+
+    @action
+    handleCreateNewEventsCheck = event => {
+        this.createNewEvents = event.target.checked;
+
+        if (!this.createNewEvents && !this.updateEvents) {
+            this.eventDateColumn = null;
+        }
+    };
+
+    @action
+    handleUpdateEventsCheck = event => {
+        this.updateEvents = event.target.checked;
+        if (!this.createNewEvents && !this.updateEvents) {
+            this.eventDateColumn = null;
+        }
+    };
 
     @computed
     get dataElements() {

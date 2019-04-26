@@ -14,7 +14,7 @@ import {InputField} from "@dhis2/d2-ui-core";
 import FormGroup from '@material-ui/core/FormGroup';
 import Params from "./Params";
 import Grid from "@material-ui/core/Grid";
-import { Tabs} from 'antd';
+import {Tabs} from 'antd';
 
 const TabPane = Tabs.TabPane;
 
@@ -171,6 +171,8 @@ class Step2 extends React.Component {
                                     File Options
                                     <Select
                                         placeholder="Select sheet"
+                                        isClearable
+                                        isSearchable
                                         value={program.selectedSheet}
                                         options={program.sheets}
                                         onChange={program.setSelectedSheet}
@@ -203,6 +205,8 @@ class Step2 extends React.Component {
                                     Organisation unit options
                                     <Select
                                         placeholder="Organisation unit column"
+                                        isClearable
+                                        isSearchable
                                         value={program.orgUnitColumn}
                                         options={program.columns}
                                         onChange={program.handleOrgUnitSelectChange}
@@ -211,6 +215,8 @@ class Step2 extends React.Component {
                                         used as organisation unit</FormHelperText>
                                     <Select
                                         placeholder="Identifier scheme"
+                                        isClearable
+                                        isSearchable
                                         value={program.orgUnitStrategy}
                                         options={items}
                                         onChange={program.handleOrgUnitStrategySelectChange}
@@ -229,118 +235,82 @@ class Step2 extends React.Component {
                 <Grid item xs={12}>
                     <ol start="4">
                         <li>
-                            Advanced Options
+                            Enrollments & Entities Options
+                            <Grid container spacing={8}>
+                                <Grid item xs={12}>
+                                    <FormGroup row>
+                                        <FormControlLabel
+                                            control={
+                                                <Checkbox
+                                                    disabled={!program.isTracker}
+                                                    checked={program.createEntities}
+                                                    onChange={program.handleCreateEntitiesCheck}
+                                                    value="3"
+                                                />}
+                                            label="Create new entities"
+                                        />
+                                        <FormControlLabel
+                                            control={
+                                                <Checkbox
+                                                    disabled={!program.isTracker}
+                                                    checked={program.updateEntities}
+                                                    onChange={program.handleUpdateEntitiesCheck}
+                                                    value="4"
+                                                />}
+                                            label="Update entities"
+                                        />
+                                        <FormControlLabel
+                                            control={
+                                                <Checkbox
+                                                    disabled={!program.isTracker}
+                                                    checked={program.createNewEnrollments}
+                                                    onChange={program.handleCreateNewEnrollmentsCheck}
+                                                    value="5"
+                                                />}
+                                            label="Create new enrollments"
+                                        />
+                                    </FormGroup>
+                                </Grid>
+                            </Grid>
+
+
+                            <Grid container spacing={8}>
+                                <Grid item xs={12}>
+                                    <Grid container spacing={8}>
+                                        <Grid item xs={6}>
+                                            <Select
+                                                placeholder="Enrollment date column"
+                                                isClearable
+                                                isSearchable
+                                                value={program.enrollmentDateColumn}
+                                                disabled={!program.createNewEnrollments}
+                                                options={program.columns}
+                                                onChange={program.handleEnrollmentDateColumnSelectChange}
+                                            />
+                                            <FormHelperText>Should be a valid date<br/>&nbsp;</FormHelperText>
+                                        </Grid>
+
+                                        <Grid item xs={6}>
+                                            <Select
+                                                placeholder="Incident date column"
+                                                isClearable
+                                                isSearchable
+                                                value={program.incidentDateColumn}
+                                                disabled={!program.createNewEnrollments}
+                                                options={program.columns}
+                                                onChange={program.handleIncidentDateColumnSelectChange}
+                                            />
+                                            <FormHelperText>Should be a valid date<br/>&nbsp;</FormHelperText>
+                                        </Grid>
+                                    </Grid>
+
+                                </Grid>
+                            </Grid>
                         </li>
                     </ol>
                 </Grid>
             </Grid>
 
-            <Grid container spacing={8}>
-                <Grid item xs={6}>
-                    Events Options
-                </Grid>
-
-                <Grid item xs={6}>
-                    Enrollments & Entities Options
-                </Grid>
-            </Grid>
-
-            <Grid container spacing={8}>
-                <Grid item xs={6}>
-                    <FormGroup row>
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    checked={program.updateEvents}
-                                    onChange={program.handleUpdateEventsCheck}
-                                />}
-                            label="Update events"
-                        />
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    checked={program.createNewEvents}
-                                    onChange={program.handleCreateNewEventsCheck}
-                                />}
-                            label="Create new events"
-                        />
-                    </FormGroup>
-                </Grid>
-
-                <Grid item xs={6}>
-                    <FormGroup row>
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    disabled={!program.isTracker}
-                                    checked={program.createEntities}
-                                    onChange={program.handleCreateEntitiesCheck}
-                                />}
-                            label="Create new entities"
-                        />
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    disabled={!program.isTracker}
-                                    checked={program.updateEntities}
-                                    onChange={program.handleUpdateEntitiesCheck}
-                                />}
-                            label="Update entities"
-                        />
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    disabled={!program.isTracker}
-                                    checked={program.createNewEnrollments}
-                                    onChange={program.handleCreateNewEnrollmentsCheck}
-                                />}
-                            label="Create new enrollments"
-                        />
-                    </FormGroup>
-                </Grid>
-            </Grid>
-
-
-            <Grid container spacing={8}>
-                <Grid item xs={6}>
-                    <Select
-                        placeholder="Event date column"
-                        value={program.eventDateColumn}
-                        options={program.columns}
-                        onChange={program.handleEventDateColumnSelectChange}
-                    />
-                    <FormHelperText>Program stage events will updated or created based on this column. Non
-                        repeatable with latest values while repeatable with updates if same or new otherwise.
-                        Should be a valid date</FormHelperText>
-                </Grid>
-
-                <Grid item xs={6}>
-                    <Grid container spacing={8}>
-                        <Grid item xs={6}>
-                            <Select
-                                placeholder="Enrollment date column"
-                                value={program.enrollmentDateColumn}
-                                disabled={!program.createNewEnrollments}
-                                options={program.columns}
-                                onChange={program.handleEnrollmentDateColumnSelectChange}
-                            />
-                            <FormHelperText>Should be a valid date<br/>&nbsp;</FormHelperText>
-                        </Grid>
-
-                        <Grid item xs={6}>
-                            <Select
-                                placeholder="Incident date column"
-                                value={program.incidentDateColumn}
-                                disabled={!program.createNewEnrollments}
-                                options={program.columns}
-                                onChange={program.handleIncidentDateColumnSelectChange}
-                            />
-                            <FormHelperText>Should be a valid date<br/>&nbsp;</FormHelperText>
-                        </Grid>
-                    </Grid>
-
-                </Grid>
-            </Grid>
         </div>
     }
 }

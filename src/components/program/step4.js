@@ -28,6 +28,7 @@ import ListItemText from "@material-ui/core/ListItemText";
 import Dialog from "@material-ui/core/Dialog";
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import {Clear, Done} from "@material-ui/icons";
+import Grid from "@material-ui/core/Grid";
 
 
 const styles = theme => ({
@@ -71,60 +72,90 @@ class Step4 extends React.Component {
                             <Typography>{n.displayName}</Typography>
                         </ExpansionPanelSummary>
                         <ExpansionPanelDetails className={classes.block}>
-                            <FormControlLabel
-                                control={
-                                    <Checkbox
-                                        checked={n.eventDateIdentifiesEvent}
-                                        onChange={n.makeEventDateAsIdentifier}
+                            <Grid spacing={8} container>
+                                <Grid item xs={4}>
+                                    <Select
+                                        placeholder="Event Date Column"
+                                        isClearable
+                                        isSearchable
+                                        options={program.columns}
+                                        value={n.eventDateColumn}
+                                        onChange={n.setEventDateColumn}
                                     />
-                                }
-                                label="Event Date Uniquely Identifies Event"
-                            />
-                            <FormControlLabel
-                                control={
-                                    <Checkbox
-                                        checked={n.completeEvents}
-                                        onChange={n.markEventsAsComplete}
+                                </Grid>
+                                <Grid item xs={4}>
+                                    <Select
+                                        placeholder="Latitude Column"
+                                        isClearable
+                                        isSearchable
+                                        options={program.columns}
+                                        value={n.latitudeColumn}
+                                        onChange={n.setLatitudeColumn}
                                     />
-                                }
-                                label="Mark events as complete"
-                            />
+                                </Grid>
+                                <Grid item xs={4}>
+                                    <Select
+                                        placeholder="Longitude Column"
+                                        isClearable
+                                        isSearchable
+                                        options={program.columns}
+                                        value={n.longitudeColumn}
+                                        onChange={n.setLongitudeColumn}
+                                    />
+                                </Grid>
 
-                            <table width="100%" cellPadding="10">
-                                <tbody>
-                                <tr>
-                                    <td width="10%">Latitude Column</td>
-                                    <td width="40%">
-                                        <Select
-                                            placeholder="Select one"
-                                            options={program.columns}
-                                            value={n.latitudeColumn}
-                                            onChange={n.setLatitudeColumn}
-                                        />
-                                    </td>
-                                    <td width="10%">Longitude Column</td>
-                                    <td width="40%">
-                                        <Select
-                                            placeholder="Select one"
-                                            options={program.columns}
-                                            value={n.longitudeColumn}
-                                            onChange={n.setLongitudeColumn}
-                                        />
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <Button
-                                            variant="contained"
-                                            color="primary"
-                                            onClick={program.loadDefaultDataElements(n)}
-                                        >
-                                            Auto Map
-                                        </Button>
-                                    </td>
-                                </tr>
-                                </tbody>
-                            </table>
+                            </Grid>
+                            <Grid spacing={8} container>
+                                <Grid item xs={12}>
+                                    <FormControlLabel
+                                        control={
+                                            <Checkbox
+                                                checked={n.updateEvents}
+                                                onChange={n.handleUpdateEventsCheck}
+                                            />}
+                                        label="Update events"
+                                    />
+                                    <FormControlLabel
+                                        control={
+                                            <Checkbox
+                                                checked={n.createNewEvents}
+                                                onChange={n.handleCreateNewEventsCheck}
+                                            />}
+                                        label="Create new events"
+                                    />
+                                    <FormControlLabel
+                                        control={
+                                            <Checkbox
+                                                checked={n.eventDateIdentifiesEvent}
+                                                onChange={n.makeEventDateAsIdentifier}
+                                            />
+                                        }
+                                        label="Event Date Uniquely Identifies Event"
+                                    />
+                                    <FormControlLabel
+                                        control={
+                                            <Checkbox
+                                                checked={n.completeEvents}
+                                                onChange={n.markEventsAsComplete}
+                                            />
+                                        }
+                                        label="Mark events as complete"
+                                    />
+                                </Grid>
+                            </Grid>
+
+                            <Grid spacing={8} container>
+                                <Grid item xs={12}>
+
+                                    <Button
+                                        variant="contained"
+                                        color="primary"
+                                        onClick={program.loadDefaultDataElements(n)}
+                                    >
+                                        Auto Map
+                                    </Button>
+                                </Grid>
+                            </Grid>
 
                             <InputField
                                 id={n.id}
@@ -246,6 +277,8 @@ class Step4 extends React.Component {
                                                 <TableCell>
                                                     <Select
                                                         placeholder="Select one"
+                                                        isClearable
+                                                        isSearchable
                                                         value={s.column}
                                                         options={program.columns}
                                                         onChange={s.setColumn}
@@ -255,7 +288,7 @@ class Step4 extends React.Component {
                                                     {de}
                                                 </TableCell>
                                                 <TableCell>
-                                                    {!!s.column.value ? <Done/> : <Clear/>}
+                                                    {!!s.column ? <Done/> : <Clear/>}
                                                 </TableCell>
                                             </TableRow>
                                         );
@@ -284,7 +317,8 @@ class Step4 extends React.Component {
             })}
 
             <FormHelperText>
-                Make sure that all compulsory data elements for a program stage are mapped, otherwise next button will
+                Make sure that all compulsory data elements for a program stage are mapped, otherwise next
+                button will
                 be disabled
             </FormHelperText>
         </div>

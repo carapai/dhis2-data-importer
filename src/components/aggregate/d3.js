@@ -9,12 +9,18 @@ import TableCell from "@material-ui/core/TableCell";
 import TableHead from "@material-ui/core/TableHead";
 import TableRow from "@material-ui/core/TableRow";
 import {Done, Clear, DoneAll} from '@material-ui/icons'
+import ExpansionPanel from '@material-ui/core/ExpansionPanel';
+import ExpansionPanelSummary from '@material-ui/core/ExpansionPanelSummary';
+import ExpansionPanelDetails from '@material-ui/core/ExpansionPanelDetails';
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import Typography from "@material-ui/core/Typography";
 
 
 const styles = theme => ({
     block: {
-        display: 'block',
-        overflow: 'auto'
+        // display: 'block',
+        overflow: 'auto',
+        maxHeight: 500
     }
 });
 
@@ -34,7 +40,7 @@ class D3 extends React.Component {
     displayMapping = (de) => {
 
         if (this.integrationStore.dataSet.templateType === '1') {
-            return <TableCell width="300">
+            return <td width="300">
                 <Select
                     placeholder="Select mapping"
                     isClearable
@@ -43,7 +49,7 @@ class D3 extends React.Component {
                     options={this.integrationStore.dataSet.uniqueDataElements}
                     onChange={de.handelMappingChange(this.integrationStore.dataSet.data, this.integrationStore.dataSet.categoryOptionComboColumn, this.integrationStore.dataSet.isDhis2)}
                 />
-            </TableCell>
+            </td>
         }
 
         return null;
@@ -104,60 +110,67 @@ class D3 extends React.Component {
 
     render() {
         const {dataSet} = this.integrationStore;
-        // const {classes} = this.props;
+        const {classes} = this.props;
         let displayMappingHeader = null;
         let display = null;
         if (this.integrationStore.dataSet.templateType === '1') {
-            displayMappingHeader = <TableCell width="400">
+            displayMappingHeader = <th width="400">
                 Mapping
-            </TableCell>;
+            </th>;
         }
 
         if (this.integrationStore.dataSet.templateType !== '4') {
             display = dataSet.forms.map((form, k) => {
                 return (
-                    <div key={k} className="scrollable">
-                        <Table width={form.categoryOptionCombos.length * 300 + 600}
-                               style={{minWidth: '100%'}}>
-                            <TableHead>
-                            <TableRow>
-                                <TableCell>
-                                    Data Element
-                                </TableCell>
+                    <ExpansionPanel key={k} expanded={this.integrationStore.expanded === k}
+                                    onChange={this.integrationStore.handlePanelChange(k)}>
+                        <ExpansionPanelSummary expandIcon={<ExpandMoreIcon/>}>
+                            <Typography>{form.name}</Typography>
+                        </ExpansionPanelSummary>
+                        <ExpansionPanelDetails className={classes.block}>
+                            <table width={form.categoryOptionCombos.length * 300 + 600}
+                                   style={{minWidth: '100%'}} cellPadding="5">
+                                <thead>
+                                    <tr>
+                                        <th>
+                                            Data Element
+                                        </th>
 
-                                {displayMappingHeader}
+                                        {displayMappingHeader}
 
-                                {form.categoryOptionCombos.map(coc => {
-                                    return <TableCell key={coc.id} width="300">
-                                        {coc.name}
-                                    </TableCell>
-                                })}
-                                <TableCell width="50">Status</TableCell>
-                            </TableRow>
-                            </TableHead>
-                            <TableBody>
-                            {form.dataElements.map(de => {
-                                return <TableRow key={de.id}>
-                                    <TableCell style={{minWidth: 400}}>
-                                        {de.name}
-                                    </TableCell>
+                                        {form.categoryOptionCombos.map(coc => {
+                                            return <th key={coc.id} width="300">
+                                                {coc.name}
+                                            </th>
+                                        })}
+                                        <th width="50">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {form.dataElements.map(de => {
+                                        return <tr key={de.id}>
+                                            <td style={{minWidth: 400}}>
+                                                {de.name}
+                                            </td>
 
-                                    {this.displayMapping(de)}
+                                            {this.displayMapping(de)}
 
-                                    {form.categoryOptionCombos.map(coc => {
-                                        return <TableCell key={de.id + coc.id}>
-                                            {this.displayCell(de, coc)}
-                                        </TableCell>
+                                            {form.categoryOptionCombos.map(coc => {
+                                                return <td key={de.id + coc.id}>
+                                                    {this.displayCell(de, coc)}
+                                                </td>
+                                            })}
+                                            <td>
+                                                {form.status[de.id].all ? <DoneAll/> : form.status[de.id].some ?
+                                                    <Done/> :
+                                                    <Clear/>}
+                                            </td>
+                                        </tr>
                                     })}
-                                    <TableCell>
-                                        {form.status[de.id].all ? <DoneAll/> : form.status[de.id].some ? <Done/> :
-                                            <Clear/>}
-                                    </TableCell>
-                                </TableRow>
-                            })}
-                            </TableBody>
-                        </Table>
-                    </div>
+                                </tbody>
+                            </table>
+                        </ExpansionPanelDetails>
+                    </ExpansionPanel>
                 );
             });
         } else {

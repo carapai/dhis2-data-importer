@@ -23,8 +23,8 @@ class IntegrationStore {
     @observable skipped = new Set();
     @observable completed = new Set();
     @observable completedAggregate = new Set();
-    @observable steps = ['MAPPINGS', 'SELECT PROGRAM', 'DATA', 'ATTRIBUTES', 'PROGRAM STAGES', 'PRE-IMPORT SUMMARY', 'DATA IMPORT', 'MAPPING DETAILS'];
-    @observable aggregateSteps = ['MAPPINGS', 'SELECT DATA SET', 'IMPORT OPTIONS', 'DATA SET MAPPING', 'PRE-IMPORT SUMMARY', 'IMPORT SUMMARY', 'MAPPING DETAILS'];
+    @observable steps = ['SAVED MAPPINGS', 'SELECT PROGRAM', 'DATA', 'MAP ATTRIBUTES', 'MAP PROGRAM STAGES', 'PRE-IMPORT SUMMARY', 'DATA IMPORT', 'SAVE MAPPING'];
+    @observable aggregateSteps = ['SAVED MAPPINGS', 'SELECT DATA SET', 'IMPORT OPTIONS', 'DATA SET MAPPING', 'PRE-IMPORT SUMMARY', 'IMPORT SUMMARY', 'SAVE MAPPING'];
     @observable totalSteps = 8;
     @observable totalAggregateSteps = 7;
     @observable multipleCma = {};
@@ -120,8 +120,8 @@ class IntegrationStore {
         args.deleteMapping(this.mappings);
     };
 
-    deleteAgg = args => {
-        args.deleteAggregate(this.aggregates);
+    deleteAgg = async args => {
+        await args.deleteAggregate(this.aggregates);
     };
 
     schedule = args => {
@@ -169,14 +169,6 @@ class IntegrationStore {
 
     @action setSearch = val => {
         this.search = val;
-    };
-
-    @action searchDataSets = val => {
-        const programs = this.dataSets.filter(v => {
-            return v
-        });
-
-        this.setPrograms(programs);
     };
 
     @action downloadProgramData = () => {
@@ -228,30 +220,28 @@ class IntegrationStore {
     };
 
     @action
-    handleNext = () => {
+    handleNext = async () => {
         if (this.activeStep === 2 && !this.program.isTracker) {
-            this.activeStep = this.activeStep + 2;
+            this.changeSet(this.activeStep + 2);
         } else {
-            this.activeStep = this.activeStep + 1;
+            this.changeSet(this.activeStep + 1);
         }
 
         if (this.activeStep === 8) {
-            this.saveMapping();
-            this.activeStep = 0
+            await this.saveMapping();
+            this.changeSet(0)
         }
     };
-
-    @action setNextAggregationLevel = val => this.activeAggregateStep = val;
 
     @action
     handleNextAggregate = async () => {
 
         if (this.dataSet.isDhis2 && this.activeAggregateStep === 3) {
-            // this.setNextAggregationLevel(this.activeAggregateStep + 2)
-            this.setNextAggregationLevel(this.activeAggregateStep + 1);
+            // this.changeSetAggregate(this.activeAggregateStep + 2)
+            this.changeAggregateSet(this.activeAggregateStep + 1);
             await this.handleNextAggregate();
         } else {
-            this.setNextAggregationLevel(this.activeAggregateStep + 1);
+            this.changeAggregateSet(this.activeAggregateStep + 1);
         }
 
         if (this.activeAggregateStep === 7) {
@@ -271,22 +261,22 @@ class IntegrationStore {
     @action
     handleBack = () => {
         if (this.activeStep === 4 && !this.program.isTracker) {
-            this.activeStep = this.activeStep - 2;
+            this.changeSet(this.activeStep - 2);
         } else if (this.activeStep === 2 && this.jump) {
-            this.activeStep = 0;
+            this.changeSet(0);
         } else {
-            this.activeStep = this.activeStep - 1
+            this.changeSet(this.activeStep - 1);
         }
     };
 
     @action
     handleAggregateBack = () => {
         if (this.activeAggregateStep === 2 && this.aggregateJump) {
-            this.activeAggregateStep = 0;
+            this.changeAggregateSet(0)
         } else if (this.dataSet.isDhis2 && this.activeAggregateStep === 5) {
-            this.activeAggregateStep = this.activeAggregateStep - 2
+            this.changeAggregateSet(this.activeAggregateStep - 2);
         } else {
-            this.activeAggregateStep = this.activeAggregateStep - 1
+            this.changeAggregateSet(this.activeAggregateStep - 1)
         }
     };
 
@@ -314,18 +304,22 @@ class IntegrationStore {
         this.activeAggregateStep = step;
     };
 
+    @action changeActiveStep = (step) => {
+        this.activeStep = step;
+    };
+
     @action
     handleAggregateStep = step => () => {
         this.changeAggregateSet(step);
     };
 
     @action
-    handleComplete = () => {
+    handleComplete = async () => {
         const completed = new Set(this.completed);
         completed.add(this.activeStep);
         this.completed = completed;
         if (completed.size !== this.totalSteps() - this.skippedSteps()) {
-            this.handleNext();
+            await this.handleNext();
         }
     };
 
@@ -375,7 +369,7 @@ class IntegrationStore {
 
 
     @action
-    executeEditIfAllowed = model => {
+    executeEditIfAllowed = async model => {
         this.jump = false;
         model.createNewEvents = true;
         model.dataStartRow = 2;
@@ -400,7 +394,7 @@ class IntegrationStore {
             this.program.setMappingId(1);
         }
 
-        this.handleNext()
+        await this.handleNext()
     };
 
     @action
@@ -501,7 +495,9 @@ class IntegrationStore {
                         };
                     });
                     const categoryOptionCombos = v[0]['dataElement']['categoryCombo']['categoryOptionCombos'];
+                    const name = v[0]['dataElement']['categoryCombo']['name'];
                     return {
+                        name,
                         dataElements,
                         categoryOptionCombos
                     }
@@ -659,11 +655,6 @@ class IntegrationStore {
             console.log(e);
         }))
     };
-    @action
-    handleChange = (dataElement, group) => event => {
-        console.log(event);
-        // this.setState({ [name]: event.target.checked });
-    };
 
     @action
     handleChangeElementPage = what => (event, page) => {
@@ -709,7 +700,6 @@ class IntegrationStore {
         if (this.activeStep === 2) {
             return !this.program.data || this.program.data.length === 0
                 || !this.program.orgUnitColumn
-                || (!this.program.eventDateColumn && (this.program.createNewEvents || this.program.updateEvents))
                 || ((!this.program.enrollmentDateColumn || !this.program.incidentDateColumn) && this.program.createNewEnrollments);
             // || (!this.program.createNewEnrollments && !this.program.createNewEvents);
         } else if (this.activeStep === 3 && this.program.createNewEnrollments) {
@@ -717,10 +707,17 @@ class IntegrationStore {
         } else if (this.activeStep === 4) {
             return !this.program.compulsoryDataElements;
         }
-
         // else if (this.activeStep === 5) {
         //     return this.program.disableCreate;
         // }
+        return false;
+    }
+
+    @computed
+    get disableDownload() {
+        if (this.activeStep === 5) {
+            return this.program.totalImports === 0
+        }
         return false;
     }
 
@@ -766,10 +763,12 @@ class IntegrationStore {
     get nextLabel() {
         if (this.activeStep === 0) {
             return 'New Mapping';
-        } else if (this.activeStep === 5) {
+        } else if (this.activeStep === 5 && this.program.totalImports > 0) {
+            if (this.program.processed && this.program.processed.conflicts.length > 0) {
+                return 'Import With Conflicts';
+            }
             return 'Import';
         } else if (this.activeStep === 7) {
-
             return 'Save & Finish'
         } else {
             return 'Next';

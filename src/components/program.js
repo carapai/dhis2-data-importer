@@ -132,7 +132,7 @@ class Program extends React.Component {
                                     </td>
                                     <td width="33%" valign="top" align="right">
                                         <Button
-                                            disabled={this.integrationStore.disableNext}
+                                            disabled={this.integrationStore.disableDownload}
                                             variant="contained"
                                             color="primary"
                                             onClick={this.integrationStore.downloadProgramData}
