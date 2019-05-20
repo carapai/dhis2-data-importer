@@ -2,11 +2,6 @@ import React from "react";
 import {withStyles} from "@material-ui/core/styles/index";
 import {inject, observer} from "mobx-react/index";
 import LinearProgress from '@material-ui/core/LinearProgress';
-// import Table from "@material-ui/core/Table";
-// import TableBody from "@material-ui/core/TableBody";
-// import TableCell from "@material-ui/core/TableCell";
-// import TableHead from "@material-ui/core/TableHead";
-// import TableRow from "@material-ui/core/TableRow";
 import Badge from '@material-ui/core/Badge';
 import {Tab, Tabs} from '@dhis2/d2-ui-core';
 import Progress from "../progress";
@@ -78,40 +73,6 @@ class Step6 extends React.Component {
                         dataSource={successes}
                         rowKey="reference"
                     />
-                    {/*<Table>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>Type</TableCell>
-                                <TableCell>Reference</TableCell>
-                                <TableCell>Imported</TableCell>
-                                <TableCell>Updated</TableCell>
-                                <TableCell>Deleted</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {successes.map((s, k) => {
-                                return (
-                                    <TableRow key={k}>
-                                        <TableCell>
-                                            {s.type}
-                                        </TableCell>
-                                        <TableCell>
-                                            {s.reference}
-                                        </TableCell>
-                                        <TableCell>
-                                            {s.imported}
-                                        </TableCell>
-                                        <TableCell>
-                                            {s.updated}
-                                        </TableCell>
-                                        <TableCell>
-                                            {s.deleted}
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                            })}
-                        </TableBody>
-                    </Table>*/}
                 </Tab>
                 <Tab label={<Badge className={classes.padding} color="secondary"
                                    badgeContent={conflicts.length}>Conflicts</Badge>}>
@@ -120,28 +81,6 @@ class Step6 extends React.Component {
                         dataSource={conflicts}
                         rowKey="object"
                     />
-                    {/* <Table>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>Affected</TableCell>
-                                <TableCell>Message</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {conflicts.map((s, k) => {
-                                return (
-                                    <TableRow key={k}>
-                                        <TableCell>
-                                            {s.object}
-                                        </TableCell>
-                                        <TableCell>
-                                            {s.value}
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                            })}
-                        </TableBody>
-                    </Table>*/}
                 </Tab>
                 <Tab label={<Badge className={classes.padding} color="secondary"
                                    badgeContent={errors.length}>Errors</Badge>}>
@@ -151,24 +90,6 @@ class Step6 extends React.Component {
                         dataSource={errors}
                         rowKey="message"
                     />
-                    {/*<Table>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>Message</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {errors.map((s, index) => {
-                                return (
-                                    <TableRow key={index}>
-                                        <TableCell>
-                                            {s.message}
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                            })}
-                        </TableBody>
-                    </Table>*/}
                 </Tab>
             </Tabs>
             <Progress open={this.integrationStore.program.dialogOpen}

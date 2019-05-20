@@ -35,8 +35,6 @@ class CategoryOptionCombo {
             const final = _.omit(this.mapping, [de.id]);
             this.setMapping(final);
         }
-
-        console.log(this.mapping);
     };
 
     @action setColumnAll = de => val => {

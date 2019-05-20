@@ -40,6 +40,9 @@ class Step3 extends React.Component {
         super(props);
         const {IntegrationStore} = props;
         this.integrationStore = IntegrationStore;
+    }
+
+    componentDidMount() {
         this.integrationStore.program.loadDefaultAttributes();
     }
 

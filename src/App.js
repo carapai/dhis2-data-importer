@@ -12,6 +12,7 @@ import Program from './components/program';
 
 import D2UIApp from '@dhis2/d2-ui-app';
 import Aggregate from "./components/aggregate";
+import Schedule from "./components/schedule";
 import {withStyles} from "@material-ui/core/styles";
 import styles from "./components/styles";
 import HeaderBar from '@dhis2/d2-ui-header-bar';
@@ -62,10 +63,10 @@ class App extends Component {
         d2.i18n.translations['help'] = 'Help';
         d2.i18n.translations['about_dhis2'] = 'About DHIS2';
         d2.i18n.translations['aggregate_id'] = 'Id';
-        d2.i18n.translations['upload'] = 'Upload Excel/CSV';
+        d2.i18n.translations['upload'] = 'Upload';
         d2.i18n.translations['code'] = 'Code';
         d2.i18n.translations['download'] = 'Import from API';
-        d2.i18n.translations['template'] = 'Download Template';
+        d2.i18n.translations['template'] = 'Download Mapping';
         d2.i18n.translations['year'] = 'Year';
         d2.i18n.translations['sixMonth'] = 'Six Month';
         d2.i18n.translations['jan-jun'] = 'Jan - Jun';
@@ -98,6 +99,9 @@ class App extends Component {
         d2.i18n.translations['Q4'] = 'Q4';
         d2.i18n.translations['mapping_name'] = 'Mapping Name';
         d2.i18n.translations['mapping_description'] = 'Mapping Description';
+        d2.i18n.translations['last'] = 'Last Run';
+        d2.i18n.translations['next'] = 'Next Run';
+        d2.i18n.translations['created'] = 'Created';
 
         this.state = {
             d2,
@@ -118,12 +122,13 @@ class App extends Component {
                         <HeaderBar d2={this.state.d2}/>
                         <Layout>
                             <Sider
+                                theme="light"
                                 collapsible
                                 collapsed={this.state.collapsed}
                                 onCollapse={this.onCollapse}
                             >
                                 <div className={classes.appBarSpacer}/>
-                                <Menu theme="dark" defaultSelectedKeys={['1']} mode="inline">
+                                <Menu theme="light" defaultSelectedKeys={['1']} mode="inline">
                                     <Menu.Item key="1">
                                         <Link to="/">
                                             <Icon type="pie-chart"/>
@@ -134,6 +139,13 @@ class App extends Component {
                                         <Link to="/aggregates">
                                             <Icon type="desktop"/>
                                             <span>Aggregate</span>
+                                        </Link>
+                                    </Menu.Item>
+
+                                    <Menu.Item key="3">
+                                        <Link to="/schedules">
+                                            <Icon type="desktop"/>
+                                            <span>Schedules</span>
                                         </Link>
                                     </Menu.Item>
                                 </Menu>
@@ -151,6 +163,10 @@ class App extends Component {
                                             <Route
                                                 path='/aggregates'
                                                 component={() => <Aggregate d2={this.state.d2}/>}/>
+
+                                            <Route
+                                                path='/schedules'
+                                                component={() => <Schedule d2={this.state.d2}/>}/>
                                         </CardContent>
                                     </Card>
                                 </Content>

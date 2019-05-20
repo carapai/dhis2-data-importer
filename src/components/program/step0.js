@@ -9,13 +9,6 @@ import Dropzone from 'react-dropzone';
 import red from '@material-ui/core/colors/red';
 import {InputField} from "@dhis2/d2-ui-core";
 
-import MuiDialogTitle from '@material-ui/core/DialogTitle';
-import MuiDialogContent from '@material-ui/core/DialogContent';
-import MuiDialogActions from '@material-ui/core/DialogActions';
-
-import IconButton from '@material-ui/core/IconButton';
-import CloseIcon from '@material-ui/icons/Close';
-import Typography from '@material-ui/core/Typography';
 import Summary from "./Summary";
 import {Delete, ArrowDownward, ArrowUpward, CloudDownload} from "@material-ui/icons";
 import Params from "./Params";
@@ -23,47 +16,8 @@ import LinearProgress from '@material-ui/core/LinearProgress';
 import CircularProgress from "@material-ui/core/CircularProgress";
 import Select from 'react-select';
 import Progress from "../progress";
+import {DialogActions, DialogContent, DialogTitle} from "../Fragments";
 
-const DialogTitle = withStyles(theme => ({
-    root: {
-        borderBottom: `1px solid ${theme.palette.divider}`,
-        margin: 0,
-        padding: theme.spacing.unit * 2,
-    },
-    closeButton: {
-        position: 'absolute',
-        right: theme.spacing.unit,
-        top: theme.spacing.unit,
-        color: theme.palette.grey[500],
-    },
-}))(props => {
-    const {children, classes, onClose} = props;
-    return (
-        <MuiDialogTitle disableTypography className={classes.root}>
-            <Typography variant="h6">{children}</Typography>
-            {onClose ? (
-                <IconButton aria-label="Close" className={classes.closeButton} onClick={onClose}>
-                    <CloseIcon/>
-                </IconButton>
-            ) : null}
-        </MuiDialogTitle>
-    );
-});
-
-const DialogContent = withStyles(theme => ({
-    root: {
-        margin: 0,
-        padding: theme.spacing.unit * 2,
-    },
-}))(MuiDialogContent);
-
-const DialogActions = withStyles(theme => ({
-    root: {
-        borderTop: `1px solid ${theme.palette.divider}`,
-        margin: 0,
-        padding: theme.spacing.unit,
-    },
-}))(MuiDialogActions);
 
 const styles = theme => ({
     icon: {

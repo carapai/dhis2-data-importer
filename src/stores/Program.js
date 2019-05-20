@@ -15,7 +15,7 @@ import XLSX from 'xlsx';
 import axios from 'axios';
 import {
     encodeData, groupEntities, isTracker, processProgramData, programUniqueAttribute, programUniqueColumn
-} from "../utils";
+} from "../utils/utils";
 import Param from "./Param";
 
 class Program {
@@ -141,6 +141,7 @@ class Program {
     @observable fileName;
     @observable mappingName;
     @observable mappingDescription;
+    @observable templateType;
 
     constructor(lastUpdated, name, id, programType, displayName, programStages, programTrackedEntityAttributes) {
         this.lastUpdated = lastUpdated;
@@ -372,7 +373,7 @@ class Program {
         }
 
         if (this.url) {
-
+            this.openDialog();
             try {
                 let response;
                 if (this.username !== '' && this.password !== '') {
@@ -405,10 +406,13 @@ class Program {
 
                     await this.searchTrackedEntities();
                     this.setLastRun(moment(new Date()).format('YYYY-MM-DD HH:mm:ss'))
+
+                    this.closeDialog();
                 }
             } catch (e) {
                 NotificationManager.error(e.message, 'Error', 5000);
                 this.setPulling(false);
+                this.closeDialog();
             }
         }
     };
@@ -499,6 +503,7 @@ class Program {
     @action setFileName = val => this.fileName = val;
     @action setMappingName = val => this.mappingName = val;
     @action setMappingDescription = val => this.mappingDescription = val;
+    @action setTemplateType = val => this.templateType = val;
 
     @action
     filterAttributes = attributesFilter => {
@@ -909,7 +914,8 @@ class Program {
                 'latitudeColumn',
                 'selectedSheet',
                 'mappingName',
-                'mappingDescription'
+                'mappingDescription',
+                'templateType'
             ])
     }
 

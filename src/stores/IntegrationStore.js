@@ -1,13 +1,17 @@
 import {action, computed, configure, observable} from 'mobx';
 import _ from "lodash";
 import saveAs from 'file-saver';
-import {convert, convertAggregate} from '../utils'
+import {callAxios2, postAxios} from '../utils/data-utils'
+import {convert, convertAggregate, convertSchedules} from './converters'
 import {NotificationManager} from "react-notifications";
+import Schedule from "./Schedule";
 
 
 configure({
     enforceActions: "observed"
 });
+
+const URL = 'http://localhost:3001/api/v1';
 
 class IntegrationStore {
 
@@ -23,8 +27,8 @@ class IntegrationStore {
     @observable skipped = new Set();
     @observable completed = new Set();
     @observable completedAggregate = new Set();
-    @observable steps = ['SAVED MAPPINGS', 'SELECT PROGRAM', 'DATA', 'MAP ATTRIBUTES', 'MAP PROGRAM STAGES', 'PRE-IMPORT SUMMARY', 'DATA IMPORT', 'SAVE MAPPING'];
-    @observable aggregateSteps = ['SAVED MAPPINGS', 'SELECT DATA SET', 'IMPORT OPTIONS', 'DATA SET MAPPING', 'PRE-IMPORT SUMMARY', 'IMPORT SUMMARY', 'SAVE MAPPING'];
+    @observable steps = ['SAVED MAPPINGS', 'SELECT PROGRAM', 'IMPORT TYPE', 'DATA OPTIONS', 'MAP PROGRAM ATTRIBUTES', 'MAP PROGRAM STAGES', 'IMPORT DATA', 'IMPORT SUMMARY'];
+    @observable aggregateSteps = ['SAVED MAPPINGS', 'SELECT DATA SET', 'IMPORT TYPE', 'IMPORT OPTIONS', 'DATA SET MAPPING', 'IMPORT DATA', 'IMPORT SUMMARY'];
     @observable totalSteps = 8;
     @observable totalAggregateSteps = 7;
     @observable multipleCma = {};
@@ -49,6 +53,9 @@ class IntegrationStore {
     @observable dialogOpen = false;
     @observable uploadData = false;
     @observable importData = false;
+    @observable scheduled = false;
+    @observable schedules = [];
+    @observable currentSchedule = {};
 
     @observable scheduleTypes = [{
         value: 'Second',
@@ -84,14 +91,25 @@ class IntegrationStore {
         step1: {
             page: 0,
             rowsPerPage: 10
+        },
+        d25: {
+            page: 0,
+            rowsPerPage: 5
         }
     };
 
     @action setDialogOpen = val => this.dialogOpen = val;
     @action openDialog = () => this.setDialogOpen(true);
     @action closeDialog = () => this.setDialogOpen(false);
+    @action openSchedule = () => this.setScheduled(true);
+    @action setCurrentSchedule = val => this.currentSchedule = val;
 
     @action setOpen = val => this.open = val;
+
+    @action createSchedule = () => {
+        this.currentSchedule = new Schedule();
+        this.openSchedule();
+    };
 
     @action handleDrawerOpen = () => {
         this.setOpen(true)
@@ -102,9 +120,70 @@ class IntegrationStore {
         this.setOpen(open)
     };
 
+    @action saveSchedules = async () => {
+        try {
+            const namespace = await this.d2.dataStore.get('bridge');
+            namespace.set('schedules', this.schedules);
+            NotificationManager.success('Success', 'Mapping saved successfully', 5000);
+        } catch (e) {
+            NotificationManager.error('Error', `Could not save mapping ${e.message}`, 5000);
+        }
+    };
+
+    @action saveSchedule = async () => {
+
+        const mapping = _.findIndex(this.schedules, {
+            name: this.currentSchedule.name
+        });
+
+
+        if (mapping !== -1) {
+            this.schedules.splice(mapping, 1, this.currentSchedule);
+        } else {
+            this.schedules = [...this.schedules, this.currentSchedule];
+        }
+
+        try {
+            const namespace = await this.d2.dataStore.get('bridge');
+            namespace.set('schedules', this.schedules);
+            NotificationManager.success('Success', 'Mapping saved successfully', 5000);
+        } catch (e) {
+            NotificationManager.error('Error', `Could not save mapping ${e.message}`, 5000);
+        }
+
+        this.closeScheduledDialog();
+    };
+
     log = args => {
         // const program = {...args};
     };
+
+    @action updateSchedule = args => {
+        this.setCurrentSchedule(args);
+        this.openSchedule();
+    };
+
+    @action startSchedule = async args => {
+        try {
+            const data = await postAxios(URL + '/schedules', args);
+            args.setNext(data.next);
+            args.setLast(data.last);
+            this.setCurrentSchedule(args);
+            await this.saveSchedule()
+        } catch (e) {
+            NotificationManager.error('Error', `Could not schedule ${e.message}`, 5000);
+        }
+    };
+
+    @action deleteSchedule1 = async args => {
+        await this.deleteSchedule(args);
+    };
+
+    @action stopSchedule = async args => {
+        await postAxios(URL + '/stop', {name: args.name});
+        await this.saveSchedule()
+    };
+
 
     upload = args => {
         this.setProgram(args);
@@ -125,7 +204,8 @@ class IntegrationStore {
     };
 
     schedule = args => {
-        args.scheduleProgram(this.mappings);
+        this.setScheduled(true)
+        // args.scheduleProgram(this.mappings);
     };
 
     import = args => {
@@ -134,7 +214,7 @@ class IntegrationStore {
     };
 
     importAgg = args => {
-        if (args.templateType === "1") {
+        if (args.templateType.value === "4" || args.templateType.value === "5" || args.templateType.value === "6") {
             this.setDataSet(args);
             this.setImportData(true);
         } else {
@@ -145,26 +225,6 @@ class IntegrationStore {
     downloadData = args => {
         const blob = new Blob([JSON.stringify(args.canBeSaved, null, 2)], {type: 'application/json'});
         saveAs(blob, "data.json");
-    };
-
-
-    @observable tableActions = {
-        download: this.import,
-        upload: this.upload,
-        template: this.downloadData,
-        delete: this.delete
-    };
-
-    @observable tableAggActions = {
-        upload: this.uploadAgg,
-        download: this.importAgg,
-        template: this.downloadData,
-        delete: this.deleteAgg
-
-    };
-
-    @observable otherAggActions = {
-        log: this.log
     };
 
     @action setSearch = val => {
@@ -223,30 +283,29 @@ class IntegrationStore {
     handleNext = async () => {
         if (this.activeStep === 2 && !this.program.isTracker) {
             this.changeSet(this.activeStep + 2);
+        } else if (this.activeStep === 7) {
+            this.handleReset()
         } else {
             this.changeSet(this.activeStep + 1);
         }
 
-        if (this.activeStep === 8) {
-            await this.saveMapping();
-            this.changeSet(0)
-        }
+        // if (this.activeStep === 8) {
+        //     await this.saveMapping();
+        //     this.changeSet(0)
+        // }
     };
 
     @action
     handleNextAggregate = async () => {
 
-        if (this.dataSet.isDhis2 && this.activeAggregateStep === 3) {
+        if (this.dataSet.isDhis2 && this.activeAggregateStep === 4) {
             // this.changeSetAggregate(this.activeAggregateStep + 2)
             this.changeAggregateSet(this.activeAggregateStep + 1);
             await this.handleNextAggregate();
+        } else if (this.activeAggregateStep === 6) {
+            this.handleResetAggregate()
         } else {
             this.changeAggregateSet(this.activeAggregateStep + 1);
-        }
-
-        if (this.activeAggregateStep === 7) {
-            await this.saveAggregate();
-            this.changeAggregateSet(0)
         }
     };
 
@@ -330,6 +389,10 @@ class IntegrationStore {
     @action closeUploadDialog = () => {
         this.setUpload(false);
         this.setImportData(false);
+    };
+
+    @action closeScheduledDialog = () => {
+        this.setScheduled(false);
     };
 
     @action
@@ -441,6 +504,22 @@ class IntegrationStore {
         }
     };
 
+    @action handleRadioChange = data => {
+        this.dataSet.setTemplateType(data);
+        this.dataSet.setFileName('');
+        this.dataSet.destroy();
+
+        if (this.dataSet.templateType && this.dataSet.templateType.value === '4') {
+            this.dataSet.setIsDhis2(true);
+        }
+        // await this.handleNextAggregate();
+    };
+
+    @action handleTemplateTypeChange = data => {
+        this.program.setTemplateType(data);
+        this.program.setFileName('');
+    };
+
     @action
     useSaved = model => {
         this.program = model;
@@ -453,6 +532,32 @@ class IntegrationStore {
         this.dataSet = model;
         this.aggregateJump = true;
         this.activeAggregateStep = this.activeAggregateStep + 2;
+    };
+
+    @action getScheduleInfo = async () => {
+        const data = await callAxios2('http://localhost:3001/api/v1/info', {});
+        const schedules = this.schedules.map(s => {
+            const val = data[s.name];
+
+            if (val) {
+                s = {...s, val};
+            }
+            return s;
+        });
+
+        this.setSchedules(schedules);
+    };
+
+    @action deleteSchedule = async (schedule) => {
+        const mapping = _.findIndex(this.schedules, {name: schedule.name});
+        this.schedules.splice(mapping, 1);
+
+        try {
+            const namespace = await this.d2.dataStore.get('bridge');
+            await namespace.set('schedules', this.schedules);
+        } catch (e) {
+            NotificationManager.error(`Could not save schedule ${e.message}`, 'Error', 5000);
+        }
     };
 
     @action
@@ -547,6 +652,22 @@ class IntegrationStore {
         this.closeDialog();
     };
 
+
+    @action checkScheduleDataStore = async () => {
+        this.setLoading(true);
+        this.openDialog();
+
+        const val = await this.d2.dataStore.has('bridge');
+        if (!val) {
+            await this.createAggregateDataStore()
+        } else {
+            await this.fetchSavedSchedules();
+        }
+
+        this.setLoading(false);
+        this.closeDialog();
+    };
+
     @action fetchSavedMappings = async () => {
         try {
             const namespace = await this.d2.dataStore.get('bridge');
@@ -556,7 +677,39 @@ class IntegrationStore {
             });
             this.setMappings(processedMappings);
         } catch (e) {
-            NotificationManager.error(`${e.message} could not fetch saved mappings`, 'Error', 5000);
+            this.setMappings([]);
+            // NotificationManager.error(`${e.message} could not fetch saved mappings`, 'Error', 5000);
+        }
+    };
+
+    @action handleChange = event => {
+        this.currentSchedule.setValue(null);
+        this.currentSchedule.setType(event.target.value);
+    };
+
+
+    @action fetchSavedSchedules = async () => {
+        let foundSchedules = [];
+        try {
+            const namespace = await this.d2.dataStore.get('bridge');
+            const schedules = await namespace.get('schedules');
+            foundSchedules = convertSchedules(schedules);
+
+            const data = await callAxios2(URL + '/info', {});
+            foundSchedules = foundSchedules.map(s => {
+                const val = data[s.name];
+                if (val) {
+                    s.setLast(val.last);
+                    s.setNext(val.next);
+                }
+
+                return s;
+            });
+
+            this.setSchedules(foundSchedules);
+            await this.saveSchedules()
+        } catch (e) {
+            this.setSchedules(foundSchedules)
         }
     };
 
@@ -571,7 +724,8 @@ class IntegrationStore {
             });
             this.setAggregates(processedAggregates);
         } catch (e) {
-            NotificationManager.error(`${e.message} could not fetch saved aggregate mappings`, 'Error', 5000);
+            this.setAggregates([]);
+            // NotificationManager.error(`${e.message} could not fetch saved aggregate mappings`, 'Error', 5000);
         }
     };
 
@@ -580,6 +734,16 @@ class IntegrationStore {
         try {
             const namespace = await this.d2.dataStore.create('bridge');
             namespace.set('mappings', this.mappings);
+        } catch (e) {
+            NotificationManager.error('Could not create data store', 'Error', 5000);
+        }
+    };
+
+    @action createScheduleDataStore = async () => {
+
+        try {
+            const namespace = await this.d2.dataStore.create('bridge');
+            namespace.set('schedules', this.schedules);
         } catch (e) {
             NotificationManager.error('Could not create data store', 'Error', 5000);
         }
@@ -626,10 +790,12 @@ class IntegrationStore {
     @action setDataSets = val => this.dataSets = val;
     @action setDataSet = val => this.dataSet = val;
     @action setMappings = val => this.mappings = val;
+    @action setSchedules = val => this.schedules = val;
     @action setAggregate = val => this.aggregate = val;
     @action setAggregates = val => this.aggregates = val;
     @action setLoading = val => this.loading = val;
     @action setUpload = val => this.uploadData = val;
+    @action setScheduled = val => this.scheduled = val;
     @action setImportData = val => this.importData = val;
     @action setProgram = val => this.program = val;
     @action setPaging = val => this.paging = val;
@@ -697,10 +863,10 @@ class IntegrationStore {
 
     @computed
     get disableNext() {
-        if (this.activeStep === 2) {
+        if (this.activeStep === 2 && this.program.templateType && this.program.templateType.value === '1') {
             return !this.program.data || this.program.data.length === 0
-                || !this.program.orgUnitColumn
-                || ((!this.program.enrollmentDateColumn || !this.program.incidentDateColumn) && this.program.createNewEnrollments);
+            // || !this.program.orgUnitColumn
+            // || ((!this.program.enrollmentDateColumn || !this.program.incidentDateColumn) && this.program.createNewEnrollments);
             // || (!this.program.createNewEnrollments && !this.program.createNewEvents);
         } else if (this.activeStep === 3 && this.program.createNewEnrollments) {
             return !this.program.mandatoryAttributesMapped;
@@ -715,7 +881,7 @@ class IntegrationStore {
 
     @computed
     get disableDownload() {
-        if (this.activeStep === 5) {
+        if (this.activeStep === 6) {
             return this.program.totalImports === 0
         }
         return false;
@@ -725,10 +891,15 @@ class IntegrationStore {
     @computed
     get disableNextAggregate() {
         if (this.activeAggregateStep === 2) {
-            if (this.dataSet.templateType === '1') {
-                if (this.dataSet.isDhis2 && this.dataSet.dhis2DataSet) {
-                    return false;
+            if (this.dataSet.templateType) {
+                if (this.dataSet.templateType.value === '1' || this.dataSet.templateType.value === '2' || this.dataSet.templateType.value === '3') {
+                    return _.keys(this.dataSet.data).length === 0;
                 }
+            } else {
+                return true
+            }
+        } else if (this.activeAggregateStep === 3) {
+            if (this.dataSet.templateType.value === '1' || this.dataSet.templateType.value === '6') {
                 return _.keys(this.dataSet.data).length === 0
                     || !this.dataSet.ouMapped
                     // || !this.dataSet.allAttributesMapped
@@ -736,14 +907,7 @@ class IntegrationStore {
                     || !this.dataSet.dataElementColumn
                     || !this.dataSet.categoryOptionComboColumn
                     || !this.dataSet.dataValueColumn;
-            } else if (this.dataSet.templateType === '2') {
-                return !this.dataSet
-                    || !this.dataSet.data
-                    || this.dataSet.data.length === 0
-                    || !this.dataSet.ouMapped
-                    // || !this.dataSet.allAttributesMapped
-                    || !this.dataSet.periodMapped
-            } else {
+            } else if (this.dataSet.templateType.value === '2') {
                 return !this.dataSet
                     || !this.dataSet.data
                     || this.dataSet.data.length === 0
@@ -752,9 +916,29 @@ class IntegrationStore {
                     || !this.dataSet.periodMapped
                     || !this.dataSet.dataStartColumn
                     || this.dataSet.dataStartColumn.length === 0
+
+            } else if (this.dataSet.templateType.value === '3') {
+                return !this.dataSet
+                    || !this.dataSet.data
+                    || this.dataSet.data.length === 0
+                    || !this.dataSet.ouMapped
+                    // || !this.dataSet.allAttributesMapped
+                    || !this.dataSet.periodMapped
+            } else if (this.dataSet.templateType.value === '4') {
+                return !this.dataSet
+                    || !this.dataSet.selectedDataSet
+                    // || !this.dataSet.allAttributesMapped
+                    || !this.dataSet.currentLevel
+                    || (this.dataSet.multiplePeriods && (!this.dataSet.startPeriod || !this.dataSet.endPeriod))
+                    || (!this.dataSet.multiplePeriods && !this.dataSet.periodExists)
+            } else if (this.dataSet.templateType.value === '5') {
+                return !this.dataSet
+                    || !this.dataSet.currentLevel
+                    || !this.dataSet.periodExists2
+                    || this.dataSet.selectedIndicators.length === 0
             }
         } else if (this.activeAggregateStep === 4) {
-            return !this.dataSet.isDhis2 && (!this.dataSet.processed || this.dataSet.processed.length === 0)
+            // return !this.dataSet.isDhis2 && (!this.dataSet.processed || this.dataSet.processed.length === 0)
         }
         return false;
     }
@@ -763,13 +947,13 @@ class IntegrationStore {
     get nextLabel() {
         if (this.activeStep === 0) {
             return 'New Mapping';
-        } else if (this.activeStep === 5 && this.program.totalImports > 0) {
+        } else if (this.activeStep === 6) {
             if (this.program.processed && this.program.processed.conflicts.length > 0) {
                 return 'Import With Conflicts';
             }
             return 'Import';
         } else if (this.activeStep === 7) {
-            return 'Save & Finish'
+            return 'Finish'
         } else {
             return 'Next';
         }
@@ -779,10 +963,10 @@ class IntegrationStore {
     get nextAggregateLabel() {
         if (this.activeAggregateStep === 0) {
             return 'New Mapping';
-        } else if (this.activeAggregateStep === 4) {
+        } else if (this.activeAggregateStep === 5) {
             return 'Import';
         } else if (this.activeAggregateStep === 6) {
-            return 'Save & Finish'
+            return 'Finish'
         } else {
             return 'Next';
         }
@@ -831,6 +1015,11 @@ class IntegrationStore {
 
     }
 
+    @computed get sourceUnits() {
+        const info = this.paging['d25'];
+        return this.dataSet.sourceOrganisationUnits.slice(info.page * info.rowsPerPage, info.page * info.rowsPerPage + info.rowsPerPage);
+    }
+
     @computed get searchedPrograms() {
         if (this.search !== '') {
             return this.programs.filter(v => {
@@ -847,6 +1036,51 @@ class IntegrationStore {
         return this.searchedPrograms.slice(info.page * info.rowsPerPage, info.page * info.rowsPerPage + info.rowsPerPage);
 
     }
+
+
+    @computed get currentOptions() {
+        if (this.currentSchedule.type === 'aggregate') {
+            return this.aggregates.filter(v => {
+                return v.url && v.url !== '';
+            }).map(m => {
+                return {label: m.mappingName, value: m.canBeSaved}
+            })
+        } else if (this.currentSchedule.type === 'tracker') {
+            return this.mappings.filter(v => {
+                return v.url && v.url !== '';
+            }).map(m => {
+                return {label: m.mappingName, value: m.canBeSaved}
+            })
+        }
+        return [];
+    }
+
+    @observable tableActions = {
+        download: this.import,
+        upload: this.upload,
+        template: this.downloadData,
+        delete: this.delete,
+        // schedule: this.schedule
+    };
+
+
+    @observable scheduleActions = {
+        start: this.startSchedule,
+        stop: this.stopSchedule,
+        delete: this.deleteSchedule1
+    };
+
+    @observable tableAggActions = {
+        upload: this.uploadAgg,
+        // download: this.importAgg,
+        template: this.downloadData,
+        delete: this.deleteAgg
+
+    };
+
+    @observable otherAggActions = {
+        log: this.log
+    };
 }
 
 const store = new IntegrationStore();

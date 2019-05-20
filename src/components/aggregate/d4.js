@@ -63,8 +63,9 @@ class D4 extends React.Component {
                     dataSource={dataSet.finalData}
                 />
             </TabPane>
-            <TabPane tab="Code" key="2">
-                <pre>{JSON.stringify({dataValues:dataSet.processed})}</pre>
+            <TabPane tab="Payload" key="2">
+                <textarea cols={50} rows={30} defaultValue={JSON.stringify({dataValues: dataSet.processed}, null, 2)}>
+                </textarea>
             </TabPane>
         </Tabs>
     }

@@ -5,6 +5,12 @@ import red from "@material-ui/core/colors/red";
 // import {InputField} from "@dhis2/d2-ui-core";
 import Button from "@material-ui/core/Button";
 import Input from "@material-ui/core/Input";
+import FormControlLabel from "@material-ui/core/FormControlLabel";
+import Checkbox from "@material-ui/core/Checkbox";
+import FormControl from "@material-ui/core/FormControl";
+// import FormLabel from "@material-ui/core/FormLabel";
+import RadioGroup from "@material-ui/core/RadioGroup";
+import Radio from "@material-ui/core/Radio";
 
 const styles = theme => ({
     icon: {
@@ -34,6 +40,8 @@ class Params extends Component {
                 <TableRow>
                     <TableCell>Param</TableCell>
                     <TableCell>Value</TableCell>
+                    <TableCell>Is Period</TableCell>
+                    <TableCell>Other</TableCell>
                     <TableCell>Action</TableCell>
                 </TableRow>
             </TableHead>
@@ -59,12 +67,36 @@ class Params extends Component {
                     </TableCell>
 
                     <TableCell>
-                        <Button id="deleteBtn" color="secondary"
-                                onClick={this.integrationStore.dataSet.removeParam(i)}>Remove</Button>
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={p.isPeriod}
+                                    onChange={p.handleIsPeriodChange}
+                                />
+                            }
+                            label="Param is period"
+                        />
+                    </TableCell>
+                    <TableCell>
+                        <FormControl component="fieldset" >
+                        <RadioGroup
+                            aria-label="startEnd"
+                            name="startEnd"
+                            row={true}
+                            value={p.periodType}
+                            onChange={p.handlePeriodTypeChange}
+                        >
+                            <FormControlLabel value="1" control={<Radio disabled={!p.isPeriod}/>} label="Is Start"/>
+                            <FormControlLabel value="2" control={<Radio disabled={!p.isPeriod}/>} label="Is End"/>
+                        </RadioGroup>
+                    </FormControl>
+                    </TableCell>
+                    <TableCell>
+                        <Button id="deleteBtn" color="secondary" onClick={this.integrationStore.dataSet.removeParam(i)}>Remove</Button>
                     </TableCell>
                 </TableRow>)}
                 <TableRow>
-                    <TableCell colSpan={3} align="right">
+                    <TableCell colSpan={5} align="right">
                         <Button id="addBtn" color="primary"
                                 onClick={this.integrationStore.dataSet.addParam}>ADD</Button>
                     </TableCell>

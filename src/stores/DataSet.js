@@ -1,11 +1,26 @@
 import {action, computed, observable} from "mobx";
 import _ from 'lodash';
 import XLSX from "xlsx";
-import {encodeData, nest, processMergedCells, enumerateDates, processDataSet} from "../utils";
+import {
+    encodeData,
+    enumerateDates,
+    nest,
+    processDataSet
+} from "../utils/utils";
+
+import {
+    callAxios
+} from '../utils/data-utils'
+import {processMergedCells} from './converters'
 import axios from "axios";
-// import alasql from 'alasql';
+import {generate} from 'shortid';
 import {NotificationManager} from "react-notifications";
 import Param from "./Param";
+import {Store as GroupStore} from '@dhis2/d2-ui-core';
+import OrganisationUnit from "./OrganisationUnit";
+
+// import alasql from 'alasql';
+
 
 class DataSet {
     @observable id;
@@ -74,6 +89,9 @@ class DataSet {
     @observable pulledData = null;
     @observable responses = [];
     @observable cell2 = {};
+    @observable sourceOrganisationUnits = [];
+
+    @observable filterText = '';
 
     @observable pullingErrors = [];
 
@@ -82,12 +100,15 @@ class DataSet {
     @observable password = '';
 
     @observable pulling = false;
-    @observable templateType = "1";
+    @observable templateType = null;
 
     @observable responseKey = '';
 
     @observable dialogOpen = false;
     @observable levels = [];
+    @observable indicators = [];
+    @observable programIndicators = [];
+    @observable selectedIndicators = [];
     @observable currentLevel;
     @observable selectedDataSet;
     @observable template = 0;
@@ -100,6 +121,14 @@ class DataSet {
 
     @observable startPeriod = '2017-05-24';
     @observable endPeriod = '2017-05-24';
+
+    @observable itemStore = GroupStore.create();
+    @observable assignedItemStore = GroupStore.create();
+    @observable dataElementStore = GroupStore.create();
+    @observable assignedDataElementStore = GroupStore.create();
+
+    @observable dataIndicators = false;
+    @observable proIndicators = true;
 
     @action setDialogOpen = val => this.dialogOpen = val;
     @action openDialog = () => this.setDialogOpen(true);
@@ -141,9 +170,17 @@ class DataSet {
     @action setTemplateType = val => {
         this.templateType = val;
         const forms = this.forms.map(f => {
-            f.setTemplateType(val);
+            if (val) {
+                f.setTemplateType(val.value);
+            }
             return f;
         });
+
+        if (this.templateType && this.templateType.value !== '3') {
+            this.periodInExcel = false;
+            this.organisationUnitInExcel = false;
+            this.attributeCombosInExcel = false;
+        }
 
         this.setForms(forms);
     };
@@ -177,6 +214,10 @@ class DataSet {
     @action setWorkSheet = val => this.workSheet = val;
     @action setPeriod = val => this.period = val;
     @action setCompleteDataSet = val => this.completeDataSet = val;
+
+    @action filterChange = val => this.filterText = val;
+
+    @action  setSelectedIndicators = val => this.selectedIndicators = val;
     @action handelURLChange = value => {
         this.url = value;
         if (this.url !== '') {
@@ -197,9 +238,32 @@ class DataSet {
     @action setDhis2DataSets = val => this.dhis2DataSets = val;
     @action setIsDhis2 = val => this.isDhis2 = val;
     @action setLevels = val => this.levels = val;
+    @action setIndicators = val => this.indicators = val;
+    @action setProgramIndicators = val => this.programIndicators = val;
     @action setPassword = val => this.password = val;
     @action setResponseKey = val => this.responseKey = val;
-    @action setCurrentLevel = val => this.currentLevel = val;
+    @action setSourceOrganisationUnits = val => this.sourceOrganisationUnits = val;
+    @action setCurrentLevel = async val => {
+        this.openDialog();
+        this.currentLevel = val;
+        let organisations = await this.pullOrganisationUnits();
+        if (this.templateType && this.templateType.value === '5') {
+            organisations = organisations.map(ou => {
+                const org = new OrganisationUnit(ou.id, ou.name, ou.code);
+                const foundOU = _.find(this.organisationUnits, o => {
+                    return o.id === ou.id || o.code === ou.code || ou.name === o.name;
+                });
+
+                if (foundOU) {
+                    org.setMapping({label: foundOU.name, value: foundOU.id});
+                }
+                return org
+
+            });
+        }
+        this.setSourceOrganisationUnits(organisations);
+        this.closeDialog();
+    };
     @action addPullingError = val => this.pullingErrors = [...this.pullingErrors, val];
     @action setParams = val => this.params = val;
     @action setMappingName = val => this.mappingName = val;
@@ -208,14 +272,6 @@ class DataSet {
     @action setStartPeriod = val => this.startPeriod = val;
     @action setEndPeriod = val => this.endPeriod = val;
 
-    @action handleRadioChange = event => {
-        this.setTemplateType(event.target.value);
-        if (this.templateType !== '2') {
-            this.periodInExcel = false;
-            this.organisationUnitInExcel = false;
-            this.attributeCombosInExcel = false;
-        }
-    };
 
     @action handleStartPeriodChange = event => {
         this.setStartPeriod(event.target.value)
@@ -248,6 +304,20 @@ class DataSet {
         }
     };
 
+    @action replaceParamByValue = (p, search) => {
+
+        const foundParam = _.findIndex(this.params, v => {
+            return p.value.indexOf(search) !== -1 && v.value.indexOf(search) !== -1
+        });
+
+
+        if (foundParam !== -1) {
+            this.params.splice(foundParam, 1, p);
+        } else {
+            this.params = [...this.params, p]
+        }
+    };
+
     @action
     handelHeaderRowChange = value => {
         this.headerRow = value;
@@ -255,6 +325,32 @@ class DataSet {
             this.handelDataRowStartChange(parseInt(value, 10) + 1)
         } else {
             this.handelDataRowStartChange('')
+        }
+    };
+
+    @action pullIndicatorData = async () => {
+        const p1 = new Param();
+        const p2 = new Param();
+        const p3 = new Param();
+        p1.setParam('dimension');
+        p2.setParam('dimension');
+        p3.setParam('skipMeta');
+        p3.setValue(true);
+
+        if (this.selectedIndicators.length > 0) {
+            const i = this.selectedIndicators.join(';');
+            const indicators = `dx:${i}`;
+
+            p1.setValue(indicators);
+            if (this.currentLevel) {
+                p2.setValue(`ou:LEVEL-${this.currentLevel.value}`);
+                this.replaceParamByValue(p2, 'ou:');
+            }
+
+            this.replaceParamByValue(p1, 'dx:');
+            this.replaceParam(p3);
+
+            await this.pullData();
         }
     };
 
@@ -272,12 +368,31 @@ class DataSet {
             this.replaceParam(p);
             const urlBase = this.getDHIS2Url();
             const url = `${urlBase}/dataSets/${val.value}.json`;
-            const dataSet = await this.callAxios(url, {
+            const dataSet = await this.getAxiosData(url, {
                 paging: false,
                 fields: 'id,name,code,periodType,dataSetElements[dataElement[id,name,code,valueType,categoryCombo[id,name,categoryOptionCombos[id,name]]]]'
             });
             this.setDhis2DataSet(dataSet);
         }
+    };
+
+    @action autoMapUnits = async () => {
+        let organisations = await this.pullOrganisationUnits();
+        organisations = organisations.map(ou => {
+            const org = new OrganisationUnit(ou.id, ou.name, ou.code);
+
+            const foundOU = _.find(this.organisationUnits, o => {
+                return o.id === ou.id || o.code === ou.code || ou.name === o.name;
+            });
+
+            if (foundOU) {
+                org.setMapping({label: foundOU.name, value: foundOU.id});
+            }
+
+            return org
+
+        });
+        this.setSourceOrganisationUnits(organisations)
     };
 
     @action loadLevelsAndDataSets = async () => {
@@ -286,7 +401,7 @@ class DataSet {
             const dataSetUrl = urlBase + '/dataSets.json';
             const orgUnitLevelUrl = urlBase + '/organisationUnitLevels.json';
 
-            const levelResponse = await this.callAxios(orgUnitLevelUrl, {
+            const levelResponse = await this.getAxiosData(orgUnitLevelUrl, {
                 paging: false,
                 fields: 'name,level'
             });
@@ -299,7 +414,7 @@ class DataSet {
                 this.setLevels(levels);
             }
 
-            const data = await this.callAxios(dataSetUrl, {
+            const data = await this.getAxiosData(dataSetUrl, {
                 paging: false,
                 fields: 'id,name'
             });
@@ -314,24 +429,110 @@ class DataSet {
 
     };
 
-    getDHIS2Url = () => {
-        if (this.isDhis2 && this.url !== '' && this.username !== '' && this.password !== '') {
-            const url = new URL(this.url);
-            const dataURL = url.pathname.split('/');
-            const apiIndex = dataURL.indexOf('api');
+    @action loadIndicators = async () => {
+        const urlBase = this.getDHIS2Url();
+        if (urlBase) {
+            const indicatorUrl = urlBase + '/indicators.json';
+            const orgUnitLevelUrl = urlBase + '/organisationUnitLevels.json';
+            const programIndicatorUrl = urlBase + '/programIndicators.json';
 
-            let sliced = [];
-            if (apiIndex !== -1) {
-                sliced = dataURL.slice(0, apiIndex + 1);
-            } else {
-                if (dataURL[dataURL.length - 1] === "") {
-                    sliced = [...dataURL.slice(0, dataURL.length - 1), 'api']
-                } else {
-                    sliced = [...dataURL, 'api']
+
+            try {
+                const levelResponse = await this.getAxiosData(orgUnitLevelUrl, {
+                    paging: false,
+                    fields: 'name,level'
+                });
+
+                if (levelResponse) {
+                    const levels = levelResponse.organisationUnitLevels.map(l => {
+                        return {label: l.name, value: l.level}
+                    });
+
+                    this.setLevels(levels);
                 }
-            }
 
-            return url.origin + sliced.join('/');
+                let items1 = [];
+                let items2 = [];
+
+                if (this.proIndicators) {
+                    const programIndicatorResponse = await this.getAxiosData(programIndicatorUrl, {
+                        paging: false,
+                        fields: 'id,name'
+                    });
+
+                    if (programIndicatorResponse) {
+                        items2 = programIndicatorResponse.programIndicators.map(attribute => {
+                            return {
+                                text: attribute.name,
+                                value: attribute.id
+                            };
+                        });
+                    }
+                }
+
+                if (this.dataIndicators) {
+                    const indicatorResponse = await this.getAxiosData(indicatorUrl, {
+                        paging: false,
+                        fields: 'id,name'
+                    });
+
+                    if (indicatorResponse) {
+                        items1 = indicatorResponse.indicators.map(attribute => {
+                            return {
+                                text: attribute.name,
+                                value: attribute.id
+                            };
+                        });
+                    }
+
+                }
+
+                const indicators = [...items1, ...items2];
+                this.setIndicators(indicators);
+
+                this.itemStore.setState(indicators);
+                this.assignedItemStore.setState(this.selectedIndicators);
+            } catch (e) {
+                NotificationManager.error(e.message, 'Error', 5000)
+            }
+        }
+    };
+
+    @action assignItems = (items) => {
+        const assigned = this.assignedItemStore.state.concat(items);
+        this.assignedItemStore.setState(assigned);
+        this.setSelectedIndicators(assigned);
+        return Promise.resolve();
+    };
+
+    @action unAssignItems = (items) => {
+        const assigned = this.assignedItemStore
+            .state
+            .filter(item => items.indexOf(item) === -1);
+        this.assignedItemStore.setState(assigned);
+        this.setSelectedIndicators(assigned);
+        return Promise.resolve();
+    };
+
+    getDHIS2Url = () => {
+        if (this.templateType && (this.templateType.value === '4' || this.templateType.value === '5') && this.url !== '' && this.username !== '' && this.password !== '') {
+            try {
+                const url = new URL(this.url);
+                const dataURL = url.pathname.split('/');
+                const apiIndex = dataURL.indexOf('api');
+
+                if (apiIndex !== -1) {
+                    return url.href
+                } else {
+                    if (dataURL[dataURL.length - 1] === "") {
+                        return url.href + 'api';
+                    } else {
+                        return url.href + '/api';
+                    }
+                }
+            } catch (e) {
+                NotificationManager.error(e.message, 'Error', 5000)
+            }
         }
 
         return null
@@ -340,9 +541,13 @@ class DataSet {
     pullOrganisationUnits = async () => {
 
         const baseUrl = this.getDHIS2Url();
-        if (baseUrl) {
+        if (baseUrl && this.currentLevel) {
             const url = baseUrl + '/organisationUnits.json';
-            const data = await this.callAxios(url, {level: this.currentLevel.value});
+            const data = await this.getAxiosData(url, {
+                level: this.currentLevel.value,
+                fields: 'id,name,code',
+                paging: false
+            });
             if (data) {
                 return data.organisationUnits;
             }
@@ -351,23 +556,13 @@ class DataSet {
         return [];
     };
 
-    callAxios = async (url, params) => {
+    getAxiosData = async (url, params) => {
         try {
-            const levelResponse = await axios.get(url, {
-                params,
-                withCredentials: true,
-                auth: {
-                    username: this.username,
-                    password: this.password
-                }
-            });
-
-            return levelResponse.data;
+            return await callAxios(url, params, this.username, this.password)
         } catch (e) {
-            NotificationManager.error(`Could not fetch data from ${url} ${JSON.stringify(e)}`);
+            NotificationManager.error(e.message, 'Error', 5000);
             return null;
         }
-
     };
 
     @action setTemplate = val => this.template = val;
@@ -380,9 +575,25 @@ class DataSet {
         this.multiplePeriods = event.target.checked;
     };
 
-    @action onCheckIsDhis2 = async event => {
-        this.isDhis2 = event.target.checked;
+    @action fetchIndicators = async () => {
         const urlBase = this.getDHIS2Url();
+
+        if (urlBase) {
+            this.openDialog();
+            await this.loadIndicators();
+            this.closeDialog();
+
+            // if (this.indicators.length === 0) {
+            //     NotificationManager.warning('Something went wrong, please check that the server is on', 'Warning', 5000);
+            // }
+        }
+    };
+
+    @action onCheckIsDhis2 = async () => {
+        // this.isDhis2 = event.target.checked;
+
+        const urlBase = this.getDHIS2Url();
+        console.log(urlBase);
         if (urlBase) {
             this.openDialog();
             await this.loadLevelsAndDataSets();
@@ -433,7 +644,6 @@ class DataSet {
     @action
     onDrop = (accepted, rejected) => {
         const fileReader = new FileReader();
-        const rABS = true;
         if (accepted.length > 0) {
             this.uploadMessage = '';
             const f = accepted[0];
@@ -444,12 +654,9 @@ class DataSet {
 
             fileReader.onload = (ex) => {
                 let data = ex.target.result;
-                if (!rABS) {
-                    data = new Uint8Array(data);
-                }
 
                 const workbook = XLSX.read(data, {
-                    type: rABS ? 'binary' : 'array',
+                    type: 'binary',
                     cellDates: true,
                     cellNF: false,
                     cellText: false
@@ -469,11 +676,7 @@ class DataSet {
                 this.setTemplate(1);
 
             };
-            if (rABS) {
-                fileReader.readAsBinaryString(f);
-            } else {
-                fileReader.readAsArrayBuffer(f);
-            }
+            fileReader.readAsBinaryString(f);
             fileReader.onloadend = (this.onLoadEnd);
         } else if (rejected.length > 0) {
             this.uploadMessage = 'Only XLS, XLSX are supported'
@@ -482,6 +685,32 @@ class DataSet {
     };
 
     @action setCurrentData = val => this.currentData = val;
+
+    @action setDefaultIndicators = () => {
+
+        this.forms.forEach(form => {
+            form.categoryOptionCombos.forEach(coc => {
+                _.keys(coc.mapping).forEach(k => {
+                    const search = form.dataElements.find(de => de.id === k);
+                    let name = search.name;
+                    if (search && this.indicatorOptions.length > 0) {
+                        if (coc.name !== 'default') {
+                            name = search.name + ': ' + coc.name;
+                        }
+                        const str1 = name.replace(/\s/g, '');
+
+                        const match = this.indicatorOptions.find(ucoc => {
+                            const str2 = ucoc.label.replace(/\s/g, '');
+                            return str1.toLowerCase() === str2.toLowerCase()
+                        });
+                        if (match) {
+                            coc.mapping[k] = match;
+                        }
+                    }
+                });
+            });
+        });
+    };
 
     @action setDefaults = () => {
         this.forms.forEach(form => {
@@ -516,9 +745,15 @@ class DataSet {
                                 }
                             }
                         }
-                        const match = search.uniqueCategoryOptionCombos.find(ucoc => coc.name === ucoc.value);
-                        if (match) {
-                            coc.mapping[k] = match;
+                        if (search && search.uniqueCategoryOptionCombos) {
+                            const match = search.uniqueCategoryOptionCombos.find(ucoc => {
+                                const str1 = coc.name.replace(/\s/g, '');
+                                const str2 = ucoc.value.replace(/\s/g, '');
+                                return str1 === str2
+                            });
+                            if (match) {
+                                coc.mapping[k] = match;
+                            }
                         }
                     }
                 });
@@ -538,6 +773,14 @@ class DataSet {
 
     @action handlePeriodInExcel = event => {
         this.periodInExcel = event.target.checked;
+    };
+
+    @action handleProIndicators = event => {
+        this.proIndicators = event.target.checked;
+    };
+
+    @action handleDataIndicators = event => {
+        this.dataIndicators = event.target.checked;
     };
 
     @action handleOrganisationInExcel = event => {
@@ -584,7 +827,7 @@ class DataSet {
             namespace.set('aggregates', toBeSaved);
             NotificationManager.info(`Mapping saved successfully`, 'Success', 5000);
         } catch (e) {
-            NotificationManager.error(`Could not save to data store ${JSON.stringify(e)}`, 'Error', 5000);
+            NotificationManager.error(`Could not save to data store ${e.message}`, 'Error', 5000);
         }
     };
 
@@ -603,9 +846,10 @@ class DataSet {
                 if (this.username !== '' && this.password !== '') {
                     this.setPulling(true);
                     let url = this.url;
-
                     if (this.isDhis2) {
-                        url = this.getDHIS2Url() + '/dataValueSets.json'
+                        url = this.getDHIS2Url() + '/dataValueSets.json';
+                    } else if (this.templateType.value === '5') {
+                        url = this.getDHIS2Url() + '/analytics'
                     }
 
                     response = await axios.get(url + '?' + param, {
@@ -619,24 +863,32 @@ class DataSet {
                 } else {
                     this.setPulling(true);
                     response = await axios.get(this.url + '?' + param);
+
                 }
 
                 if (response.status === 200) {
                     const {data} = response;
-                    if (this.responseKey && this.responseKey !== '') {
-                        this.setPulledData(data[this.responseKey]);
+                    if (this.templateType.value === '4') {
+                        this.setPulledData(data.dataValues);
+                    } else if (this.templateType.value === '5') {
+                        const headers = data.headers.map(h => h['name']);
+                        const found = data.rows.map(r => {
+                            return Object.assign.apply({}, headers.map((v, i) => ({
+                                [v]: r[i]
+                            })));
+                        }).map(v => {
+                            return {...v, value: Math.round(v.value)}
+                        });
+                        this.setPulledData(found);
                     } else {
                         this.setPulledData(data);
                     }
-
-                    this.setPulling(false)
                 }
             } catch (e) {
-                this.addPullingError(e.response.data);
+                // this.addPullingError(e.response.data);
                 // NotificationManager.error(e.message, 'Error', 5000);
                 this.setPulling(false);
-
-                NotificationManager.error(`Could not pull data ${JSON.stringify(e)}`, 'Error', 5000);
+                NotificationManager.error(`Could not pull data ${e.message}`, 'Error', 5000);
             }
         }
     };
@@ -666,7 +918,7 @@ class DataSet {
             }
         } catch (e) {
             this.setResponses(e);
-            NotificationManager.error(`Could not insert values ${JSON.stringify(e)}`, 'Error', 5000);
+            NotificationManager.error(`Could not insert values ${e.message}`, 'Error', 5000);
         }
     };
 
@@ -681,7 +933,6 @@ class DataSet {
                     const param = new Param();
                     param.setParam('orgUnit');
                     if (this.multiplePeriods) {
-
                         if (this.startPeriod && this.endPeriod && this.addition && this.additionFormat) {
                             const periods = enumerateDates(this.startPeriod, this.endPeriod, this.addition, this.additionFormat);
                             const pp = new Param();
@@ -787,7 +1038,7 @@ class DataSet {
             const namespace = await this.d2.dataStore.get('bridge');
             await namespace.set('aggregates', aggregates);
         } catch (e) {
-            NotificationManager.error(`Could not delete aggregate mapping ${JSON.stringify(e)}`, 'Error', 5000);
+            NotificationManager.error(`Could not delete aggregate mapping ${e.message}`, 'Error', 5000);
         }
     };
 
@@ -847,6 +1098,21 @@ class DataSet {
         this.mappingDescription = value;
     };
 
+    @action
+    loadIndicatorData = () => {
+    };
+
+    @computed get showDetails() {
+        if (this.templateType.value === '5') {
+            return this.indicators.length > 0;
+        } else if (this.templateType.value === '4') {
+            return this.dhis2DataSets.length > 0;
+        } else if (this.templateType.value === '6') {
+            return this.pulledData && this.pulledData.length > 0;
+        }
+        return false;
+    }
+
     @computed get processedResponses() {
         let errors = [];
         let conflicts = [];
@@ -876,7 +1142,10 @@ class DataSet {
                 }
 
                 if (response['conflicts']) {
-                    conflicts = [...conflicts, ...response['conflicts']]
+                    const processedConflicts = response['conflicts'].map(c => {
+                        return {...c, id: generate()}
+                    });
+                    conflicts = [...conflicts, ...processedConflicts]
                 }
             } else if (response['httpStatusCode'] === 500) {
                 errors = [...errors, {...response['error']}];
@@ -996,7 +1265,7 @@ class DataSet {
 
     @computed get data() {
         if (this.workSheet) {
-            if (this.templateType === '1' && this.dataElementColumn) {
+            if (this.templateType.value === '1' && this.dataElementColumn) {
                 const data = XLSX.utils.sheet_to_json(this.workSheet, {
                     range: this.headerRow - 1,
                     dateNF: 'YYYY-MM-DD'
@@ -1007,8 +1276,12 @@ class DataSet {
                     return [c.value, this.workSheet[c.value]]
                 }));
             }
-        } else if (this.pulledData && this.dataElementColumn) {
-            return nest(this.pulledData, [this.dataElementColumn.value]);
+        } else if (this.pulledData) {
+            if ((this.templateType.value === '4' || this.templateType.value === '6') && this.dataElementColumn) {
+                return nest(this.pulledData, [this.dataElementColumn.value]);
+            } else if (this.templateType.value === '5') {
+                return this.pulledData;
+            }
         }
         return [];
     }
@@ -1047,6 +1320,18 @@ class DataSet {
 
         return processDataSet(this.data, this)
 
+    }
+
+    @computed get indicatorOptions() {
+        if (this.selectedIndicators.length > 0) {
+            return this.indicators.filter(i => {
+                return this.selectedIndicators.indexOf(i.value) !== -1;
+            }).map(i => {
+                return {...i, label: i.text};
+            })
+        }
+
+        return [];
     }
 
     @computed get whatToComplete() {
@@ -1090,16 +1375,15 @@ class DataSet {
                 attributeOptionCombo: this.allAttributeCombos[v.attributeOptionCombo]
             }
         });
-
     }
 
 
     @computed get disableCheckBox1() {
-        return this.templateType !== '2';
+        return this.templateType.value !== '3';
     }
 
     @computed get disableCheckBox2() {
-        return this.templateType !== '2';
+        return this.templateType.value !== '3';
     }
 
     @computed get disableCheckBox3() {
@@ -1107,7 +1391,7 @@ class DataSet {
     }
 
     @computed get disableCheckBox4() {
-        return this.templateType !== '2';
+        return this.templateType.value !== '3';
     }
 
     @computed get organisations() {
@@ -1145,7 +1429,7 @@ class DataSet {
     }
 
     @computed get periodMapped() {
-        if (this.templateType === '1' || this.templateType === '3' || this.templateType === '4') {
+        if (this.templateType.value === '1' || this.templateType.value === '2' || this.templateType.value === '6') {
             return !!this.periodColumn;
         } else {
             if (this.periodInExcel) {
@@ -1157,7 +1441,7 @@ class DataSet {
     }
 
     @computed get ouMapped() {
-        if (this.templateType === '1' || this.templateType === '3' || this.templateType === '4') {
+        if (this.templateType.value === '1' || this.templateType.value === '2' || this.templateType.value === '6') {
             return !!this.orgUnitColumn || !!this.orgUnitStrategy;
         } else {
             if (this.organisationUnitInExcel) {
@@ -1210,7 +1494,11 @@ class DataSet {
                 'template',
                 'mappingName',
                 'mappingDescription',
-                'completeDataSet'
+                'completeDataSet',
+                'sourceOrganisationUnits',
+                'levels',
+                'indicators',
+                'selectedIndicators'
             ])
     }
 
@@ -1269,6 +1557,34 @@ class DataSet {
             default:
                 return null
         }
+    }
+
+    @computed get periodExists() {
+        return _.findIndex(this.params, {
+            param: 'period'
+        }) !== -1;
+    }
+
+    @computed get periodExists2() {
+        return _.findIndex(this.params, v => {
+            return v.value.indexOf('pe:') !== -1
+        }) !== -1;
+    }
+
+    @computed get disableImport() {
+        const templates = ['1', '2', '3', '6'];
+        if (templates.indexOf(this.templateType.value) !== -1) {
+            return _.keys(this.data).length === 0
+        }
+        return false;
+    }
+
+    @computed get getImportDataSource() {
+        const templates = ['1', '2', '3'];
+        if (templates.indexOf(this.templateType.value) !== -1) {
+            return 1
+        }
+        return 2;
     }
 }
 

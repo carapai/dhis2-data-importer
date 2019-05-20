@@ -16,7 +16,8 @@ import Step3 from './program/step3';
 import Step4 from './program/step4';
 import Step5 from './program/step5';
 import Step6 from './program/step6';
-import Step7 from './program/step7';
+// import Step7 from './program/step7';
+import ImportType from "./program/ImportType";
 
 const styles = theme => ({
     card: {
@@ -56,17 +57,17 @@ class Program extends React.Component {
             case 1:
                 return <Step1/>;
             case 2:
-                return <Step2/>;
+                return <ImportType/>;
             case 3:
-                return <Step3/>;
+                return <Step2/>;
             case 4:
-                return <Step4/>;
+                return <Step3/>;
             case 5:
-                return <Step5/>;
+                return <Step4/>;
             case 6:
-                return <Step6/>;
+                return <Step5/>;
             case 7:
-                return <Step7/>;
+                return <Step6/>;
             default:
                 return 'Unknown step';
         }
@@ -129,6 +130,15 @@ class Program extends React.Component {
                                         >
                                             Cancel
                                         </Button>
+
+                                        <Button
+                                            onClick={this.integrationStore.saveMapping}
+                                            variant="contained"
+                                            color="primary"
+                                            className={this.integrationStore.activeStep < 3 ? classes.hidden : classes.button}
+                                        >
+                                            Save Mapping
+                                        </Button>
                                     </td>
                                     <td width="33%" valign="top" align="right">
                                         <Button
@@ -136,9 +146,9 @@ class Program extends React.Component {
                                             variant="contained"
                                             color="primary"
                                             onClick={this.integrationStore.downloadProgramData}
-                                            className={this.integrationStore.activeStep !== 5 ? classes.hidden : classes.button}
+                                            className={this.integrationStore.activeStep !== 6 ? classes.hidden : classes.button}
                                         >
-                                            Download
+                                            Download Payload
                                         </Button>
                                         <Button
                                             disabled={this.integrationStore.disableNext}

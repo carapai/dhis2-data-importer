@@ -17,13 +17,19 @@ class Form {
         let map = {};
         for (const e  of this.dataElements) {
             const ifMapped = this.categoryOptionCombos.map(c => {
-                if (this.templateType === '1') {
+                if (this.templateType === '1' || this.templateType === '4' || this.templateType === '5' || this.templateType === '6') {
                     return !!c.mapping[e.id];
-                } else if (this.templateType === '2') {
-                    return !!c.cell[e.id];
                 } else if (this.templateType === '3') {
-                    return !!c.column[e.id];
+                    return !!c.cell[e.id];
                 }
+
+                // else if (this.templateType === '') {
+                //     return !!c.column[e.id];
+                // }
+
+                // else if (this.templateType === '3') {
+                //     return !!c.column[e.id];
+                // }
                 return true;
             });
 

@@ -15,6 +15,7 @@ import D3 from "./aggregate/d3";
 import D4 from "./aggregate/d4";
 import D5 from "./aggregate/d5";
 import D6 from "./aggregate/d6";
+import ImportType from "./aggregate/ImportType";
 
 const styles = theme => ({
     card: {
@@ -26,7 +27,6 @@ const styles = theme => ({
     instructions: {
         marginTop: theme.spacing.unit,
         marginBottom: theme.spacing.unit,
-        minHeight: '75vh'
     },
     instructions2: {
         marginTop: theme.spacing.unit,
@@ -59,14 +59,16 @@ class Aggregate extends React.Component {
             case 1:
                 return <D1/>;
             case 2:
-                return <D2/>;
+                return <ImportType/>;
             case 3:
-                return <D3/>;
+                return <D2 displayFull={true}/>;
             case 4:
-                return <D4/>;
+                return <D3/>;
             case 5:
-                return <D5/>;
+                return <D4/>;
             case 6:
+                return <D5/>;
+            case 7:
                 return <D6/>;
             default:
                 return 'Unknown step';
@@ -109,7 +111,7 @@ class Aggregate extends React.Component {
                         <div>
                             <div
                                 className={classes.instructions}>{this.getStepContent(this.integrationStore.activeAggregateStep)}</div>
-                            <table width="100%" style={{bottom: 0}}>
+                            <table width="100%" style={{marginTop: 20}}>
                                 <tbody>
                                 <tr>
                                     <td width="33%" align="left">
@@ -133,6 +135,15 @@ class Aggregate extends React.Component {
                                         >
                                             Cancel
                                         </Button>
+
+                                        <Button
+                                            variant="contained"
+                                            color="primary"
+                                            onClick={this.integrationStore.saveAggregate}
+                                            className={this.integrationStore.activeAggregateStep < 3 ? classes.hidden : classes.button}
+                                        >
+                                           Save
+                                        </Button>
                                     </td>
                                     <td width="33%" valign="top" align="right">
                                         <Button
@@ -140,16 +151,16 @@ class Aggregate extends React.Component {
                                             variant="contained"
                                             color="primary"
                                             onClick={this.integrationStore.downloadAggregateData}
-                                            className={this.integrationStore.activeAggregateStep !== 4 ? classes.hidden : classes.button}
+                                            className={this.integrationStore.activeAggregateStep !== 5 ? classes.hidden : classes.button}
                                         >
-                                            Download
+                                            Download Payload
                                         </Button>
                                         <Button
                                             disabled={this.integrationStore.disableNextAggregate}
                                             variant="contained"
                                             color="primary"
                                             onClick={this.integrationStore.handleNextAggregate}
-                                            className={this.integrationStore.activeAggregateStep === 1 || this.integrationStore.activeAggregateStep > 6 ? classes.hidden : classes.button}
+                                            className={this.integrationStore.activeAggregateStep === 1 || this.integrationStore.activeAggregateStep > 7 ? classes.hidden : classes.button}
                                         >
                                             {this.integrationStore.nextAggregateLabel}
                                         </Button>

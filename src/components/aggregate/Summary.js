@@ -1,18 +1,24 @@
 import {inject, observer} from "mobx-react";
 import React from "react";
 import {withStyles} from "@material-ui/core/styles";
-import Badge from "@material-ui/core/Badge/Badge";
-import Table from "@material-ui/core/Table/Table";
 import TableHead from "@material-ui/core/TableHead/TableHead";
 import TableRow from "@material-ui/core/TableRow/TableRow";
 import TableCell from "@material-ui/core/TableCell/TableCell";
 import TableBody from "@material-ui/core/TableBody/TableBody";
-import TablePagination from "@material-ui/core/TablePagination";
 import *  as PropTypes from "prop-types";
 import Typography from "@material-ui/core/Typography";
 import AppBar from "@material-ui/core/AppBar";
 import Tabs from "@material-ui/core/Tabs";
 import Tab from "@material-ui/core/Tab";
+import D4 from "./d4";
+import MUITable from "@material-ui/core/Table";
+import {Table} from 'antd';
+
+
+const columns = [
+    {title: 'Affected', dataIndex: 'object', key: 'object'},
+    {title: 'Message', dataIndex: 'value', key: 'value'}
+];
 
 
 const styles = theme => ({
@@ -65,8 +71,9 @@ class Summary extends React.Component {
 
     render() {
         const {classes} = this.props;
-        const {errors, importCount, conflicts} = this.integrationStore.dataSet.processedResponses;
         const {value} = this.state;
+        const {importCount, conflicts} = this.integrationStore.dataSet.processedResponses;
+
         return <div className={classes.root}>
             <AppBar position="static" color="primary">
                 <Tabs
@@ -77,75 +84,20 @@ class Summary extends React.Component {
                     indicatorColor="secondary"
                     textColor="inherit"
                 >
-                    <Tab label={<Badge
-                        color="secondary"
-                        className={classes.padding}
-                        badgeContent={this.integrationStore.dataSet.processed.length}>Data</Badge>}/>
-
+                    <Tab label="Data"/>
                     <Tab label="Summary"/>
-                    <Tab label={<Badge
-                        color="secondary"
-                        className={classes.padding}
-                        badgeContent={errors.length}>Errors</Badge>}/>
-
                 </Tabs>
             </AppBar>
 
-            {value === 0 && !this.integrationStore.dataSet.isDhis2 && <TabContainer>
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>Data Element</TableCell>
-                            <TableCell>CategoryOption</TableCell>
-                            <TableCell>Attribute</TableCell>
-                            <TableCell>Period</TableCell>
-                            <TableCell>Organisation</TableCell>
-                            <TableCell>Value</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {this.integrationStore.dataSet.currentDataValues.map((s, k) => {
-                            return (
-                                <TableRow key={k}>
-                                    <TableCell>
-                                        {s.dataElement}
-                                    </TableCell>
-                                    <TableCell>
-                                        {s.categoryOptionCombo}
-                                    </TableCell>
-                                    <TableCell>
-                                        {s.attributeOptionCombo}
-                                    </TableCell>
-                                    <TableCell>
-                                        {s.period}
-                                    </TableCell>
-                                    <TableCell>
-                                        {s.orgUnit}
-                                    </TableCell>
-                                    <TableCell>
-                                        {s.value}
-                                    </TableCell>
-                                </TableRow>
-                            );
-                        })}
-                    </TableBody>
-                </Table>
-                <TablePagination
-                    component="div"
-                    count={this.integrationStore.dataSet.processed.length}
-                    rowsPerPage={this.integrationStore.dataSet.rowsPerPage}
-                    page={this.integrationStore.dataSet.page}
-                    backIconButtonProps={{
-                        'aria-label': 'Previous Page',
-                    }}
-                    nextIconButtonProps={{
-                        'aria-label': 'Next Page',
-                    }}
-                    onChangePage={this.integrationStore.dataSet.handleChangePage}
-                    onChangeRowsPerPage={this.integrationStore.dataSet.handleChangeRowsPerPage}
-                /></TabContainer>}
+            {value === 0 && <TabContainer>
+
+                {this.integrationStore.dataSet.isDhis2 ? <div>{''}</div> : <D4/>}
+
+            </TabContainer>}
             {value === 1 && <TabContainer>
-                <Table>
+
+
+                <MUITable>
                     <TableHead>
                         <TableRow>
                             <TableCell>Message</TableCell>
@@ -186,49 +138,15 @@ class Summary extends React.Component {
                             </TableCell>
                         </TableRow>
                     </TableBody>
-                </Table></TabContainer>}
-            {value === 2 && <TabContainer>
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>Affected</TableCell>
-                            <TableCell>Message</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {conflicts.map((s, k) => {
-                            return (
-                                <TableRow key={k}>
-                                    <TableCell>
-                                        {s.object}
-                                    </TableCell>
-                                    <TableCell>
-                                        {s.value}
-                                    </TableCell>
-                                </TableRow>
-                            );
-                        })}
-                    </TableBody>
-                </Table></TabContainer>}
-            {value === 3 && <TabContainer>
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>Message</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {errors.map((s, index) => {
-                            return (
-                                <TableRow key={index}>
-                                    <TableCell>
-                                        {s.message}
-                                    </TableCell>
-                                </TableRow>
-                            );
-                        })}
-                    </TableBody>
-                </Table></TabContainer>}
+                </MUITable>
+                <h4>Conflicts</h4>
+
+                <Table
+                    columns={columns}
+                    rowKey="id"
+                    dataSource={conflicts}
+                />
+            </TabContainer>}
         </div>
     }
 

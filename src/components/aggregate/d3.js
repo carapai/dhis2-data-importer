@@ -34,12 +34,11 @@ class D3 extends React.Component {
         super(props);
         const {IntegrationStore} = props;
         this.integrationStore = IntegrationStore;
-        // this.integrationStore.dataSet.setDefaults();
     }
 
     displayMapping = (de) => {
 
-        if (this.integrationStore.dataSet.templateType === '1') {
+        if (this.integrationStore.dataSet.templateType.value === '1' || this.integrationStore.dataSet.templateType.value === '6') {
             return <td width="300">
                 <Select
                     placeholder="Select mapping"
@@ -57,15 +56,18 @@ class D3 extends React.Component {
     };
 
     componentDidMount() {
-        if (this.integrationStore.dataSet.templateType === '4') {
+        if (this.integrationStore.dataSet.templateType.value === '2') {
             this.integrationStore.dataSet.loadSame();
-        } else if (this.integrationStore.dataSet.templateType === '1') {
+        } else if (this.integrationStore.dataSet.templateType.value === '1' || this.integrationStore.dataSet.templateType.value === '4' || this.integrationStore.dataSet.templateType.value === '6') {
             this.integrationStore.dataSet.setDefaults();
+        } else if (this.integrationStore.dataSet.templateType.value === '5') {
+            this.integrationStore.dataSet.pullIndicatorData();
+            this.integrationStore.dataSet.setDefaultIndicators();
         }
     }
 
     displayCell = (de, coc) => {
-        if (this.integrationStore.dataSet.templateType === '2') {
+        if (this.integrationStore.dataSet.templateType.value === '3') {
             return <Select
                 placeholder="Select cell"
                 value={coc.cell[de.id]}
@@ -75,7 +77,7 @@ class D3 extends React.Component {
                 onChange={coc.setCellAll(de)}
             />
 
-        } else if (this.integrationStore.dataSet.templateType === '3') {
+        } else if (this.integrationStore.dataSet.templateType.value === '2') {
             return <Select
                 placeholder="Select cell"
                 isClearable
@@ -84,13 +86,22 @@ class D3 extends React.Component {
                 options={this.integrationStore.dataSet.cellColumns}
                 onChange={coc.setColumnAll(de)}
             />
-        } else if (this.integrationStore.dataSet.templateType === '1') {
+        } else if (this.integrationStore.dataSet.templateType.value === '1' || this.integrationStore.dataSet.templateType.value === '4' || this.integrationStore.dataSet.templateType.value === '6') {
             return <Select
                 isClearable
                 isSearchable
                 placeholder="Select cell"
                 value={coc.mapping[de.id]}
                 options={de.uniqueCategoryOptionCombos}
+                onChange={coc.setMappingAll(de)}
+            />
+        } else if (this.integrationStore.dataSet.templateType.value === '5') {
+            return <Select
+                isClearable
+                isSearchable
+                placeholder="Select indicator"
+                value={coc.mapping[de.id]}
+                options={this.integrationStore.dataSet.indicatorOptions}
                 onChange={coc.setMappingAll(de)}
             />
         }
@@ -113,13 +124,13 @@ class D3 extends React.Component {
         const {classes} = this.props;
         let displayMappingHeader = null;
         let display = null;
-        if (this.integrationStore.dataSet.templateType === '1') {
+        if (this.integrationStore.dataSet.templateType.value === '1' || this.integrationStore.dataSet.templateType.value === '6') {
             displayMappingHeader = <th width="400">
                 Mapping
             </th>;
         }
 
-        if (this.integrationStore.dataSet.templateType !== '4') {
+        if (this.integrationStore.dataSet.templateType.value !== '2') {
             display = dataSet.forms.map((form, k) => {
                 return (
                     <ExpansionPanel key={k} expanded={this.integrationStore.expanded === k}
@@ -131,42 +142,42 @@ class D3 extends React.Component {
                             <table width={form.categoryOptionCombos.length * 300 + 600}
                                    style={{minWidth: '100%'}} cellPadding="5">
                                 <thead>
-                                    <tr>
-                                        <th>
-                                            Data Element
+                                <tr>
+                                    <th>
+                                        Data Element
+                                    </th>
+
+                                    {displayMappingHeader}
+
+                                    {form.categoryOptionCombos.map(coc => {
+                                        return <th key={coc.id} width="300">
+                                            {coc.name}
                                         </th>
-
-                                        {displayMappingHeader}
-
-                                        {form.categoryOptionCombos.map(coc => {
-                                            return <th key={coc.id} width="300">
-                                                {coc.name}
-                                            </th>
-                                        })}
-                                        <th width="50">Status</th>
-                                    </tr>
+                                    })}
+                                    <th width="50">Status</th>
+                                </tr>
                                 </thead>
                                 <tbody>
-                                    {form.dataElements.map(de => {
-                                        return <tr key={de.id}>
-                                            <td style={{minWidth: 400}}>
-                                                {de.name}
-                                            </td>
+                                {form.dataElements.map(de => {
+                                    return <tr key={de.id}>
+                                        <td style={{minWidth: 400}}>
+                                            {de.name}
+                                        </td>
 
-                                            {this.displayMapping(de)}
+                                        {this.displayMapping(de)}
 
-                                            {form.categoryOptionCombos.map(coc => {
-                                                return <td key={de.id + coc.id}>
-                                                    {this.displayCell(de, coc)}
-                                                </td>
-                                            })}
-                                            <td>
-                                                {form.status[de.id].all ? <DoneAll/> : form.status[de.id].some ?
-                                                    <Done/> :
-                                                    <Clear/>}
+                                        {form.categoryOptionCombos.map(coc => {
+                                            return <td key={de.id + coc.id}>
+                                                {this.displayCell(de, coc)}
                                             </td>
-                                        </tr>
-                                    })}
+                                        })}
+                                        <td>
+                                            {form.status[de.id].all ? <DoneAll/> : form.status[de.id].some ?
+                                                <Done/> :
+                                                <Clear/>}
+                                        </td>
+                                    </tr>
+                                })}
                                 </tbody>
                             </table>
                         </ExpansionPanelDetails>
