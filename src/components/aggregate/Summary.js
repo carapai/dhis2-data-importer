@@ -143,7 +143,9 @@ class Summary extends React.Component {
 
                 <Table
                     columns={columns}
+                    size="small"
                     rowKey="id"
+                    pagination={{defaultPageSize: 5}}
                     dataSource={conflicts}
                 />
             </TabContainer>}

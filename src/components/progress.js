@@ -5,6 +5,7 @@ import MuiDialogContent from "@material-ui/core/DialogContent";
 import DialogContentText from '@material-ui/core/DialogContentText';
 import Dialog from '@material-ui/core/Dialog';
 import CircularProgress from "@material-ui/core/CircularProgress";
+import {inject, observer} from "mobx-react";
 
 
 const DialogContent = withStyles(theme => ({
@@ -15,7 +16,17 @@ const DialogContent = withStyles(theme => ({
     },
 }))(MuiDialogContent);
 
+@inject('IntegrationStore')
+@observer
 class Progress extends Component {
+
+    integrationStore = null;
+
+    constructor(props) {
+        super(props);
+        const {IntegrationStore} = props;
+        this.integrationStore = IntegrationStore;
+    }
 
     render() {
         const {open, onClose} = this.props;
@@ -40,8 +51,8 @@ class Progress extends Component {
             <DialogContent>
                 <CircularProgress variant="indeterminate" size={24}
                                   thickness={4} color="secondary"/>
-                <DialogContentText id="alert-dialog-description" style={{ color: 'white'}}>
-                    &nbsp;&nbsp;Please wait this might take long
+                <DialogContentText id="alert-dialog-description" style={{color: 'white'}}>
+                    &nbsp;&nbsp;{this.integrationStore.currentMessage}
                 </DialogContentText>
             </DialogContent>
         </Dialog>)

@@ -51,9 +51,6 @@ class D20 extends React.Component {
         this.integrationStore = IntegrationStore;
     }
 
-    componentDidMount() {
-    }
-
 
     upload = () => {
         return <Grid container spacing={8}>
@@ -156,13 +153,14 @@ class D20 extends React.Component {
                             />
                         </Grid>
                     </Grid>
+                    <br/>
                 </div> : <div>
                     <PeriodPicker
                         periodType={this.integrationStore.dataSet.periodType}
-                        onPickPeriod={(value) => this.integrationStore.dataSet.replaceParam(createParam({
-                            param: 'period',
-                            value: value
-                        }))}
+                        onPickPeriod={(value) => this.integrationStore.dataSet.replaceParamByValue(createParam({
+                            param: 'dimension',
+                            value: `pe:${value}`
+                        }), 'pe:')}
                     />
                 </div>}
             </Grid>

@@ -247,19 +247,14 @@ export const convertAggregate = (ds, d2) => {
 
 
 export const convert = (program, d2) => {
-    let programStages = [];
-    let programTrackedEntityAttributes = [];
-    program.programStages.forEach(ps => {
-        let programStageDataElements = [];
-        ps.programStageDataElements.forEach(psd => {
+    const programStages = program.programStages.map(ps => {
+        const programStageDataElements = ps.programStageDataElements.map(psd => {
             let optionSet = null;
             if (psd.dataElement.optionSet) {
-                let options = [];
-
-                psd.dataElement.optionSet.options.forEach(o => {
+                const options = psd.dataElement.optionSet.options.map(o => {
                     const option = new Option(o.code, o.name);
                     option.setValue(o.value || null);
-                    options = [...options, option];
+                    return option;
                 });
                 optionSet = new OptionSet(options)
             }
@@ -276,34 +271,33 @@ export const convert = (program, d2) => {
             if (psd.column) {
                 programStageDataElement.setColumn(psd.column);
             }
-            programStageDataElements = [...programStageDataElements, programStageDataElement];
+            return programStageDataElement;
         });
-        const programsStage = new ProgramStage(
+        const programStage = new ProgramStage(
             ps.id,
             ps.name,
             ps.displayName,
             ps.repeatable,
             programStageDataElements
         );
-        programsStage.setEventDateAsIdentifier(ps.eventDateIdentifiesEvent);
-        programsStage.setCompleteEvents(ps.completeEvents);
-        programsStage.setLongitudeColumn(ps.longitudeColumn);
-        programsStage.setLatitudeColumn(ps.latitudeColumn);
-        programsStage.setCreateNewEvents(ps.createNewEvents);
-        programsStage.setUpdateEvents(ps.updateEvents);
-        programsStage.setEventDateColumn(ps.eventDateColumn);
-        programStages = [...programStages, programsStage]
+        programStage.setEventDateAsIdentifier(ps.eventDateIdentifiesEvent);
+        programStage.setCompleteEvents(ps.completeEvents);
+        programStage.setLongitudeColumn(ps.longitudeColumn);
+        programStage.setLatitudeColumn(ps.latitudeColumn);
+        programStage.setCreateNewEvents(ps.createNewEvents);
+        programStage.setUpdateEvents(ps.updateEvents);
+        programStage.setDate(ps.eventDateColumn);
+
+        return programStage;
     });
 
-    program.programTrackedEntityAttributes.forEach(pa => {
+    const programTrackedEntityAttributes = program.programTrackedEntityAttributes.map(pa => {
         let optionSet = null;
         if (pa.trackedEntityAttribute.optionSet) {
-            let options = [];
-
-            pa.trackedEntityAttribute.optionSet.options.forEach(o => {
+            const options = pa.trackedEntityAttribute.optionSet.options.map(o => {
                 const option = new Option(o.code, o.name);
                 option.setValue(o.value || null);
-                options = [...options, option];
+                return option
             });
             optionSet = new OptionSet(options);
         }
@@ -325,7 +319,8 @@ export const convert = (program, d2) => {
         if (pa.column) {
             programTrackedEntityAttribute.setColumn(pa.column);
         }
-        programTrackedEntityAttributes = [...programTrackedEntityAttributes, programTrackedEntityAttribute]
+
+        return programTrackedEntityAttribute;
 
     });
 
@@ -375,6 +370,17 @@ export const convert = (program, d2) => {
     p.setMappingName(program.mappingName || '');
     p.setMappingDescription(program.mappingDescription || '');
     p.setTemplateType(program.templateType || '');
+    if (program.sourceOrganisationUnits) {
+        const units = program.sourceOrganisationUnits.map(u => {
+            const o = new OrganisationUnit(u.id, u.name, u.code);
+            o.setMapping(u.mapping);
+
+            return o;
+        });
+
+        p.setSourceOrganisationUnit(units);
+
+    }
 
     return p;
 };
@@ -389,6 +395,7 @@ export const convertSchedule = (schedule) => {
     sc.setCreated(schedule.created);
     sc.setNext(schedule.next);
     sc.setLast(schedule.last);
+    sc.setUrl(schedule.url);
 
     return sc;
 };

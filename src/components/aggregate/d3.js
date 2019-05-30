@@ -58,13 +58,19 @@ class D3 extends React.Component {
     componentDidMount() {
         if (this.integrationStore.dataSet.templateType.value === '2') {
             this.integrationStore.dataSet.loadSame();
-        } else if (this.integrationStore.dataSet.templateType.value === '1' || this.integrationStore.dataSet.templateType.value === '4' || this.integrationStore.dataSet.templateType.value === '6') {
+        } else if (this.integrationStore.dataSet.templateType.value === '1' || this.integrationStore.dataSet.templateType.value === '6') {
+            this.integrationStore.dataSet.setDefaults();
+        } else if (this.integrationStore.dataSet.templateType.value === '4') {
+            // this.integrationStore.dataSet.pullDataSetData();
             this.integrationStore.dataSet.setDefaults();
         } else if (this.integrationStore.dataSet.templateType.value === '5') {
-            this.integrationStore.dataSet.pullIndicatorData();
             this.integrationStore.dataSet.setDefaultIndicators();
+            if (!this.integrationStore.dataSet.multiplePeriods) {
+                this.integrationStore.dataSet.pullIndicatorData();
+            }
         }
     }
+
 
     displayCell = (de, coc) => {
         if (this.integrationStore.dataSet.templateType.value === '3') {

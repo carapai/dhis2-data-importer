@@ -73,39 +73,6 @@ class Step4 extends React.Component {
                         </ExpansionPanelSummary>
                         <ExpansionPanelDetails className={classes.block}>
                             <Grid spacing={8} container>
-                                <Grid item xs={4}>
-                                    <Select
-                                        placeholder="Event Date Column"
-                                        isClearable
-                                        isSearchable
-                                        options={program.columns}
-                                        value={n.eventDateColumn}
-                                        onChange={n.setEventDateColumn}
-                                    />
-                                </Grid>
-                                <Grid item xs={4}>
-                                    <Select
-                                        placeholder="Latitude Column"
-                                        isClearable
-                                        isSearchable
-                                        options={program.columns}
-                                        value={n.latitudeColumn}
-                                        onChange={n.setLatitudeColumn}
-                                    />
-                                </Grid>
-                                <Grid item xs={4}>
-                                    <Select
-                                        placeholder="Longitude Column"
-                                        isClearable
-                                        isSearchable
-                                        options={program.columns}
-                                        value={n.longitudeColumn}
-                                        onChange={n.setLongitudeColumn}
-                                    />
-                                </Grid>
-
-                            </Grid>
-                            <Grid spacing={8} container>
                                 <Grid item xs={12}>
                                     <FormControlLabel
                                         control={
@@ -127,7 +94,7 @@ class Step4 extends React.Component {
                                         control={
                                             <Checkbox
                                                 checked={n.eventDateIdentifiesEvent}
-                                                onChange={n.makeEventDateAsIdentifier}
+                                                onChange={program.isTracker ? n.makeEventDateAsIdentifier({}) : n.makeEventDateAsIdentifier(program)}
                                             />
                                         }
                                         label="Event Date Uniquely Identifies Event"
@@ -143,18 +110,42 @@ class Step4 extends React.Component {
                                     />
                                 </Grid>
                             </Grid>
-
+                            <br/>
                             <Grid spacing={8} container>
-                                <Grid item xs={12}>
-
-                                    <Button
-                                        variant="contained"
-                                        color="primary"
-                                        onClick={program.loadDefaultDataElements(n)}
-                                    >
-                                        Auto Map
-                                    </Button>
+                                <Grid item xs={4}>
+                                    <span>Select event date column for stage</span>
+                                    <Select
+                                        placeholder="Event Date Column"
+                                        isClearable
+                                        isSearchable
+                                        options={program.columns}
+                                        value={n.eventDateColumn}
+                                        onChange={n.setEventDateColumn(program.columns)}
+                                    />
                                 </Grid>
+                                <Grid item xs={4}>
+                                    <span>Select latitude column for stage</span>
+                                    <Select
+                                        placeholder="Latitude Column"
+                                        isClearable
+                                        isSearchable
+                                        options={program.columns}
+                                        value={n.latitudeColumn}
+                                        onChange={n.setLatitudeColumn}
+                                    />
+                                </Grid>
+                                <Grid item xs={4}>
+                                    <span>Select longitude column for stage</span>
+                                    <Select
+                                        placeholder="Longitude Column"
+                                        isClearable
+                                        isSearchable
+                                        options={program.columns}
+                                        value={n.longitudeColumn}
+                                        onChange={n.setLongitudeColumn}
+                                    />
+                                </Grid>
+
                             </Grid>
 
                             <InputField
@@ -272,7 +263,7 @@ class Step4 extends React.Component {
                                                 </TableCell>
                                                 <TableCell>
                                                     <Checkbox checked={s.dataElement.identifiesEvent}
-                                                              onChange={s.dataElement.makeAsIdentifier}/>
+                                                              onChange={n.makeElementAsIdentifier(s, program)}/>
                                                 </TableCell>
                                                 <TableCell>
                                                     <Select
@@ -295,8 +286,6 @@ class Step4 extends React.Component {
                                     })}
                                 </TableBody>
                             </Table>
-                            {/*<pre>{JSON.stringify(this.integrationStore.dataElements, null, 2)}</pre>*/}
-
                             <TablePagination
                                 component="div"
                                 count={n.pages}

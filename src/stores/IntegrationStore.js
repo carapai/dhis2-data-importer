@@ -11,8 +11,6 @@ configure({
     enforceActions: "observed"
 });
 
-const URL = 'http://localhost:3001/api/v1';
-
 class IntegrationStore {
 
     @observable programs = [];
@@ -95,7 +93,12 @@ class IntegrationStore {
         d25: {
             page: 0,
             rowsPerPage: 5
+        },
+        step25: {
+            page: 0,
+            rowsPerPage: 5
         }
+
     };
 
     @action setDialogOpen = val => this.dialogOpen = val;
@@ -165,7 +168,7 @@ class IntegrationStore {
 
     @action startSchedule = async args => {
         try {
-            const data = await postAxios(URL + '/schedules', args);
+            const data = await postAxios(args.url + '/schedules', args);
             args.setNext(data.next);
             args.setLast(data.last);
             this.setCurrentSchedule(args);
@@ -180,7 +183,7 @@ class IntegrationStore {
     };
 
     @action stopSchedule = async args => {
-        await postAxios(URL + '/stop', {name: args.name});
+        await postAxios(args.url + '/stop', {name: args.name});
         await this.saveSchedule()
     };
 
@@ -201,11 +204,6 @@ class IntegrationStore {
 
     deleteAgg = async args => {
         await args.deleteAggregate(this.aggregates);
-    };
-
-    schedule = args => {
-        this.setScheduled(true)
-        // args.scheduleProgram(this.mappings);
     };
 
     import = args => {
@@ -281,8 +279,10 @@ class IntegrationStore {
 
     @action
     handleNext = async () => {
-        if (this.activeStep === 2 && !this.program.isTracker) {
+        if (this.activeStep === 3 && !this.program.isTracker) {
             this.changeSet(this.activeStep + 2);
+        } else if (this.activeStep === 6 && this.program.totalImports === 0) {
+            this.handleReset()
         } else if (this.activeStep === 7) {
             this.handleReset()
         } else {
@@ -296,13 +296,14 @@ class IntegrationStore {
     };
 
     @action
-    handleNextAggregate = async () => {
+    handleNextAggregate = () => {
 
-        if (this.dataSet.isDhis2 && this.activeAggregateStep === 4) {
-            // this.changeSetAggregate(this.activeAggregateStep + 2)
-            this.changeAggregateSet(this.activeAggregateStep + 1);
-            await this.handleNextAggregate();
-        } else if (this.activeAggregateStep === 6) {
+        // if (this.dataSet.templateType && (this.dataSet.templateType.value === '4' || this.dataSet.templateType.value === '5') && this.activeAggregateStep === 4) {
+        //     this.changeAggregateSet(this.activeAggregateStep + 1);
+        //     this.handleNextAggregate();
+        // } else
+
+        if (this.activeAggregateStep === 6) {
             this.handleResetAggregate()
         } else {
             this.changeAggregateSet(this.activeAggregateStep + 1);
@@ -319,7 +320,7 @@ class IntegrationStore {
 
     @action
     handleBack = () => {
-        if (this.activeStep === 4 && !this.program.isTracker) {
+        if (this.activeStep === 5 && !this.program.isTracker) {
             this.changeSet(this.activeStep - 2);
         } else if (this.activeStep === 2 && this.jump) {
             this.changeSet(0);
@@ -695,14 +696,13 @@ class IntegrationStore {
             const schedules = await namespace.get('schedules');
             foundSchedules = convertSchedules(schedules);
 
-            const data = await callAxios2(URL + '/info', {});
-            foundSchedules = foundSchedules.map(s => {
+            foundSchedules = foundSchedules.map(async s => {
+                const data = await callAxios2(s.url + '/info', {});
                 const val = data[s.name];
                 if (val) {
                     s.setLast(val.last);
                     s.setNext(val.next);
                 }
-
                 return s;
             });
 
@@ -863,14 +863,27 @@ class IntegrationStore {
 
     @computed
     get disableNext() {
-        if (this.activeStep === 2 && this.program.templateType && this.program.templateType.value === '1') {
-            return !this.program.data || this.program.data.length === 0
+        if (this.activeStep === 2) {
+            if (!this.program.templateType) {
+                return true;
+            } else if (this.program.templateType.value === '1') {
+                return !this.program.data || this.program.data.length === 0 || this.program.mappingName === ''
+            } else if (this.program.templateType.value === '2') {
+
+                try {
+                    const url = new URL(this.program.url);
+                    return this.program.mappingName === '' || !url.protocol || (url.protocol !== 'http:' && url.protocol !== 'https:');
+                } catch (e) {
+                    return true;
+                }
+            }
+
             // || !this.program.orgUnitColumn
             // || ((!this.program.enrollmentDateColumn || !this.program.incidentDateColumn) && this.program.createNewEnrollments);
             // || (!this.program.createNewEnrollments && !this.program.createNewEvents);
-        } else if (this.activeStep === 3 && this.program.createNewEnrollments) {
+        } else if (this.activeStep === 4 && this.program.createNewEnrollments) {
             return !this.program.mandatoryAttributesMapped;
-        } else if (this.activeStep === 4) {
+        } else if (this.activeStep === 5) {
             return !this.program.compulsoryDataElements;
         }
         // else if (this.activeStep === 5) {
@@ -893,7 +906,20 @@ class IntegrationStore {
         if (this.activeAggregateStep === 2) {
             if (this.dataSet.templateType) {
                 if (this.dataSet.templateType.value === '1' || this.dataSet.templateType.value === '2' || this.dataSet.templateType.value === '3') {
-                    return _.keys(this.dataSet.data).length === 0;
+                    return _.keys(this.dataSet.data).length === 0 || this.dataSet.mappingName === '';
+                } else {
+                    let cond;
+                    try {
+                        const url = new URL(this.dataSet.url);
+                        cond = this.dataSet.mappingName === '' || !url.protocol || (url.protocol !== 'http:' && url.protocol !== 'https:');
+                    } catch (e) {
+                        cond = true;
+                    }
+
+                    if (this.dataSet.templateType.value === '4' || this.dataSet.templateType.value === '5') {
+                        return this.dataSet.username === '' || this.dataSet.password === '' || cond
+                    }
+                    return cond;
                 }
             } else {
                 return true
@@ -948,8 +974,10 @@ class IntegrationStore {
         if (this.activeStep === 0) {
             return 'New Mapping';
         } else if (this.activeStep === 6) {
-            if (this.program.processed && this.program.processed.conflicts.length > 0) {
+            if (this.program.totalImports > 0 && this.program.processed.conflicts.length > 0) {
                 return 'Import With Conflicts';
+            } else if (this.program.totalImports === 0) {
+                return 'Finish';
             }
             return 'Import';
         } else if (this.activeStep === 7) {
@@ -1020,21 +1048,23 @@ class IntegrationStore {
         return this.dataSet.sourceOrganisationUnits.slice(info.page * info.rowsPerPage, info.page * info.rowsPerPage + info.rowsPerPage);
     }
 
+    @computed get sourceProgramUnits() {
+        const info = this.paging['step25'];
+        return this.program.sourceOrganisationUnits.slice(info.page * info.rowsPerPage, info.page * info.rowsPerPage + info.rowsPerPage);
+    }
+
     @computed get searchedPrograms() {
         if (this.search !== '') {
             return this.programs.filter(v => {
                 return v.name.toLowerCase().indexOf(this.search.toLowerCase()) > -1;
             })
         }
-
         return this.programs;
-
     }
 
     @computed get currentPrograms() {
         const info = this.paging['step1'];
         return this.searchedPrograms.slice(info.page * info.rowsPerPage, info.page * info.rowsPerPage + info.rowsPerPage);
-
     }
 
 
@@ -1081,6 +1111,10 @@ class IntegrationStore {
     @observable otherAggActions = {
         log: this.log
     };
+
+    @computed get currentMessage() {
+        return this.program.message || this.dataSet.message;
+    }
 }
 
 const store = new IntegrationStore();

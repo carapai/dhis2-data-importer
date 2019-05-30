@@ -129,6 +129,7 @@ class DataSet {
 
     @observable dataIndicators = false;
     @observable proIndicators = true;
+    @observable message = '';
 
     @action setDialogOpen = val => this.dialogOpen = val;
     @action openDialog = () => this.setDialogOpen(true);
@@ -214,6 +215,7 @@ class DataSet {
     @action setWorkSheet = val => this.workSheet = val;
     @action setPeriod = val => this.period = val;
     @action setCompleteDataSet = val => this.completeDataSet = val;
+    @action setMessage = val => this.message = val;
 
     @action filterChange = val => this.filterText = val;
 
@@ -250,18 +252,41 @@ class DataSet {
         if (this.templateType && this.templateType.value === '5') {
             organisations = organisations.map(ou => {
                 const org = new OrganisationUnit(ou.id, ou.name, ou.code);
-                const foundOU = _.find(this.organisationUnits, o => {
-                    return o.id === ou.id || o.code === ou.code || ou.name === o.name;
+
+                let foundOU = undefined;
+
+                const foundOUById = _.find(this.organisationUnits, o => {
+                    return o.id === ou.id;
                 });
 
+                if (foundOUById) {
+                    foundOU = foundOUById;
+                } else {
+                    const foundOUByCode = _.find(this.organisationUnits, o => {
+                        return o.code === ou.code;
+                    });
+
+                    if (foundOUByCode) {
+                        foundOU = foundOUByCode;
+                    } else {
+
+                        const foundOUByName = _.find(this.organisationUnits, o => {
+                            return ou.name === o.name;
+                        });
+
+                        if (foundOUByName) {
+                            foundOU = foundOUByName;
+                        }
+                    }
+                }
                 if (foundOU) {
                     org.setMapping({label: foundOU.name, value: foundOU.id});
                 }
                 return org
 
             });
+            this.setSourceOrganisationUnits(organisations);
         }
-        this.setSourceOrganisationUnits(organisations);
         this.closeDialog();
     };
     @action addPullingError = val => this.pullingErrors = [...this.pullingErrors, val];
@@ -307,9 +332,8 @@ class DataSet {
     @action replaceParamByValue = (p, search) => {
 
         const foundParam = _.findIndex(this.params, v => {
-            return p.value.indexOf(search) !== -1 && v.value.indexOf(search) !== -1
+            return typeof v.value === 'string' && v.value.indexOf(search) !== -1
         });
-
 
         if (foundParam !== -1) {
             this.params.splice(foundParam, 1, p);
@@ -337,21 +361,48 @@ class DataSet {
         p3.setParam('skipMeta');
         p3.setValue(true);
 
-        if (this.selectedIndicators.length > 0) {
+        if (this.selectedIndicators.length > 0 && this.currentLevel) {
             const i = this.selectedIndicators.join(';');
             const indicators = `dx:${i}`;
 
             p1.setValue(indicators);
-            if (this.currentLevel) {
-                p2.setValue(`ou:LEVEL-${this.currentLevel.value}`);
-                this.replaceParamByValue(p2, 'ou:');
-            }
+            p2.setValue(`ou:LEVEL-${this.currentLevel.value}`);
+            this.replaceParamByValue(p2, 'ou:');
 
             this.replaceParamByValue(p1, 'dx:');
             this.replaceParam(p3);
 
             await this.pullData();
         }
+    };
+
+    @action pullDataSetData = async () => {
+        let organisations = await this.pullOrganisationUnits();
+
+        const param = new Param();
+        param.setParam('orgUnit');
+
+        const ou = organisations[0];
+        param.setValue(ou.id);
+        this.replaceParam(param);
+
+        let period;
+
+        console.log(this.startPeriod, this.endPeriod, this.addition, this.additionFormat)
+
+        if (this.startPeriod && this.endPeriod && this.addition && this.additionFormat) {
+            const periods = enumerateDates(this.startPeriod, this.endPeriod, this.addition, this.additionFormat);
+            let index = Math.round(periods.length / 2);
+            period = periods[index - 1];
+            const pp = new Param();
+            pp.setParam('period');
+            pp.setValue(period);
+
+            this.replaceParam(param);
+        }
+        console.log('What is going on');
+        // await this.pullData();
+
     };
 
     @action
@@ -369,10 +420,46 @@ class DataSet {
             const urlBase = this.getDHIS2Url();
             const url = `${urlBase}/dataSets/${val.value}.json`;
             const dataSet = await this.getAxiosData(url, {
-                paging: false,
-                fields: 'id,name,code,periodType,dataSetElements[dataElement[id,name,code,valueType,categoryCombo[id,name,categoryOptionCombos[id,name]]]]'
+                fields: 'id,name,code,periodType,dataSetElements[dataElement[id,name,code,valueType,categoryCombo[id,name,categoryOptionCombos[id,name]]]],organisationUnits[id,name,code]'
             });
             this.setDhis2DataSet(dataSet);
+
+
+            const ous = this.dhis2DataSet.organisationUnits.map(ou => {
+                const org = new OrganisationUnit(ou.id, ou.name, ou.code);
+                let foundOU = undefined;
+
+                const foundOUById = _.find(this.organisationUnits, o => {
+                    return o.id === ou.id;
+                });
+
+                if (foundOUById) {
+                    foundOU = foundOUById;
+                } else {
+                    const foundOUByCode = _.find(this.organisationUnits, o => {
+                        return o.code === ou.code;
+                    });
+
+                    if (foundOUByCode) {
+                        foundOU = foundOUByCode;
+                    } else {
+
+                        const foundOUByName = _.find(this.organisationUnits, o => {
+                            return ou.name === o.name;
+                        });
+
+                        if (foundOUByName) {
+                            foundOU = foundOUByName;
+                        }
+                    }
+                }
+                if (foundOU) {
+                    org.setMapping({label: foundOU.name, value: foundOU.id});
+                }
+                return org;
+            });
+
+            this.setSourceOrganisationUnits(ous);
         }
     };
 
@@ -484,7 +571,6 @@ class DataSet {
                             };
                         });
                     }
-
                 }
 
                 const indicators = [...items1, ...items2];
@@ -571,7 +657,7 @@ class DataSet {
         this.completeDataSet = event.target.checked;
     };
 
-    @action onCheckMultiplePeriods = async event => {
+    @action onCheckMultiplePeriods = event => {
         this.multiplePeriods = event.target.checked;
     };
 
@@ -833,26 +919,26 @@ class DataSet {
 
     @action
     pullData = async () => {
+        // this.openDialog();
         this.setPulledData(null);
         let param = '';
 
         if (this.params.length > 0) {
             param = encodeData(this.params);
         }
-
         if (this.url !== '') {
             try {
                 let response;
+                let url = this.url;
                 if (this.username !== '' && this.password !== '') {
                     this.setPulling(true);
-                    let url = this.url;
                     if (this.isDhis2) {
                         url = this.getDHIS2Url() + '/dataValueSets.json';
                     } else if (this.templateType.value === '5') {
-                        url = this.getDHIS2Url() + '/analytics'
+                        url = this.getDHIS2Url() + '/analytics';
                     }
 
-                    response = await axios.get(url + '?' + param, {
+                    response = await axios.get(param !== '' ? url + '?' + param : url, {
                         params: {},
                         withCredentials: true,
                         auth: {
@@ -862,8 +948,7 @@ class DataSet {
                     });
                 } else {
                     this.setPulling(true);
-                    response = await axios.get(this.url + '?' + param);
-
+                    response = await axios.get(param !== '' ? url + '?' + param : url);
                 }
 
                 if (response.status === 200) {
@@ -891,6 +976,8 @@ class DataSet {
                 NotificationManager.error(`Could not pull data ${e.message}`, 'Error', 5000);
             }
         }
+
+        // this.closeDialog();
     };
 
     @action
@@ -918,7 +1005,7 @@ class DataSet {
             }
         } catch (e) {
             this.setResponses(e);
-            NotificationManager.error(`Could not insert values ${e.message}`, 'Error', 5000);
+            NotificationManager.error(`Could not insert data values ${e.message}`, 'Error', 5000);
         }
     };
 
@@ -927,7 +1014,7 @@ class DataSet {
         this.setDisplayProgress(true);
         this.openDialog();
         try {
-            if (this.isDhis2) {
+            if (this.templateType && this.templateType.value === '4') {
                 if (this.dhis2DataSet) {
                     const orgUnits = await this.pullOrganisationUnits();
                     const param = new Param();
@@ -938,9 +1025,11 @@ class DataSet {
                             const pp = new Param();
                             pp.setParam('period');
                             for (const p of periods) {
+                                this.setMessage(`Processing for period ${p}`);
                                 pp.setValue(p);
                                 this.replaceParam(pp);
                                 const all = orgUnits.map(ou => {
+                                    this.setMessage(`Processing for period ${p} for ${ou.name}`);
                                     param.setValue(ou.id);
                                     this.replaceParam(param);
                                     return this.pullData().then(data => {
@@ -948,10 +1037,13 @@ class DataSet {
                                     });
                                 });
                                 const results = await Promise.all(all);
+                                this.setMessage(`Finished processing for period ${p}`);
                                 const filtered = results.filter(r => {
                                     return r
                                 });
+                                this.setMessage(`Completing data set`);
                                 await this.completeDataSets();
+                                this.setMessage(`Finished completing data set`);
                                 this.destroy();
                                 this.setResponses(filtered);
                             }
@@ -961,6 +1053,7 @@ class DataSet {
                         }
                     } else {
                         const all = orgUnits.map(ou => {
+                            this.setMessage(`Processing data for ${ou.name}`);
                             param.setValue(ou.id);
                             this.replaceParam(param);
                             return this.pullData().then(data => {
@@ -968,21 +1061,48 @@ class DataSet {
                             });
                         });
 
+                        this.setMessage(`Inserting processed data`);
                         const results = await Promise.all(all);
+                        this.setMessage(`Finished inserting processed data`);
                         const filtered = results.filter(r => {
                             return r
                         });
-
+                        this.setMessage(`Completing data set`);
                         await this.completeDataSets();
+                        this.setMessage(`Finished completing data set`);
                         this.destroy();
                         this.setResponses(filtered);
                     }
-
-
+                }
+            } else if (this.templateType && this.templateType.value === '5' && this.multiplePeriods) {
+                if (this.startPeriod && this.endPeriod && this.addition && this.additionFormat) {
+                    const periods = enumerateDates(this.startPeriod, this.endPeriod, this.addition, this.additionFormat);
+                    const pp = new Param();
+                    pp.setParam('dimension');
+                    for (const p of periods) {
+                        this.setMessage(`Processing data for ${p}`);
+                        pp.setValue(`pe:${p}`);
+                        this.replaceParamByValue(pp, 'pe:');
+                        this.setMessage(`Pulling from analytics for period ${p}`);
+                        await this.pullData();
+                        this.setMessage(`Finished pulling from analytics for period ${p}`);
+                        this.setMessage(`Inserting processed data`);
+                        const results = await this.create1();
+                        this.setMessage(`Finished inserting processed data`);
+                        this.setMessage(`Completing data set`);
+                        await this.completeDataSets();
+                        this.setMessage(`Finished completing data set`);
+                        this.destroy();
+                        this.setResponses(results);
+                    }
                 }
             } else {
+                this.setMessage(`Inserting processed data`);
                 const results = await this.create1();
+                this.setMessage(`Finished inserting processed data`);
+                this.setMessage(`Completing data set`);
                 await this.completeDataSets();
+                this.setMessage(`Finished completing data set`);
                 this.destroy();
                 this.setResponses(results);
             }
@@ -1098,9 +1218,6 @@ class DataSet {
         this.mappingDescription = value;
     };
 
-    @action
-    loadIndicatorData = () => {
-    };
 
     @computed get showDetails() {
         if (this.templateType.value === '5') {
@@ -1123,7 +1240,7 @@ class DataSet {
         let ignoredTotal = 0;
 
         this.responses.forEach(response => {
-            if (response['status'] === 'SUCCESS' || response['status'] === 'WARNING') {
+            if (response && (response['status'] === 'SUCCESS' || response['status'] === 'WARNING')) {
                 const {imported, deleted, updated, ignored} = response['importCount'];
                 if (imported) {
                     importedTotal = importedTotal + imported
@@ -1147,7 +1264,7 @@ class DataSet {
                     });
                     conflicts = [...conflicts, ...processedConflicts]
                 }
-            } else if (response['httpStatusCode'] === 500) {
+            } else if (response && response['httpStatusCode'] === 500) {
                 errors = [...errors, {...response['error']}];
             }
         });
@@ -1572,8 +1689,8 @@ class DataSet {
     }
 
     @computed get disableImport() {
-        const templates = ['1', '2', '3', '6'];
-        if (templates.indexOf(this.templateType.value) !== -1) {
+        const templates = ['1', '2', '3'];
+        if (this.templateType && (templates.indexOf(this.templateType.value) !== -1 || (this.templateType.value === '5' && !this.multiplePeriods))) {
             return _.keys(this.data).length === 0
         }
         return false;
@@ -1586,6 +1703,18 @@ class DataSet {
         }
         return 2;
     }
+
+    @computed get canPull() {
+        return this.templateType && (this.templateType.value === '6' || (this.templateType.value === '5' && !this.multiplePeriods))
+    }
+
+    // @computed get sourceOrganisationUnits() {
+    //     if (!this.dhis2DataSet) {
+    //         return []
+    //     } else {
+    //
+    //     }
+    // }
 }
 
 export default DataSet;

@@ -14,9 +14,10 @@ import XLSX from 'xlsx';
 
 import axios from 'axios';
 import {
-    encodeData, groupEntities, isTracker, processProgramData, programUniqueAttribute, programUniqueColumn
+    encodeData, groupEntities, isTracker, processEvents, processProgramData, programUniqueAttribute, programUniqueColumn
 } from "../utils/utils";
 import Param from "./Param";
+import OrganisationUnit from "./OrganisationUnit";
 
 class Program {
     @observable lastUpdated;
@@ -142,6 +143,8 @@ class Program {
     @observable mappingName;
     @observable mappingDescription;
     @observable templateType;
+    @observable sourceOrganisationUnits = [];
+    @observable message = '';
 
     constructor(lastUpdated, name, id, programType, displayName, programStages, programTrackedEntityAttributes) {
         this.lastUpdated = lastUpdated;
@@ -197,7 +200,10 @@ class Program {
     @action pushPercentage = val => this.percentages = [...this.percentages, val];
 
     @action
-    handleOrgUnitSelectChange = value => this.orgUnitColumn = value;
+    handleOrgUnitSelectChange = value => {
+        this.orgUnitColumn = value;
+        this.computeUnits();
+    };
 
     @action
     handleOrgUnitStrategySelectChange = value => this.orgUnitStrategy = value;
@@ -344,11 +350,17 @@ class Program {
                 this.setSheets(sheets);
 
                 if (sheets.length > 0) {
-                    this.setSelectedSheet(sheets[0])
+                    await this.setSelectedSheet(sheets[0]);
                 }
 
                 if (this.uniqueIds) {
                     await this.searchTrackedEntities();
+                }
+
+                if (!this.isTracker) {
+                    const programStage = this.programStages[0];
+                    await programStage.findEventsByDates(this);
+                    await programStage.findEventsByElements(this);
                 }
             };
             if (rABS) {
@@ -405,7 +417,7 @@ class Program {
                     }
 
                     await this.searchTrackedEntities();
-                    this.setLastRun(moment(new Date()).format('YYYY-MM-DD HH:mm:ss'))
+                    this.setLastRun(moment(new Date()).format('YYYY-MM-DD HH:mm:ss'));
 
                     this.closeDialog();
                 }
@@ -476,10 +488,21 @@ class Program {
     @action setDuplicates = val => this.duplicates = val;
     @action setLongitudeColumn = val => this.longitudeColumn = val;
     @action setLatitudeColumn = val => this.latitudeColumn = val;
+    @action setMessage = val => this.message = val;
     @action setSelectedSheet = async val => {
         this.selectedSheet = val;
-        if (this.uniqueIds) {
-            await this.searchTrackedEntities();
+        if (val) {
+            if (this.uniqueIds) {
+                await this.searchTrackedEntities();
+            }
+
+            if (!this.isTracker) {
+                const programStage = this.programStages[0];
+                await programStage.findEventsByDates(this);
+                await programStage.findEventsByElements(this);
+            }
+
+            this.computeUnits();
         }
     };
     @action setWorkbook = val => this.workbook = val;
@@ -504,6 +527,7 @@ class Program {
     @action setMappingName = val => this.mappingName = val;
     @action setMappingDescription = val => this.mappingDescription = val;
     @action setTemplateType = val => this.templateType = val;
+    @action setSourceOrganisationUnit = val => this.sourceOrganisationUnits = val;
 
     @action
     filterAttributes = attributesFilter => {
@@ -513,7 +537,6 @@ class Program {
 
     @action
     searchTrackedEntities = async () => {
-        let instances = [];
         const api = this.d2.Api.getApi();
         if (this.uniqueIds.length > 0) {
             this.setFetchingEntities(1);
@@ -523,21 +546,42 @@ class Program {
                     ouMode: 'ALL',
                     filter: this.uniqueAttribute + ':IN:' + uniqueId,
                     program: this.id,
-                    fields: 'trackedEntityInstance,orgUnit,attributes[attribute,value],enrollments[enrollment,program,' +
-                        'trackedEntityInstance,trackedEntityType,trackedEntity,enrollmentDate,incidentDate,orgUnit,events[program,trackedEntityInstance,event,' +
-                        'eventDate,status,completedDate,coordinate,programStage,orgUnit,dataValues[dataElement,value]]]'
+                    fields: 'trackedEntityInstance'
                 })
             });
 
             const results = await Promise.all(all);
 
-            for (let instance of results) {
-                const {
-                    trackedEntityInstances
-                } = instance;
-                instances = [...instances, ...trackedEntityInstances];
+            const ids = results.map(r => {
+                const {trackedEntityInstances} = r;
+                return trackedEntityInstances.map(t => {
+                    return t.trackedEntityInstance;
+                })
+            });
+
+            const entities = _.chunk(_.flatten(ids), 50).map(ids => ids.join(';'));
+
+            const all1 = entities.map(entityGroup => {
+                const params = {
+                    paging: false,
+                    ouMode: 'ALL',
+                    trackedEntityInstance: entityGroup,
+                    fields: 'trackedEntityInstance,orgUnit,attributes[attribute,value],enrollments[enrollment,program,' +
+                        'trackedEntityInstance,trackedEntityType,trackedEntity,enrollmentDate,incidentDate,orgUnit,events[program,trackedEntityInstance,event,' +
+                        'eventDate,status,completedDate,coordinate,programStage,orgUnit,dataValues[dataElement,value]]]'
+                };
+                return api.get('trackedEntityInstances', params)
+            });
+
+            const results1 = await Promise.all(all1);
+
+            let foundEntities = [];
+
+            for (let instance of results1) {
+                const {trackedEntityInstances} = instance;
+                foundEntities = [...foundEntities, ...trackedEntityInstances];
             }
-            this.setTrackedEntityInstances(instances);
+            this.setTrackedEntityInstances(foundEntities);
             this.setFetchingEntities(2);
         }
     };
@@ -603,14 +647,21 @@ class Program {
         try {
             if (newTrackedEntityInstances.length > 0) {
                 const chunkedTEI = _.chunk(newTrackedEntityInstances, 250);
+                const total = newTrackedEntityInstances.length;
+                let current = 0;
+                this.setMessage(`Creating tracked entities ${current}/${total}`);
 
                 for (const tei of chunkedTEI) {
+                    current = current + tei.length;
+                    this.setMessage(`Creating tracked entities ${current}/${total}`);
                     const instancesResults = await this.insertTrackedEntityInstance({
                         trackedEntityInstances: tei
                     });
                     instancesResults.type = 'trackedEntityInstance';
                     this.setResponses(instancesResults);
                 }
+                this.setMessage('Finished creating tracked entities');
+
             }
         } catch (e) {
             this.setResponses(e);
@@ -618,12 +669,20 @@ class Program {
 
         try {
             if (trackedEntityInstancesUpdate.length > 0) {
+                const total = trackedEntityInstancesUpdate.length;
+                let current = 0;
+                this.setMessage(`Updating tracked entities ${current}/${total}`);
                 const chunkedTEI = _.chunk(trackedEntityInstancesUpdate, 250);
                 for (const tei of chunkedTEI) {
+                    current = current + tei.length;
+                    this.setMessage(`Updating tracked entities ${current}/${total}`);
                     const instancesResults = await this.insertTrackedEntityInstance({trackedEntityInstances: tei});
                     instancesResults.type = 'trackedEntityInstance';
                     this.setResponses(instancesResults);
+
                 }
+
+                this.setMessage('Finished updating tracked entities');
             }
         } catch (e) {
             this.setResponses(e);
@@ -631,30 +690,45 @@ class Program {
 
         try {
             if (newEnrollments.length > 0) {
+                const total = newEnrollments.length;
+                let current = 0;
+                this.setMessage(`Creating enrollments for tracked entities ${current}/${total}`);
                 const chunkedEnrollments = _.chunk(newEnrollments, 250);
                 for (const enrollments of chunkedEnrollments) {
+                    current = current + enrollments.length;
+                    this.setMessage(`Creating enrollments for tracked entities ${current}/${total}`);
                     const enrollmentsResults = await this.insertEnrollment({
                         enrollments: enrollments
                     });
                     enrollmentsResults.type = 'enrollment';
                     this.setResponses(enrollmentsResults);
                 }
+
+                this.setMessage('Finished creating enrollments for tracked entities');
+
             }
         } catch (e) {
             this.setResponses(e);
         }
         try {
             if (newEvents.length > 0) {
+                const total = newEvents.length;
+                let current = 0;
+                this.setMessage(`Creating events ${current}/${total}`);
                 const chunkedEvents = _.chunk(newEvents, 250);
 
                 for (const events of chunkedEvents) {
+                    current = current + events.length;
+                    this.setMessage(`Creating events ${current}/${total}`);
                     const eventsResults = await this.insertEvent({
                         events
                     });
 
-                    eventsResults.type = 'enrollment';
+                    eventsResults.type = 'event';
                     this.setResponses(eventsResults);
+
                 }
+                this.setMessage('Finished creating tracked entities');
             }
         } catch (e) {
             this.setResponses(e);
@@ -662,13 +736,17 @@ class Program {
 
         try {
             if (eventsUpdate.length > 0) {
+                const total = newEvents.length;
+                let current = 0;
+                this.setMessage(`Updating events ${current}/${total}`);
                 const chunkedEvents = _.chunk(eventsUpdate, 250);
-
                 for (const events of chunkedEvents) {
+                    current = current + events.length;
+                    this.setMessage(`Updating events ${current}/${total}`);
                     const eventsResults = await Promise.all(this.updateDHISEvents(events));
                     this.setResponses(eventsResults);
                 }
-
+                this.setMessage('Finished updating events');
             }
         } catch (e) {
             this.setResponses(e);
@@ -678,6 +756,7 @@ class Program {
         this.setWorkbook(null);
         await this.setSelectedSheet(null);
         this.setDisplayProgress(false);
+        this.setMessage('');
         this.closeDialog();
     };
 
@@ -784,30 +863,71 @@ class Program {
         }
     };
 
-    @action loadDefaultDataElements = programStage => () => {
-        if (programStage.createNewEvents || programStage.updateEvents) {
-            programStage.dataElements.forEach(de => {
-                const match = this.columns.find(column => {
-                    return column.value === de.dataElement.name;
-                });
-                if (match && !de.column) {
-                    de.setColumn(match);
+    @action
+    searchedEvents = async () => {
+
+        const {possibleEvents} = this.processed;
+        let newEvents = [];
+        let eventsUpdate = [];
+
+        if (possibleEvents.length > 0 && !this.isTracker) {
+
+            for (const event of possibleEvents) {
+                const ev = await this.searchEvent(event);
+                if (ev.update) {
+                    eventsUpdate = [...eventsUpdate, ev]
+                } else {
+                    newEvents = [...newEvents, ev]
                 }
+            }
+        }
+    };
+
+    @action  computeUnits = () => {
+        if (this.orgUnitColumn && this.data.length > 0 && _.keys(this.data[0]).indexOf(this.orgUnitColumn.value) !== -1) {
+            let units = this.data.map(d => {
+                return new OrganisationUnit('', d[this.orgUnitColumn.value], '');
             });
+
+            units = _.uniqBy(units, v => JSON.stringify(v)).map(org => {
+                let foundOU = undefined;
+
+                const foundOUById = _.find(this.organisationUnits, o => {
+                    return o.id === org.name;
+                });
+
+                if (foundOUById) {
+                    foundOU = foundOUById;
+                } else {
+                    const foundOUByCode = _.find(this.organisationUnits, o => {
+                        return o.code === org.name;
+                    });
+
+                    if (foundOUByCode) {
+                        foundOU = foundOUByCode;
+                    } else {
+
+                        const foundOUByName = _.find(this.organisationUnits, o => {
+                            return org.name === o.name;
+                        });
+
+                        if (foundOUByName) {
+                            foundOU = foundOUByName;
+                        }
+                    }
+                }
+                if (foundOU) {
+                    org.setMapping({label: foundOU.name, value: foundOU.id});
+                }
+                return org
+            });
+            this.setSourceOrganisationUnit(units);
         }
     };
 
     @computed
     get disableCreate() {
-        const {
-            newTrackedEntityInstances,
-            newEnrollments,
-            newEvents,
-            trackedEntityInstancesUpdate,
-            eventsUpdate
-        } = this.processed;
-        return (newTrackedEntityInstances.length + newEnrollments.length + newEvents.length + eventsUpdate.length +
-            trackedEntityInstancesUpdate.length) === 0
+        return this.totalImports === 0
     }
 
     @computed
@@ -915,6 +1035,7 @@ class Program {
                 'selectedSheet',
                 'mappingName',
                 'mappingDescription',
+                'sourceOrganisationUnits',
                 'templateType'
             ])
     }
@@ -1103,7 +1224,12 @@ class Program {
 
     @computed
     get processed() {
-        return processProgramData(this.data, this, this.uniqueColumn, this.searchedInstances, this.isTracker);
+        if (this.isTracker) {
+            return processProgramData(this.data, this, this.uniqueColumn, this.searchedInstances, this.isTracker);
+        } else {
+            const programStage = this.programStages[0];
+            return processEvents(this, this.data, programStage.eventsByDate, programStage.eventsByDataElement);
+        }
     }
 
 
@@ -1253,9 +1379,24 @@ class Program {
             eventsUpdate
         } = this.processed;
 
-        return newTrackedEntityInstances.length + newEnrollments.length + newEvents.length + trackedEntityInstancesUpdate.length + eventsUpdate.length;
-
+        if (this.isTracker) {
+            return newTrackedEntityInstances.length + newEnrollments.length + newEvents.length + trackedEntityInstancesUpdate.length + eventsUpdate.length;
+        } else {
+            return newEvents.length + eventsUpdate.length
+        }
     }
+
+    @computed get eventsByDataElement() {
+        let data;
+        const stage = this.programStages[0];
+
+        for (const psde of stage.programStageDataElements) {
+            data = {[psde.dataElement.id]: psde.dataElement.eventsByDataElement}
+        }
+
+        return data
+    }
+
 
 }
 

@@ -3,10 +3,12 @@ import React from "react";
 import {withStyles} from "@material-ui/core/styles";
 import Grid from "@material-ui/core/Grid";
 import {InputField} from "@dhis2/d2-ui-core";
-import Icon from "@material-ui/core/Icon";
 import Dropzone from "react-dropzone";
 import Select from "react-select";
 import Params from "./Params";
+
+import {CloudUpload} from "@material-ui/icons";
+
 
 
 const styles = theme => ({
@@ -52,7 +54,8 @@ class ImportType extends React.Component {
             <Grid container spacing={8}>
                 <Grid item xs={12}>
                     <InputField
-                        label="URL"
+                        required
+                        label="URL*"
                         type="text"
                         fullWidth
                         value={this.integrationStore.program.url}
@@ -87,12 +90,10 @@ class ImportType extends React.Component {
         return <Dropzone activeStyle={{}}
                          accept=".csv, .xls, .xlsx"
                          onDrop={this.integrationStore.program.onDrop}>
+            <br/>
             <p align="center">Drop files here</p>
             <p align="center">
-                <Icon color="primary"
-                      style={{fontSize: 48}}>
-                    add_circle
-                </Icon>
+                <CloudUpload fontSize="large"/>
             </p>
             <p align="center">{this.integrationStore.program.fileName}</p>
             <p align="center"
@@ -121,6 +122,7 @@ class ImportType extends React.Component {
                     />
                     <br/>
                     <br/>
+                    <span style={{fontWeight: 'bold'}}>Select import type</span>
                     <Select
                         placeholder="Import Type"
                         value={this.integrationStore.program.templateType}

@@ -12,7 +12,7 @@ import RadioGroup from "@material-ui/core/RadioGroup";
 import FormControlLabel from "@material-ui/core/FormControlLabel";
 import Radio from "@material-ui/core/Radio";
 import Select from "react-select";
-import {ArrowDownward, PlayArrow, Stop, Delete} from "@material-ui/icons";
+import {PlayArrow, Stop, Delete} from "@material-ui/icons";
 import Table from '@dhis2/d2-ui-table';
 
 
@@ -55,7 +55,7 @@ class Schedule extends React.Component {
 
 
     render() {
-        return (<div>
+        return (<div style={{margin: 5}}>
                 <Button
                     variant="contained"
                     color="primary"
@@ -99,6 +99,13 @@ class Schedule extends React.Component {
                                  onClose={this.integrationStore.closeScheduledDialog}>{"Schedule"}</DialogTitle>
                     <DialogContent>
                         <InputField
+                            label="Scheduling server"
+                            type="text"
+                            fullWidth
+                            value={this.integrationStore.currentSchedule.url}
+                            onChange={(value) => this.integrationStore.currentSchedule.setUrl(value)}/>
+
+                        <InputField
                             label="Schedule name"
                             type="text"
                             fullWidth
@@ -120,7 +127,7 @@ class Schedule extends React.Component {
 
 
                         <Select
-                            placeholder="Identifier scheme"
+                            placeholder="Select mapping"
                             isClearable
                             isSearchable
                             value={this.integrationStore.currentSchedule.value}
@@ -130,7 +137,7 @@ class Schedule extends React.Component {
                         <br/>
                         <br/>
 
-                        <FormControl component="fieldset">
+                        {this.integrationStore.currentSchedule.value ? <FormControl component="fieldset">
                             <FormLabel component="legend">Schedule</FormLabel>
                             <RadioGroup
                                 row={true}
@@ -139,18 +146,24 @@ class Schedule extends React.Component {
                                 value={this.integrationStore.currentSchedule.schedule}
                                 onChange={this.integrationStore.currentSchedule.handleScheduleChange}
                             >
-                                <FormControlLabel value="every5s" control={<Radio/>} label="Every Five Seconds"/>
-                                <FormControlLabel value="minutely" control={<Radio/>} label="Every Minute"/>
-                                <FormControlLabel value="hourly" control={<Radio/>} label="Hourly"/>
-                                <FormControlLabel value="daily" control={<Radio/>} label="Daily"/>
-                                <FormControlLabel value="weekly" control={<Radio/>} label="Weekly"/>
-                                <FormControlLabel value="monthly" control={<Radio/>} label="Monthly"/>
-                                <FormControlLabel value="quarterly" control={<Radio/>} label="Quarterly"/>
-                                <FormControlLabel value="six-monthly" control={<Radio/>} label="Semi Yearly"/>
-                                <FormControlLabel value="yearly" control={<Radio/>} label="Yearly"/>
+                                <FormControlLabel value="Every5s" control={<Radio/>} label="Every Five Seconds"/>
+                                <FormControlLabel value="Minutely" control={<Radio/>} label="Every Minute"/>
+                                <FormControlLabel value="Hourly" control={<Radio/>} label="Hourly"/>
+                                <FormControlLabel value="Daily" control={<Radio/>} label="Daily"/>
+                                <FormControlLabel value="Weekly" control={<Radio/>} label="Weekly"/>
+                                <FormControlLabel value="Monthly" control={<Radio/>} label="Monthly"/>
+                                <FormControlLabel value="Quarterly" control={<Radio/>} label="Quarterly"/>
+                                <FormControlLabel value="SixMonthly" control={<Radio/>} label="Semi Yearly"/>
+                                <FormControlLabel value="Yearly" control={<Radio/>} label="Yearly"/>
                             </RadioGroup>
-                        </FormControl>
+                        </FormControl> : null}
 
+                        {this.integrationStore.currentSchedule.canAddDays ? <InputField
+                            label="Additional days"
+                            type="number"
+                            fullWidth
+                            value={this.integrationStore.currentSchedule.additionalDays}
+                            onChange={(value) => this.integrationStore.currentSchedule.setAdditionalDays(value)}/> : null}
                     </DialogContent>
                     <DialogActions>
                         <Button onClick={this.integrationStore.closeScheduledDialog} color="primary">
@@ -159,6 +172,7 @@ class Schedule extends React.Component {
                         <Button
                             variant="contained"
                             color="primary"
+                            disabled={this.integrationStore.currentSchedule.isSaveDisabled}
                             onClick={this.integrationStore.saveSchedule}>
                             Save
                         </Button>

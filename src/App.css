@@ -1,13 +1,8 @@
-html, body, :global(#root) {
-    height: 100%;
-}
 
-body {
-    padding: 0;
+html, body {
+    height: 100%;
     margin: 0;
-    /*font-family: 'Roboto', 'Open Sans', sans-serif;*/
-    /*color: #272727;*/
-    box-sizing: border-box;
+    padding: 0;
 }
 
 a {
@@ -15,6 +10,8 @@ a {
 }
 
 * {
+    margin: 0;
+    padding: 0;
     /*font-size: inherit;*/
     /*box-sizing: inherit;*/
 }

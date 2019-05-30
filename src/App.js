@@ -1,8 +1,8 @@
 import React, {Component} from 'react';
 import {HashRouter as Router, Route} from "react-router-dom";
 import {NotificationContainer} from 'react-notifications';
-import Card from "@material-ui/core/Card";
-import CardContent from "@material-ui/core/CardContent";
+// import Card from "@material-ui/core/Card";
+// import CardContent from "@material-ui/core/CardContent";
 import 'react-notifications/lib/notifications.css';
 
 import {Provider} from "mobx-react";
@@ -20,7 +20,7 @@ import {Link} from "react-router-dom";
 
 
 import {
-    Layout, Menu, Icon,
+    Menu, Icon,
 } from 'antd';
 
 
@@ -28,9 +28,9 @@ import './App.css';
 import "antd/dist/antd.css";
 
 
-const {
-    Content, Sider,
-} = Layout;
+// const {
+//     Content, Sider,
+// } = Layout;
 
 class App extends Component {
 
@@ -114,64 +114,64 @@ class App extends Component {
     }
 
     render() {
-        const {classes} = this.props;
+        // const {classes} = this.props;
         return (
             <Provider IntegrationStore={IntegrationStore}>
                 <Router>
                     <D2UIApp>
                         <HeaderBar d2={this.state.d2}/>
-                        <Layout>
+                        {/*<div className={classes.appBarSpacer}/>*/}
+
+                        <div style={{height: 48}}/>
+                        <Menu theme="light" defaultSelectedKeys={['1']} mode="horizontal">
+                            <Menu.Item key="1">
+                                <Link to="/">
+                                    <Icon type="pie-chart"/>
+                                    <span>Tracker</span>
+                                </Link>
+                            </Menu.Item>
+                            <Menu.Item key="2">
+                                <Link to="/aggregates">
+                                    <Icon type="desktop"/>
+                                    <span>Aggregate</span>
+                                </Link>
+                            </Menu.Item>
+
+                            <Menu.Item key="3">
+                                <Link to="/schedules">
+                                    <Icon type="desktop"/>
+                                    <span>Schedules</span>
+                                </Link>
+                            </Menu.Item>
+                        </Menu>
+                        <Route
+                            exact
+                            path='/'
+                            component={() => <Program d2={this.state.d2}
+                                                      baseUrl={this.state.baseUrl}/>}/>
+                        <Route
+                            path='/aggregates'
+                            component={() => <Aggregate d2={this.state.d2}/>}/>
+
+                        <Route
+                            path='/schedules'
+                            component={() => <Schedule d2={this.state.d2}/>}/>
+                        {/*<Layout>
                             <Sider
                                 theme="light"
                                 collapsible
                                 collapsed={this.state.collapsed}
                                 onCollapse={this.onCollapse}
                             >
-                                <div className={classes.appBarSpacer}/>
-                                <Menu theme="light" defaultSelectedKeys={['1']} mode="inline">
-                                    <Menu.Item key="1">
-                                        <Link to="/">
-                                            <Icon type="pie-chart"/>
-                                            <span>Tracker</span>
-                                        </Link>
-                                    </Menu.Item>
-                                    <Menu.Item key="2">
-                                        <Link to="/aggregates">
-                                            <Icon type="desktop"/>
-                                            <span>Aggregate</span>
-                                        </Link>
-                                    </Menu.Item>
 
-                                    <Menu.Item key="3">
-                                        <Link to="/schedules">
-                                            <Icon type="desktop"/>
-                                            <span>Schedules</span>
-                                        </Link>
-                                    </Menu.Item>
-                                </Menu>
+
                             </Sider>
                             <Layout>
                                 <Content>
-                                    <Card>
-                                        <CardContent style={{minHeight: '100vh'}}>
-                                            <div className={classes.appBarSpacer}/>
-                                            <Route
-                                                exact
-                                                path='/'
-                                                component={() => <Program d2={this.state.d2}
-                                                                          baseUrl={this.state.baseUrl}/>}/>
-                                            <Route
-                                                path='/aggregates'
-                                                component={() => <Aggregate d2={this.state.d2}/>}/>
 
-                                            <Route
-                                                path='/schedules'
-                                                component={() => <Schedule d2={this.state.d2}/>}/>
-                                        </CardContent>
-                                    </Card>
                                 </Content>
                             </Layout>
-                        </Layout>
+                        </Layout>*/}
                         <NotificationContainer/>
                     </D2UIApp>
                 </Router>

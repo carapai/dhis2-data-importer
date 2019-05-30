@@ -69,6 +69,9 @@ const styles = theme => ({
         '&:hover': {
             color: red[800]
         }
+    },
+    hidden: {
+        display: 'none'
     }
 });
 
@@ -89,6 +92,7 @@ class D0 extends React.Component {
     }
 
     render() {
+        const {classes} = this.props;
         return <div>
             {this.integrationStore.aggregates.length > 0 ?
                 <Table
@@ -126,10 +130,20 @@ class D0 extends React.Component {
                     <Button
                         variant="contained"
                         color="primary"
+                        onClick={this.integrationStore.dataSet.pullData}
+                        className={this.integrationStore.dataSet.canPull ? classes.button : classes.hidden}
+                    >
+                        Pull Data
+                    </Button>
+                    <Button
+                        variant="contained"
+                        color="primary"
                         disabled={this.integrationStore.dataSet.disableImport}
                         onClick={this.integrationStore.dataSet.create}>
                         Import
                     </Button>
+
+
                 </DialogActions>
             </Dialog>
             <Progress open={this.integrationStore.dialogOpen}

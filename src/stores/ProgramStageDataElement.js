@@ -11,16 +11,9 @@ class ProgramStageDataElement {
         this.dataElement = dataElement;
     }
 
-    @action
-    setColumn = value => this.column = value;
-
-    @action
-    setOpen = value => this.open = value;
-
-    @action
-    handleClickOpen = () => {
-        this.open = true;
-    };
+    @action setColumn = value => this.column = value;
+    @action setOpen = value => this.open = value;
+    @action handleClickOpen = () => this.open = true;
 
     handleClose = () => {
         this.setOpen(false);

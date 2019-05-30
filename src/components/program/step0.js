@@ -10,13 +10,15 @@ import red from '@material-ui/core/colors/red';
 import {InputField} from "@dhis2/d2-ui-core";
 
 import Summary from "./Summary";
-import {Delete, ArrowDownward, ArrowUpward, CloudDownload} from "@material-ui/icons";
+import {Delete, ArrowDownward, ArrowUpward, CloudDownload, CloudUpload} from "@material-ui/icons";
 import Params from "./Params";
 import LinearProgress from '@material-ui/core/LinearProgress';
 import CircularProgress from "@material-ui/core/CircularProgress";
 import Select from 'react-select';
 import Progress from "../progress";
 import {DialogActions, DialogContent, DialogTitle} from "../Fragments";
+import EventSummary from "./EventSummary";
+import customStyles from "../customStyles";
 
 
 const styles = theme => ({
@@ -48,7 +50,6 @@ class Step0 extends React.Component {
     }
 
     render() {
-        const {classes} = this.props;
         return <div>
             {this.integrationStore.program.pulling ? <LinearProgress color="secondary"/> : ''}
 
@@ -79,50 +80,36 @@ class Step0 extends React.Component {
                 <DialogTitle id="alert-dialog-title"
                              onClose={this.integrationStore.closeUploadDialog}>{"Upload Excel/CSV"}</DialogTitle>
                 <DialogContent>
-                    <table width="100%">
-                        <tbody>
-                        <tr>
-                            <td width="20%" valign="top">
-                                <div className="dropzone">
-                                    <Dropzone accept=".csv, .xls, .xlsx"
-                                              onDrop={this.integrationStore.program.onDrop}>
-                                        <p align="center">Drop files here</p>
-                                        <p align="center">
-                                            <Icon
-                                                className={classes.icon}
-                                                color="primary"
-                                                style={{
-                                                    fontSize: 48
-                                                }}>
-                                                add_circle
-                                            </Icon>
-                                        </p>
-                                        <p align="center">{this.integrationStore.program.fileName}</p>
-                                        <p
-                                            align="center"
-                                            style={{
-                                                color: 'red'
-                                            }}>{this.integrationStore.program.uploadMessage}</p>
+                    <Dropzone activeStyle={{}}
+                              accept=".csv, .xls, .xlsx"
+                              onDrop={this.integrationStore.program.onDrop}>
+                        <p align="center">
+                            <CloudUpload fontSize="large"/>
+                        </p>
+                        <p align="center">Drop files here</p>
 
-                                        {this.integrationStore.program.fetchingEntities === 1 && this.integrationStore.program.isTracker ?
-                                            <CircularProgress color="secondary"/> : ''}
-                                    </Dropzone>
-                                </div>
-                            </td>
-                            <td width="80%" valign="top">
-                                <Select
-                                    placeholder="Select sheet"
-                                    value={this.integrationStore.program.selectedSheet}
-                                    options={this.integrationStore.program.sheets}
-                                    onChange={this.integrationStore.program.setSelectedSheet}
-                                />
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
+                        <p align="center">{this.integrationStore.program.fileName}</p>
+                        <p align="center"
+                           style={{color: 'red'}}>{this.integrationStore.program.uploadMessage}</p>
+                    </Dropzone>
+
+                    {this.integrationStore.program.fetchingEntities === 1 && this.integrationStore.program.isTracker ?
+                        <CircularProgress color="secondary"/> : ''}
+
+                    <Select
+                        placeholder="Select sheet"
+                        value={this.integrationStore.program.selectedSheet}
+                        options={this.integrationStore.program.sheets}
+                        onChange={this.integrationStore.program.setSelectedSheet}
+                        isClearable
+                        isSearchable
+                        styles={customStyles}
+                    />
                     <br/>
-                    <br/>
-                    <Summary displayResponse={true}/>
+                    {this.integrationStore.program.isTracker ? <Summary displayResponse={true}/> :
+                        <EventSummary displayResponse={true}/>}
+
+
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={this.integrationStore.closeUploadDialog} color="primary">
@@ -153,21 +140,13 @@ class Step0 extends React.Component {
                     <table width="100%">
                         <tbody>
                         <tr>
-                            <td width="50%">
+                            <td width="50%" colSpan={2}>
                                 <InputField
                                     label="URL"
                                     type="text"
                                     fullWidth
                                     value={this.integrationStore.program.url}
                                     onChange={(value) => this.integrationStore.program.handelURLChange(value)}/>
-                            </td>
-                            <td width="50%">
-                                <InputField
-                                    label="Response key"
-                                    type="text"
-                                    fullWidth
-                                    value={this.integrationStore.program.responseKey}
-                                    onChange={(value) => this.integrationStore.program.setResponseKey(value)}/>
                             </td>
                         </tr>
                         <tr>
@@ -193,7 +172,8 @@ class Step0 extends React.Component {
                     <br/>
                     <Params/>
                     <br/>
-                    <Summary displayResponse={true}/>
+                    {this.integrationStore.program.isTracker ? <Summary displayResponse={true}/> :
+                        <EventSummary displayResponse={true}/>}
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={this.integrationStore.closeImportDialog} color="primary">

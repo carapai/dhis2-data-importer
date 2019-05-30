@@ -388,6 +388,59 @@ class D2 extends React.Component {
         </div>
     };
 
+    organisationUnitMapping = () => {
+        return <div>
+            <Table>
+                <TableHead>
+                    <TableRow>
+                        <TableCell>
+                            Source Organisation Units
+                        </TableCell>
+                        <TableCell>
+                            Destination Organisation Units
+                        </TableCell>
+                    </TableRow>
+                </TableHead>
+                <TableBody>
+
+                    {this.integrationStore.sourceUnits.map(u => <TableRow hover key={u.id}>
+                        <TableCell>
+                            {u.name}
+                        </TableCell>
+                        <TableCell>
+                            <Select
+                                placeholder="Aggregation Level"
+                                value={u.mapping}
+                                options={this.integrationStore.dataSet.organisationUnits.map(ui => {
+                                    return {label: ui.name, value: ui.id}
+                                })}
+                                onChange={u.setMapping}
+                                isClearable
+                                isSearchable
+                            />
+                        </TableCell>
+                    </TableRow>)}
+
+                </TableBody>
+            </Table>
+
+            <TablePagination
+                component="div"
+                count={this.integrationStore.dataSet.sourceOrganisationUnits.length}
+                rowsPerPage={this.integrationStore.paging['d25']['rowsPerPage']}
+                page={this.integrationStore.paging['d25']['page']}
+                backIconButtonProps={{
+                    'aria-label': 'Previous Page',
+                }}
+                nextIconButtonProps={{
+                    'aria-label': 'Next Page',
+                }}
+                onChangePage={this.integrationStore.handleChangeElementPage('d25')}
+                onChangeRowsPerPage={this.integrationStore.handleChangeElementRowsPerPage('d25')}
+            />
+        </div>
+    }
+
 
     fixedOption = () => {
 
@@ -437,10 +490,58 @@ class D2 extends React.Component {
         </div>
     };
 
+    dataSetPeriod = () => {
+        return <Grid container spacing={8}>
+            <Grid item xs={12}>
+                <Checkbox checked={this.integrationStore.dataSet.multiplePeriods}
+                          onChange={this.integrationStore.dataSet.onCheckMultiplePeriods}
+                          value="checked"/> Multiple Periods
+
+                {this.integrationStore.dataSet.multiplePeriods ? <div>
+                    <Grid container spacing={8}>
+                        <Grid item xs={6}>
+                            <TextField
+                                id="startDate"
+                                label="Start Date"
+                                type="date"
+                                value={this.integrationStore.dataSet.startPeriod}
+                                InputLabelProps={{
+                                    shrink: true,
+                                }}
+                                onChange={this.integrationStore.dataSet.handleStartPeriodChange}
+                            />
+                        </Grid>
+
+                        <Grid item xs={6}>
+                            <TextField
+                                id="endDate"
+                                label="End Date"
+                                type="date"
+                                value={this.integrationStore.dataSet.endPeriod}
+                                InputLabelProps={{
+                                    shrink: true,
+                                }}
+                                onChange={this.integrationStore.dataSet.handleEndPeriodChange}
+                            />
+                        </Grid>
+                    </Grid>
+                </div> : <div>
+                    <PeriodPicker
+                        periodType={this.integrationStore.dataSet.periodType}
+                        onPickPeriod={(value) => this.integrationStore.dataSet.replaceParam(createParam({
+                            param: 'period',
+                            value: value
+                        }))}
+                    />
+                </div>}
+            </Grid>
+        </Grid>
+    };
+
     dhis2Indicators = () => {
         return <div>
             <Grid container spacing={8}>
-                <Grid item xs={6}>
+                <Grid item xs={12}>
                     <Select
                         placeholder="Aggregation Level"
                         value={this.integrationStore.dataSet.currentLevel}
@@ -450,82 +551,24 @@ class D2 extends React.Component {
                         isSearchable
                     />
                 </Grid>
-                <Grid item xs={6}>
-                    <PeriodPicker
-                        periodType={this.integrationStore.dataSet.periodType}
-                        onPickPeriod={(value) => this.integrationStore.dataSet.replaceParamByValue(createParam({
-                            param: 'dimension',
-                            value: `pe:${value}`
-                        }, 'pe:'))}
-                    />
-                </Grid>
             </Grid>
-
+            {this.dataSetPeriod()}
             <Grid container spacing={8}>
                 <Grid item xs={12}>
+                    {this.organisationUnitMapping()}
 
-                    <Table>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>
-                                    Source Organisation Units
-                                </TableCell>
-                                <TableCell>
-                                    Destination Organisation Units
-
-                                </TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-
-                            {this.integrationStore.sourceUnits.map(u => <TableRow hover key={u.id}>
-                                <TableCell>
-                                    {u.name}
-                                </TableCell>
-                                <TableCell>
-                                    <Select
-                                        placeholder="Aggregation Level"
-                                        value={u.mapping}
-                                        options={this.integrationStore.dataSet.organisationUnits.map(ui => {
-                                            return {label: ui.name, value: ui.id}
-                                        })}
-                                        onChange={u.setMapping}
-                                        isClearable
-                                        isSearchable
-                                    />
-                                </TableCell>
-                            </TableRow>)}
-
-                        </TableBody>
-                    </Table>
-
-                    <TablePagination
-                        component="div"
-                        count={this.integrationStore.dataSet.sourceOrganisationUnits.length}
-                        rowsPerPage={this.integrationStore.paging['d25']['rowsPerPage']}
-                        page={this.integrationStore.paging['d25']['page']}
-                        backIconButtonProps={{
-                            'aria-label': 'Previous Page',
-                        }}
-                        nextIconButtonProps={{
-                            'aria-label': 'Next Page',
-                        }}
-                        onChangePage={this.integrationStore.handleChangeElementPage('d25')}
-                        onChangeRowsPerPage={this.integrationStore.handleChangeElementRowsPerPage('d25')}
-                    />
                 </Grid>
             </Grid>
             <Grid container spacing={8}>
                 <Grid item xs={12}>
                     <InputField
                         id="filter"
-                        placeholder="Filter"
+                        placeholder="Filter indicators"
                         type="text"
                         fullWidth
                         value={this.integrationStore.dataSet.filterText}
                         onChange={(value) => this.integrationStore.dataSet.filterChange(value)}
                     />
-
                     <GroupEditor
                         itemStore={this.integrationStore.dataSet.itemStore}
                         assignedItemStore={this.integrationStore.dataSet.assignedItemStore}
@@ -565,52 +608,14 @@ class D2 extends React.Component {
                     />
                 </Grid>
             </Grid>
-
+            {this.dataSetPeriod()}
             <Grid container spacing={8}>
                 <Grid item xs={12}>
-                    <Checkbox checked={this.integrationStore.dataSet.multiplePeriods}
-                              onChange={this.integrationStore.dataSet.onCheckMultiplePeriods}
-                              value="checked"/> Multiple Periods
-
-                    {this.integrationStore.dataSet.multiplePeriods ? <div>
-                        <Grid container spacing={8}>
-                            <Grid item xs={6}>
-                                <TextField
-                                    id="startDate"
-                                    label="Start Date"
-                                    type="date"
-                                    value={this.integrationStore.dataSet.startPeriod}
-                                    InputLabelProps={{
-                                        shrink: true,
-                                    }}
-                                    onChange={this.integrationStore.dataSet.handleStartPeriodChange}
-                                />
-                            </Grid>
-
-                            <Grid item xs={6}>
-                                <TextField
-                                    id="endDate"
-                                    label="End Date"
-                                    type="date"
-                                    value={this.integrationStore.dataSet.endPeriod}
-                                    InputLabelProps={{
-                                        shrink: true,
-                                    }}
-                                    onChange={this.integrationStore.dataSet.handleEndPeriodChange}
-                                />
-                            </Grid>
-                        </Grid>
-                    </div> : <div>
-                        <PeriodPicker
-                            periodType={this.integrationStore.dataSet.periodType}
-                            onPickPeriod={(value) => this.integrationStore.dataSet.replaceParam(createParam({
-                                param: 'period',
-                                value: value
-                            }))}
-                        />
-                    </div>}
+                    {this.integrationStore.dataSet.dhis2DataSet ? this.organisationUnitMapping() : null}
                 </Grid>
             </Grid>
+
+
         </div>
     };
 

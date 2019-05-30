@@ -7,7 +7,6 @@ import Button from "@material-ui/core/Button";
 import Stepper from "@material-ui/core/Stepper";
 import Step from "@material-ui/core/Step";
 import StepButton from "@material-ui/core/StepButton";
-import Typography from "@material-ui/core/Typography";
 import D0 from "./aggregate/d0";
 import D1 from "./aggregate/d1";
 import D2 from "./aggregate/d2";
@@ -18,19 +17,12 @@ import D6 from "./aggregate/d6";
 import ImportType from "./aggregate/ImportType";
 
 const styles = theme => ({
-    card: {
-        margin: '5px'
-    },
     button: {
         marginRight: theme.spacing.unit,
     },
     instructions: {
-        marginTop: theme.spacing.unit,
-        marginBottom: theme.spacing.unit,
-    },
-    instructions2: {
-        marginTop: theme.spacing.unit,
-        marginBottom: theme.spacing.unit
+        margin: theme.spacing.unit,
+        // marginBottom: theme.spacing.unit,
     },
     space: {
         marginLeft: '5px;'
@@ -99,77 +91,67 @@ class Aggregate extends React.Component {
                         );
                     })}
                 </Stepper>
-                <div>
-                    {this.integrationStore.allAggregateStepsCompleted() ? (
-                        <div>
-                            <Typography className={classes.instructions2}>
-                                All steps completed - you&quot;re finished
-                            </Typography>
-                            <Button onClick={this.handleResetAggregate}>Reset</Button>
-                        </div>
-                    ) : (
-                        <div>
-                            <div
-                                className={classes.instructions}>{this.getStepContent(this.integrationStore.activeAggregateStep)}</div>
-                            <table width="100%" style={{marginTop: 20}}>
-                                <tbody>
-                                <tr>
-                                    <td width="33%" align="left">
-                                        <Button
-                                            disabled={this.integrationStore.activeAggregateStep === 0}
-                                            onClick={this.integrationStore.handleAggregateBack}
-                                            variant="contained"
-                                            color="secondary"
-                                            className={this.integrationStore.activeAggregateStep === 0 || this.integrationStore.activeAggregateStep >= 6 ? classes.hidden : classes.button}
-                                        >
-                                            Back
-                                        </Button>
-                                    </td>
-                                    <td width="34%" valign="top" align="center">
-                                        <Button
-                                            disabled={this.integrationStore.activeAggregateStep === 0}
-                                            onClick={this.integrationStore.handleResetAggregate}
-                                            variant="contained"
-                                            color="secondary"
-                                            className={this.integrationStore.activeAggregateStep < 2 ? classes.hidden : classes.button}
-                                        >
-                                            Cancel
-                                        </Button>
 
-                                        <Button
-                                            variant="contained"
-                                            color="primary"
-                                            onClick={this.integrationStore.saveAggregate}
-                                            className={this.integrationStore.activeAggregateStep < 3 ? classes.hidden : classes.button}
-                                        >
-                                           Save
-                                        </Button>
-                                    </td>
-                                    <td width="33%" valign="top" align="right">
-                                        <Button
-                                            disabled={this.integrationStore.disableNextAggregate}
-                                            variant="contained"
-                                            color="primary"
-                                            onClick={this.integrationStore.downloadAggregateData}
-                                            className={this.integrationStore.activeAggregateStep !== 5 ? classes.hidden : classes.button}
-                                        >
-                                            Download Payload
-                                        </Button>
-                                        <Button
-                                            disabled={this.integrationStore.disableNextAggregate}
-                                            variant="contained"
-                                            color="primary"
-                                            onClick={this.integrationStore.handleNextAggregate}
-                                            className={this.integrationStore.activeAggregateStep === 1 || this.integrationStore.activeAggregateStep > 7 ? classes.hidden : classes.button}
-                                        >
-                                            {this.integrationStore.nextAggregateLabel}
-                                        </Button>
-                                    </td>
-                                </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
+                <div className={classes.instructions}>
+                    <div
+                        style={{marginBottom: 20}}>{this.getStepContent(this.integrationStore.activeAggregateStep)}</div>
+                    <table width="100%">
+                        <tbody>
+                        <tr>
+                            <td width="33%" align="left">
+                                <Button
+                                    disabled={this.integrationStore.activeAggregateStep === 0}
+                                    onClick={this.integrationStore.handleAggregateBack}
+                                    variant="contained"
+                                    color="secondary"
+                                    className={this.integrationStore.activeAggregateStep === 0 || this.integrationStore.activeAggregateStep >= 6 ? classes.hidden : classes.button}
+                                >
+                                    Back
+                                </Button>
+                            </td>
+                            <td width="34%" valign="top" align="center">
+                                <Button
+                                    disabled={this.integrationStore.activeAggregateStep === 0}
+                                    onClick={this.integrationStore.handleResetAggregate}
+                                    variant="contained"
+                                    color="secondary"
+                                    className={this.integrationStore.activeAggregateStep < 2 ? classes.hidden : classes.button}
+                                >
+                                    Cancel
+                                </Button>
+
+                                <Button
+                                    variant="contained"
+                                    color="primary"
+                                    onClick={this.integrationStore.saveAggregate}
+                                    className={this.integrationStore.activeAggregateStep < 3 ? classes.hidden : classes.button}
+                                >
+                                    Save Mapping
+                                </Button>
+                            </td>
+                            <td width="33%" valign="top" align="right">
+                                <Button
+                                    disabled={this.integrationStore.disableNextAggregate}
+                                    variant="contained"
+                                    color="primary"
+                                    onClick={this.integrationStore.downloadAggregateData}
+                                    className={this.integrationStore.activeAggregateStep !== 5 ? classes.hidden : classes.button}
+                                >
+                                    Download Payload
+                                </Button>
+                                <Button
+                                    disabled={this.integrationStore.disableNextAggregate}
+                                    variant="contained"
+                                    color="primary"
+                                    onClick={this.integrationStore.handleNextAggregate}
+                                    className={this.integrationStore.activeAggregateStep === 1 || this.integrationStore.activeAggregateStep > 7 ? classes.hidden : classes.button}
+                                >
+                                    {this.integrationStore.nextAggregateLabel}
+                                </Button>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         );

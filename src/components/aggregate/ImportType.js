@@ -129,32 +129,13 @@ class ImportType extends React.Component {
                     <br/>
                     <br/>
                     <Select
-                        placeholder="Aggregation Level"
+                        placeholder="Import Type"
                         value={this.integrationStore.dataSet.templateType}
                         options={items}
                         onChange={this.integrationStore.handleRadioChange}
                         isClearable
                         isSearchable
                     />
-                    {/*<FormControl component="fieldset" className={classes.formControl}>
-                        <FormLabel component="legend">Import Type</FormLabel>
-                        <RadioGroup
-                            aria-label="Import Type"
-                            name="ImportType"
-                            row={true}
-                            className={classes.group}
-                            value={this.integrationStore.dataSet.templateType}
-                            onChange={this.integrationStore.handleRadioChange}
-                        >
-                            <FormControlLabel value="1" control={<Radio/>} label="Excel/CSV Listing 2 DHIS2 Data Set"/>
-                            <FormControlLabel value="2" control={<Radio/>} label="Excel Tabular Data 2 DHIS2 Data Set"/>
-                            <FormControlLabel value="3" control={<Radio/>} label="Excel Form 2 DHIS2 Data Set"/>
-                            <FormControlLabel value="4" control={<Radio/>} label="DHIS2 Data Set 2 DHIS2 Data Set"/>
-                            <FormControlLabel value="5" control={<Radio/>} label="DHIS2 Indicators 2 DHIS2 Data Set"/>
-                            <FormControlLabel value="6" control={<Radio/>} label="Rest API 2 DHIS2 Data Set"/>
-
-                        </RadioGroup>
-                    </FormControl>*/}
                 </Grid>
             </Grid>
 
