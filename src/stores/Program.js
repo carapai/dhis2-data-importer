@@ -417,6 +417,12 @@ class Program {
                     }
 
                     await this.searchTrackedEntities();
+
+                    if (!this.isTracker) {
+                        const programStage = this.programStages[0];
+                        await programStage.findEventsByDates(this);
+                        await programStage.findEventsByElements(this);
+                    }
                     this.setLastRun(moment(new Date()).format('YYYY-MM-DD HH:mm:ss'));
 
                     this.closeDialog();
@@ -1225,7 +1231,7 @@ class Program {
     @computed
     get processed() {
         if (this.isTracker) {
-            return processProgramData(this.data, this, this.uniqueColumn, this.searchedInstances, this.isTracker);
+            return processProgramData(this.data, this, this.uniqueColumn, this.searchedInstances);
         } else {
             const programStage = this.programStages[0];
             return processEvents(this, this.data, programStage.eventsByDate, programStage.eventsByDataElement);

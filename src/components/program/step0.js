@@ -4,7 +4,6 @@ import {withStyles} from "@material-ui/core/styles";
 import {inject, observer} from "mobx-react";
 import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
-import Icon from '@material-ui/core/Icon';
 import Dropzone from 'react-dropzone';
 import red from '@material-ui/core/colors/red';
 import {InputField} from "@dhis2/d2-ui-core";

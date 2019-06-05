@@ -87,7 +87,7 @@
   },
   "scripts": {
     "start": "node scripts/start.js",
-    "build": "node scripts/build.js && cd build && zip -r -D data-importer.zip .",
+    "build": "node scripts/build.js && cd build && zip -r -D data-importer-wizard.zip .",
     "test": "node scripts/test.js"
   },
   "eslintConfig": {
@@ -162,6 +162,6 @@
   "devDependencies": {
     "@babel/plugin-proposal-class-properties": "^7.1.0",
     "@babel/plugin-proposal-decorators": "^7.1.2",
-    "json-server": "^0.14.2"
+    "json-server": "^0.15.0"
   }
 }

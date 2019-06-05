@@ -19,7 +19,6 @@ class Schedule {
 
         if (this.value) {
             const mapping = this.value.value;
-            console.log(mapping);
             if (mapping.periodType) {
                 this.schedule = mapping.periodType;
             }

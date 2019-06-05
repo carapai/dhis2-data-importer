@@ -129,6 +129,7 @@ class ProgramStage {
                 });
             });
             const data = await Promise.all(all);
+            console.log(data);
             const processed = data.filter(response => {
                 return response.events.length > 0;
             }).map(response => {

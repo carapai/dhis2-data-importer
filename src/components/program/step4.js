@@ -90,24 +90,6 @@ class Step4 extends React.Component {
                                             />}
                                         label="Create new events"
                                     />
-                                    <FormControlLabel
-                                        control={
-                                            <Checkbox
-                                                checked={n.eventDateIdentifiesEvent}
-                                                onChange={program.isTracker ? n.makeEventDateAsIdentifier({}) : n.makeEventDateAsIdentifier(program)}
-                                            />
-                                        }
-                                        label="Event Date Uniquely Identifies Event"
-                                    />
-                                    <FormControlLabel
-                                        control={
-                                            <Checkbox
-                                                checked={n.completeEvents}
-                                                onChange={n.markEventsAsComplete}
-                                            />
-                                        }
-                                        label="Mark events as complete"
-                                    />
                                 </Grid>
                             </Grid>
                             <br/>
@@ -145,7 +127,29 @@ class Step4 extends React.Component {
                                         onChange={n.setLongitudeColumn}
                                     />
                                 </Grid>
+                            </Grid>
 
+                            <Grid spacing={8} container>
+                                <Grid item xs={12}>
+                                    <FormControlLabel
+                                        control={
+                                            <Checkbox
+                                                checked={n.eventDateIdentifiesEvent}
+                                                onChange={program.isTracker ? n.makeEventDateAsIdentifier({}) : n.makeEventDateAsIdentifier(program)}
+                                            />
+                                        }
+                                        label="Event Date Uniquely Identifies Event"
+                                    />
+                                    <FormControlLabel
+                                        control={
+                                            <Checkbox
+                                                checked={n.completeEvents}
+                                                onChange={n.markEventsAsComplete}
+                                            />
+                                        }
+                                        label="Mark events as complete"
+                                    />
+                                </Grid>
                             </Grid>
 
                             <InputField

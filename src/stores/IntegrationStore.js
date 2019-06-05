@@ -690,26 +690,35 @@ class IntegrationStore {
 
 
     @action fetchSavedSchedules = async () => {
-        let foundSchedules = [];
         try {
             const namespace = await this.d2.dataStore.get('bridge');
             const schedules = await namespace.get('schedules');
-            foundSchedules = convertSchedules(schedules);
+            let foundSchedules = convertSchedules(schedules);
+            const all = foundSchedules.map(async s => {
+                return callAxios2(s.url + '/info', {});
+            });
+            const data = await Promise.all(all);
 
-            foundSchedules = foundSchedules.map(async s => {
-                const data = await callAxios2(s.url + '/info', {});
-                const val = data[s.name];
-                if (val) {
-                    s.setLast(val.last);
-                    s.setNext(val.next);
+            let obj = {};
+
+            data.forEach(d => {
+                obj = {...obj, ...d}
+            });
+
+            const processed = foundSchedules.map(s => {
+                const cs = obj[s.name];
+
+                if (cs !== null && cs !== undefined) {
+                    s = {...s, ...cs}
                 }
+
                 return s;
             });
 
-            this.setSchedules(foundSchedules);
+            this.setSchedules(processed);
             await this.saveSchedules()
         } catch (e) {
-            this.setSchedules(foundSchedules)
+            // this.setSchedules(foundSchedules)
         }
     };
 
