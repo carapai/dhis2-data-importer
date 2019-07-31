@@ -25,7 +25,7 @@ const styles = theme => ({
 
 const items = [
     {label: 'Excel/CSV Listing', value: "1"},
-    {label: 'Rest API', value: "2"},
+    {label: 'Other Systems via API (REST)', value: "2"},
 ];
 
 

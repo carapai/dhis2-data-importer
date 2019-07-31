@@ -17,9 +17,6 @@ import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import FormHelperText from "@material-ui/core/FormHelperText";
 import {InputField} from '@dhis2/d2-ui-core';
 import {inject, observer} from "mobx-react";
-import Tooltip from "@material-ui/core/Tooltip";
-import TableSortLabel from "@material-ui/core/TableSortLabel";
-
 import Button from '@material-ui/core/Button';
 import DialogTitle from "@material-ui/core/DialogTitle";
 import List from "@material-ui/core/List";
@@ -29,6 +26,8 @@ import Dialog from "@material-ui/core/Dialog";
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import {Clear, Done} from "@material-ui/icons";
 import Grid from "@material-ui/core/Grid";
+import {GreenCheckbox} from "../common";
+import customStyles from "../customStyles";
 
 
 const styles = theme => ({
@@ -76,7 +75,7 @@ class Step4 extends React.Component {
                                 <Grid item xs={12}>
                                     <FormControlLabel
                                         control={
-                                            <Checkbox
+                                            <GreenCheckbox
                                                 checked={n.updateEvents}
                                                 onChange={n.handleUpdateEventsCheck}
                                             />}
@@ -84,7 +83,7 @@ class Step4 extends React.Component {
                                     />
                                     <FormControlLabel
                                         control={
-                                            <Checkbox
+                                            <GreenCheckbox
                                                 checked={n.createNewEvents}
                                                 onChange={n.handleCreateNewEventsCheck}
                                             />}
@@ -103,6 +102,7 @@ class Step4 extends React.Component {
                                         options={program.columns}
                                         value={n.eventDateColumn}
                                         onChange={n.setEventDateColumn(program.columns)}
+                                        styles={customStyles}
                                     />
                                 </Grid>
                                 <Grid item xs={4}>
@@ -114,6 +114,7 @@ class Step4 extends React.Component {
                                         options={program.columns}
                                         value={n.latitudeColumn}
                                         onChange={n.setLatitudeColumn}
+                                        styles={customStyles}
                                     />
                                 </Grid>
                                 <Grid item xs={4}>
@@ -125,6 +126,7 @@ class Step4 extends React.Component {
                                         options={program.columns}
                                         value={n.longitudeColumn}
                                         onChange={n.setLongitudeColumn}
+                                        styles={customStyles}
                                     />
                                 </Grid>
                             </Grid>
@@ -133,7 +135,7 @@ class Step4 extends React.Component {
                                 <Grid item xs={12}>
                                     <FormControlLabel
                                         control={
-                                            <Checkbox
+                                            <GreenCheckbox
                                                 checked={n.eventDateIdentifiesEvent}
                                                 onChange={program.isTracker ? n.makeEventDateAsIdentifier({}) : n.makeEventDateAsIdentifier(program)}
                                             />
@@ -142,7 +144,7 @@ class Step4 extends React.Component {
                                     />
                                     <FormControlLabel
                                         control={
-                                            <Checkbox
+                                            <GreenCheckbox
                                                 checked={n.completeEvents}
                                                 onChange={n.markEventsAsComplete}
                                             />
@@ -163,41 +165,12 @@ class Step4 extends React.Component {
                             <Table className={classes.table}>
                                 <TableHead>
                                     <TableRow>
-
-                                        <TableCell
-                                            sortDirection={n.orderBy === 'displayName' ? n.order : false}>
-                                            <Tooltip
-                                                title="Sort"
-                                                placement="bottom-start"
-                                                enterDelay={300}>
-                                                <TableSortLabel
-                                                    active={n.orderBy === 'displayName'}
-                                                    direction={n.order}
-                                                    onClick={n.createSortHandler('displayName')}
-                                                >
-                                                    Data Element Name
-                                                </TableSortLabel>
-                                            </Tooltip>
-                                        </TableCell>
-                                        <TableCell
-                                            sortDirection={n.orderBy === 'compulsory' ? n.order : false}>
-                                            <Tooltip
-                                                title="Sort"
-                                                placement="bottom-start"
-                                                enterDelay={300}>
-                                                <TableSortLabel
-                                                    active={n.orderBy === 'compulsory'}
-                                                    direction={n.order}
-                                                    onClick={n.createSortHandler('compulsory')}
-                                                >
-                                                    Compulsory
-                                                </TableSortLabel>
-                                            </Tooltip>
-                                        </TableCell>
-                                        <TableCell>Uniquely Identifies Event</TableCell>
+                                        <TableCell style={{width:30}}>Compulsory</TableCell>
+                                        <TableCell>Data Element Name</TableCell>
                                         <TableCell>Data Element Mapping</TableCell>
-                                        <TableCell>Options Mapping</TableCell>
-                                        <TableCell>Mapping Status</TableCell>
+                                        <TableCell style={{width:30}}>Uniquely Identifies Event</TableCell>
+                                        <TableCell style={{width:30}}>Options Mapping</TableCell>
+                                        <TableCell style={{width:30}}>Mapping Status</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
@@ -260,14 +233,10 @@ class Step4 extends React.Component {
                                         return (
                                             <TableRow key={s.dataElement.id} hover>
                                                 <TableCell>
-                                                    {s.dataElement.displayName}
-                                                </TableCell>
-                                                <TableCell>
                                                     <Checkbox disabled checked={s['compulsory']}/>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Checkbox checked={s.dataElement.identifiesEvent}
-                                                              onChange={n.makeElementAsIdentifier(s, program)}/>
+                                                    {s.dataElement.displayName}
                                                 </TableCell>
                                                 <TableCell>
                                                     <Select
@@ -277,8 +246,14 @@ class Step4 extends React.Component {
                                                         value={s.column}
                                                         options={program.columns}
                                                         onChange={s.setColumn}
+                                                        styles={customStyles}
                                                     />
                                                 </TableCell>
+                                                <TableCell>
+                                                    <GreenCheckbox checked={s.dataElement.identifiesEvent}
+                                                              onChange={n.makeElementAsIdentifier(s, program)}/>
+                                                </TableCell>
+
                                                 <TableCell>
                                                     {de}
                                                 </TableCell>

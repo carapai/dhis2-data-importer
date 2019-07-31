@@ -8,19 +8,14 @@ import TableCell from "@material-ui/core/TableCell";
 import TableHead from "@material-ui/core/TableHead";
 import TableRow from "@material-ui/core/TableRow";
 import TablePagination from "@material-ui/core/TablePagination";
-import TableSortLabel from '@material-ui/core/TableSortLabel';
 import FormHelperText from "@material-ui/core/FormHelperText";
-import Tooltip from '@material-ui/core/Tooltip';
 import {InputField} from '@dhis2/d2-ui-core';
 
 import {inject, observer} from "mobx-react";
 import Button from "@material-ui/core/Button";
 import Dialog from "@material-ui/core/Dialog";
-import DialogTitle from "@material-ui/core/DialogTitle";
-import List from "@material-ui/core/List";
-import ListItem from "@material-ui/core/ListItem";
-import ListItemText from "@material-ui/core/ListItemText";
 import {Clear, Done} from "@material-ui/icons";
+import {DialogActions, DialogContent, DialogTitle} from "../Fragments";
 
 
 const styles = theme => ({
@@ -63,54 +58,18 @@ class Step3 extends React.Component {
             <Table className={classes.table}>
                 <TableHead>
                     <TableRow>
-                        <TableCell
-                            sortDirection={program.orderBy === 'displayName' ? program.order : false}>
-                            <Tooltip
-                                title="Sort"
-                                placement="bottom-start"
-                                enterDelay={300}>
-                                <TableSortLabel
-                                    active={program.orderBy === 'displayName'}
-                                    direction={program.order}
-                                    onClick={program.createSortHandler('displayName')}
-                                >
-                                    Attribute name
-                                </TableSortLabel>
-                            </Tooltip>
+                        <TableCell style={{width: 30}}>
+                            Unique
                         </TableCell>
-                        <TableCell
-                            sortDirection={program.orderBy === 'unique' ? program.order : false}>
-                            <Tooltip
-                                title="Sort"
-                                placement="bottom-start"
-                                enterDelay={300}>
-                                <TableSortLabel
-                                    active={program.orderBy === 'unique'}
-                                    direction={program.order}
-                                    onClick={program.createSortHandler('unique')}
-                                >
-                                    Unique
-                                </TableSortLabel>
-                            </Tooltip>
+                        <TableCell style={{width: 30}}>
+                            Mandatory
                         </TableCell>
-                        <TableCell
-                            sortDirection={program.orderBy === 'mandatory' ? program.order : false}>
-                            <Tooltip
-                                title="Sort"
-                                placement="bottom-start"
-                                enterDelay={300}>
-                                <TableSortLabel
-                                    active={program.orderBy === 'mandatory'}
-                                    direction={program.order}
-                                    onClick={program.createSortHandler('mandatory')}
-                                >
-                                    Mandatory
-                                </TableSortLabel>
-                            </Tooltip>
+                        <TableCell>
+                            Attribute name
                         </TableCell>
                         <TableCell>Attribute mapping</TableCell>
-                        <TableCell>Options Mapping</TableCell>
-                        <TableCell>Mapping Status</TableCell>
+                        <TableCell style={{width: 50}}>Options Mapping</TableCell>
+                        <TableCell style={{width: 50}}>Mapping Status</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -122,16 +81,18 @@ class Step3 extends React.Component {
 
                                 <Dialog onClose={n.handleClose} open={n.open}
                                         aria-labelledby="simple-dialog-title">
-                                    <DialogTitle id="simple-dialog-title">Mapping options</DialogTitle>
-                                    <div>
+                                    {/*<DialogTitle id="simple-dialog-title">Mapping options</DialogTitle>*/}
+                                    <DialogTitle id="alert-dialog-title"
+                                                 onClose={n.handleClose}>Mapping options</DialogTitle>
+                                    <DialogContent>
                                         <Table className={classes.table}>
                                             <TableHead>
                                                 <TableRow>
                                                     <TableCell>
-                                                        Option
+                                                        Destination Option
                                                     </TableCell>
                                                     <TableCell>
-                                                        Value
+                                                        Source Option
                                                     </TableCell>
                                                 </TableRow>
                                             </TableHead>
@@ -155,25 +116,32 @@ class Step3 extends React.Component {
                                                 })}
                                             </TableBody>
                                         </Table>
-                                        <List>
-                                            <ListItem button onClick={() => n.handleClose()}>
-                                                <ListItemText primary="Close"/>
-                                            </ListItem>
-                                        </List>
-                                    </div>
+                                    </DialogContent>
+
+                                    <DialogActions>
+                                        <Button onClick={n.handleClose} color="secondary">
+                                            Cancel
+                                        </Button>
+                                        <Button
+                                            variant="contained"
+                                            color="primary"
+                                            onClick={n.handleClose}>
+                                            OK
+                                        </Button>
+                                    </DialogActions>
                                 </Dialog>
                             </div>;
                         }
                         return (
                             <TableRow key={n.trackedEntityAttribute.id} hover>
                                 <TableCell>
-                                    {n.trackedEntityAttribute.displayName}
-                                </TableCell>
-                                <TableCell>
                                     <Checkbox disabled checked={n.trackedEntityAttribute.unique}/>
                                 </TableCell>
                                 <TableCell>
                                     <Checkbox disabled checked={n.mandatory}/>
+                                </TableCell>
+                                <TableCell>
+                                    {n.trackedEntityAttribute.displayName}
                                 </TableCell>
                                 <TableCell>
                                     <Select
@@ -197,9 +165,6 @@ class Step3 extends React.Component {
                     })}
                 </TableBody>
             </Table>
-
-            {/*<pre>{JSON.stringify(this.integrationStore.attributes, null, 2)}</pre>*/}
-
             <TablePagination
                 component="div"
                 count={program.allAttributes}

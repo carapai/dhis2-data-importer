@@ -2,15 +2,12 @@ import React, {Component} from "react";
 import {inject, observer} from "mobx-react";
 import {Table, TableBody, TableCell, TableHead, TableRow, withStyles} from "@material-ui/core";
 import red from "@material-ui/core/colors/red";
-// import {InputField} from "@dhis2/d2-ui-core";
 import Button from "@material-ui/core/Button";
 import Input from "@material-ui/core/Input";
 import FormControlLabel from "@material-ui/core/FormControlLabel";
-import Checkbox from "@material-ui/core/Checkbox";
 import FormControl from "@material-ui/core/FormControl";
-// import FormLabel from "@material-ui/core/FormLabel";
 import RadioGroup from "@material-ui/core/RadioGroup";
-import Radio from "@material-ui/core/Radio";
+import {GreenCheckbox, GreenRadio} from "../common";
 
 const styles = theme => ({
     icon: {
@@ -69,7 +66,7 @@ class Params extends Component {
                     <TableCell>
                         <FormControlLabel
                             control={
-                                <Checkbox
+                                <GreenCheckbox
                                     checked={p.isPeriod}
                                     onChange={p.handleIsPeriodChange}
                                 />
@@ -78,7 +75,7 @@ class Params extends Component {
                         />
                     </TableCell>
                     <TableCell>
-                        <FormControl component="fieldset" >
+                        <FormControl component="fieldset">
                             <RadioGroup
                                 aria-label="startEnd"
                                 name="startEnd"
@@ -86,13 +83,16 @@ class Params extends Component {
                                 value={p.periodType}
                                 onChange={p.handlePeriodTypeChange}
                             >
-                                <FormControlLabel value="1" control={<Radio disabled={!p.isPeriod}/>} label="Is Start"/>
-                                <FormControlLabel value="2" control={<Radio disabled={!p.isPeriod}/>} label="Is End"/>
+                                <FormControlLabel value="1" control={<GreenRadio disabled={!p.isPeriod}/>}
+                                                  label="Is Start"/>
+                                <FormControlLabel value="2" control={<GreenRadio disabled={!p.isPeriod}/>}
+                                                  label="Is End"/>
                             </RadioGroup>
                         </FormControl>
                     </TableCell>
                     <TableCell>
-                        <Button id="deleteBtn" color="secondary" onClick={this.integrationStore.program.removeParam(i)}>Remove</Button>
+                        <Button id="deleteBtn" color="secondary"
+                                onClick={this.integrationStore.program.removeParam(i)}>Remove</Button>
                     </TableCell>
                 </TableRow>)}
                 <TableRow>

@@ -115,6 +115,7 @@ module.exports = {
     // Point sourcemap entries to original disk location (format as URL on Windows)
     devtoolModuleFilenameTemplate: info =>
       path.resolve(info.absoluteResourcePath).replace(/\\/g, '/'),
+    globalObject: 'this'
   },
   optimization: {
     // Automatically split vendor and commons
@@ -186,7 +187,7 @@ module.exports = {
             options: {
               formatter: require.resolve('react-dev-utils/eslintFormatter'),
               eslintPath: require.resolve('eslint'),
-              
+
             },
             loader: require.resolve('eslint-loader'),
           },
@@ -209,6 +210,30 @@ module.exports = {
               name: 'static/media/[name].[hash:8].[ext]',
             },
           },
+          {
+            test: /\.worker\.(js|jsx|mjs)$/,
+            include: paths.appSrc,
+            use: [
+              require.resolve('worker-loader'),
+              // This loader parallelizes code compilation, it is optional but
+              // improves compile time on larger projects
+              require.resolve('thread-loader'),
+              {
+                loader: require.resolve('babel-loader'),
+                options: {
+                  // @remove-on-eject-begin
+                  babelrc: false,
+                  presets: [require.resolve('babel-preset-react-app')],
+                  // @remove-on-eject-end
+                  // This is a feature of `babel-loader` for webpack (not Babel itself).
+                  // It enables caching results in ./node_modules/.cache/babel-loader/
+                  // directory for faster rebuilds.
+                  cacheDirectory: true,
+                  highlightCode: true
+                },
+              },
+            ],
+          },
           // Process application JS with Babel.
           // The preset includes JSX, Flow, and some ESnext features.
           {
@@ -219,7 +244,7 @@ module.exports = {
               customize: require.resolve(
                 'babel-preset-react-app/webpack-overrides'
               ),
-              
+
               plugins: [
                 [
                   require.resolve('babel-plugin-named-asset-import'),
@@ -259,7 +284,7 @@ module.exports = {
               cacheDirectory: true,
               // Don't waste time on Gzipping the cache
               cacheCompression: false,
-              
+
               // If an error happens in a package, it's possible to be
               // because it was compiled. Thus, we don't want the browser
               // debugger to show the original code. Instead, the code

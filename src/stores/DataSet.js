@@ -9,17 +9,18 @@ import {
 } from "../utils/utils";
 
 import {
-    callAxios
+    callAxios,
+    postAxios
 } from '../utils/data-utils'
 import {processMergedCells} from './converters'
-import axios from "axios";
 import {generate} from 'shortid';
 import {NotificationManager} from "react-notifications";
 import Param from "./Param";
 import {Store as GroupStore} from '@dhis2/d2-ui-core';
 import OrganisationUnit from "./OrganisationUnit";
+import moment from "moment";
 
-// import alasql from 'alasql';
+import myWorker from './app.worker';
 
 
 class DataSet {
@@ -119,8 +120,8 @@ class DataSet {
     @observable completeDataSet = true;
     @observable multiplePeriods = false;
 
-    @observable startPeriod = '2017-05-24';
-    @observable endPeriod = '2017-05-24';
+    @observable startPeriod = moment().subtract(3, 'months').format('YYYY-MM-DD');
+    @observable endPeriod = moment().format('YYYY-MM-DD');
 
     @observable itemStore = GroupStore.create();
     @observable assignedItemStore = GroupStore.create();
@@ -130,8 +131,31 @@ class DataSet {
     @observable dataIndicators = false;
     @observable proIndicators = true;
     @observable message = '';
+    @observable scheduleServerUrl = 'http://localhost:3001';
+    @observable useProxy = false;
+    @observable proxy = '';
+
+    constructor() {
+        this.worker = new myWorker();
+        this.worker.addEventListener('message', async event => {
+            this.setWorkbook(event.data);
+
+            const sheets = this.workbook.SheetNames.map(s => {
+                return {label: s, value: s}
+            });
+
+            if (sheets.length > 0) {
+                this.setSelectedSheet(sheets[0]);
+                this.setWorkSheet(this.workbook.Sheets[this.selectedSheet.value]);
+            }
+            this.setSheets(sheets);
+            this.setTemplate(1);
+        });
+    }
+
 
     @action setDialogOpen = val => this.dialogOpen = val;
+    @action setProxy = val => this.proxy = val;
     @action openDialog = () => this.setDialogOpen(true);
     @action closeDialog = () => this.setDialogOpen(false);
 
@@ -199,7 +223,26 @@ class DataSet {
     @action setSheets = val => this.sheets = val;
     @action setDataSets = val => this.dataSets = val;
 
-    @action setOrgUnitColumn = val => this.orgUnitColumn = val;
+    @action setOrgUnitColumn = val => {
+        this.orgUnitColumn = val;
+        if (this.templateType && this.templateType.value === '2' && !_.isEmpty(this.rowData) && this.orgUnitColumn) {
+
+            let units = this.rows.map(r => {
+                const oCell = this.orgUnitColumn.value + r;
+                const ouVal = this.data[oCell];
+                const ou = ouVal ? ouVal['v'] : '';
+                return new OrganisationUnit('', ou, '');
+            }).filter(ou => ou.name !== '');
+            this.convertAndMakeDefault(units, this.organisationUnits);
+            this.convertAndMakeDefault(units, this.organisationUnits);
+        } else if (!_.isEmpty(this.rowData) && _.isArray(this.rowData) && this.orgUnitColumn) {
+            let units = this.rowData.map(d => {
+                return new OrganisationUnit('', d[this.orgUnitColumn.value], '');
+            });
+            this.convertAndMakeDefault(units, this.organisationUnits);
+        }
+    };
+
     @action setOrgUnitStrategy = val => this.orgUnitStrategy = val;
     @action setPeriodColumn = val => this.periodColumn = val;
     @action setDataStartColumn = val => this.dataStartColumn = val;
@@ -245,6 +288,7 @@ class DataSet {
     @action setPassword = val => this.password = val;
     @action setResponseKey = val => this.responseKey = val;
     @action setSourceOrganisationUnits = val => this.sourceOrganisationUnits = val;
+    @action setUseProxy = val => this.useProxy = val;
     @action setCurrentLevel = async val => {
         this.openDialog();
         this.currentLevel = val;
@@ -293,7 +337,7 @@ class DataSet {
     @action setParams = val => this.params = val;
     @action setMappingName = val => this.mappingName = val;
     @action setMappingDescription = val => this.mappingDescription = val;
-
+    @action setSourceOrganisationUnit = val => this.sourceOrganisationUnits = val;
     @action setStartPeriod = val => this.startPeriod = val;
     @action setEndPeriod = val => this.endPeriod = val;
 
@@ -387,9 +431,6 @@ class DataSet {
         this.replaceParam(param);
 
         let period;
-
-        console.log(this.startPeriod, this.endPeriod, this.addition, this.additionFormat)
-
         if (this.startPeriod && this.endPeriod && this.addition && this.additionFormat) {
             const periods = enumerateDates(this.startPeriod, this.endPeriod, this.addition, this.additionFormat);
             let index = Math.round(periods.length / 2);
@@ -400,9 +441,6 @@ class DataSet {
 
             this.replaceParam(param);
         }
-        console.log('What is going on');
-        // await this.pullData();
-
     };
 
     @action
@@ -419,12 +457,22 @@ class DataSet {
             this.replaceParam(p);
             const urlBase = this.getDHIS2Url();
             const url = `${urlBase}/dataSets/${val.value}.json`;
-            const dataSet = await this.getAxiosData(url, {
-                fields: 'id,name,code,periodType,dataSetElements[dataElement[id,name,code,valueType,categoryCombo[id,name,categoryOptionCombos[id,name]]]],organisationUnits[id,name,code]'
-            });
+            let dataSet;
+            if (this.useProxy) {
+                dataSet = await postAxios(`${this.scheduleServerUrl}/data`, {
+                    username: this.username,
+                    password: this.password,
+                    url,
+                    params: {
+                        fields: 'id,name,code,periodType,dataSetElements[dataElement[id,name,code,valueType,categoryCombo[id,name,categoryOptionCombos[id,name]]]],organisationUnits[id,name,code]'
+                    }
+                });
+            } else {
+                dataSet = await callAxios(url, {
+                    fields: 'id,name,code,periodType,dataSetElements[dataElement[id,name,code,valueType,categoryCombo[id,name,categoryOptionCombos[id,name]]]],organisationUnits[id,name,code]'
+                }, this.username, this.password)
+            }
             this.setDhis2DataSet(dataSet);
-
-
             const ous = this.dhis2DataSet.organisationUnits.map(ou => {
                 const org = new OrganisationUnit(ou.id, ou.name, ou.code);
                 let foundOU = undefined;
@@ -463,35 +511,45 @@ class DataSet {
         }
     };
 
-    @action autoMapUnits = async () => {
-        let organisations = await this.pullOrganisationUnits();
-        organisations = organisations.map(ou => {
-            const org = new OrganisationUnit(ou.id, ou.name, ou.code);
-
-            const foundOU = _.find(this.organisationUnits, o => {
-                return o.id === ou.id || o.code === ou.code || ou.name === o.name;
-            });
-
-            if (foundOU) {
-                org.setMapping({label: foundOU.name, value: foundOU.id});
-            }
-
-            return org
-
-        });
-        this.setSourceOrganisationUnits(organisations)
-    };
-
     @action loadLevelsAndDataSets = async () => {
         const urlBase = this.getDHIS2Url();
         if (urlBase) {
             const dataSetUrl = urlBase + '/dataSets.json';
             const orgUnitLevelUrl = urlBase + '/organisationUnitLevels.json';
 
-            const levelResponse = await this.getAxiosData(orgUnitLevelUrl, {
-                paging: false,
-                fields: 'name,level'
-            });
+            let levelResponse;
+            let data;
+
+            if (this.useProxy) {
+                levelResponse = await postAxios(this.proxy, {
+                    username: this.username,
+                    password: this.password,
+                    url: orgUnitLevelUrl,
+                    params: {
+                        paging: false,
+                        fields: 'name,level'
+                    }
+                });
+                data = await postAxios(this.proxy, {
+                    username: this.username,
+                    password: this.password,
+                    url: dataSetUrl,
+                    params: {
+                        paging: false,
+                        fields: 'id,name'
+                    }
+                });
+            } else {
+                levelResponse = await callAxios(orgUnitLevelUrl, {
+                    paging: false,
+                    fields: 'name,level'
+                }, this.username, this.password);
+
+                data = await callAxios(dataSetUrl, {
+                    paging: false,
+                    fields: 'id,name'
+                }, this.username, this.password);
+            }
 
             if (levelResponse) {
                 const levels = levelResponse.organisationUnitLevels.map(l => {
@@ -500,11 +558,6 @@ class DataSet {
 
                 this.setLevels(levels);
             }
-
-            const data = await this.getAxiosData(dataSetUrl, {
-                paging: false,
-                fields: 'id,name'
-            });
 
             if (data) {
                 const dataSets = data.dataSets.map(d => {
@@ -522,13 +575,74 @@ class DataSet {
             const indicatorUrl = urlBase + '/indicators.json';
             const orgUnitLevelUrl = urlBase + '/organisationUnitLevels.json';
             const programIndicatorUrl = urlBase + '/programIndicators.json';
+            let levelResponse;
+            let programIndicatorResponse;
+            let indicatorResponse;
 
+            let items1 = [];
+            let items2 = [];
 
             try {
-                const levelResponse = await this.getAxiosData(orgUnitLevelUrl, {
-                    paging: false,
-                    fields: 'name,level'
-                });
+
+                if (this.useProxy) {
+                    levelResponse = await postAxios(this.proxy, {
+                        username: this.username,
+                        password: this.password,
+                        url: orgUnitLevelUrl,
+                        params: {
+                            paging: false,
+                            fields: 'name,level'
+                        }
+                    });
+
+                    if (this.proIndicators) {
+                        programIndicatorResponse = await postAxios(this.proxy, {
+                            username: this.username,
+                            password: this.password,
+                            url: programIndicatorUrl,
+                            params: {
+                                paging: false,
+                                fields: 'id,name'
+                            }
+                        });
+
+                    }
+
+                    if (this.dataIndicators) {
+                        indicatorResponse = await postAxios(this.proxy, {
+                            username: this.username,
+                            password: this.password,
+                            url: indicatorUrl,
+                            params: {
+                                paging: false,
+                                fields: 'id,name'
+                            }
+                        });
+                    }
+
+
+                } else {
+                    levelResponse = await callAxios(orgUnitLevelUrl, {
+                        paging: false,
+                        fields: 'name,level'
+                    }, this.username, this.password);
+
+
+                    if (this.proIndicators) {
+                        programIndicatorResponse = await callAxios(programIndicatorUrl, {
+                            paging: false,
+                            fields: 'id,name'
+                        }, this.username, this.password);
+                    }
+
+                    if (this.dataIndicators) {
+                        indicatorResponse = await callAxios(indicatorUrl, {
+                            paging: false,
+                            fields: 'id,name'
+                        }, this.username, this.password);
+                    }
+
+                }
 
                 if (levelResponse) {
                     const levels = levelResponse.organisationUnitLevels.map(l => {
@@ -538,40 +652,25 @@ class DataSet {
                     this.setLevels(levels);
                 }
 
-                let items1 = [];
-                let items2 = [];
 
-                if (this.proIndicators) {
-                    const programIndicatorResponse = await this.getAxiosData(programIndicatorUrl, {
-                        paging: false,
-                        fields: 'id,name'
+                if (programIndicatorResponse) {
+                    items2 = programIndicatorResponse.programIndicators.map(attribute => {
+                        return {
+                            text: attribute.name,
+                            value: attribute.id
+                        };
                     });
-
-                    if (programIndicatorResponse) {
-                        items2 = programIndicatorResponse.programIndicators.map(attribute => {
-                            return {
-                                text: attribute.name,
-                                value: attribute.id
-                            };
-                        });
-                    }
                 }
 
-                if (this.dataIndicators) {
-                    const indicatorResponse = await this.getAxiosData(indicatorUrl, {
-                        paging: false,
-                        fields: 'id,name'
+                if (indicatorResponse) {
+                    items1 = indicatorResponse.indicators.map(attribute => {
+                        return {
+                            text: attribute.name,
+                            value: attribute.id
+                        };
                     });
-
-                    if (indicatorResponse) {
-                        items1 = indicatorResponse.indicators.map(attribute => {
-                            return {
-                                text: attribute.name,
-                                value: attribute.id
-                            };
-                        });
-                    }
                 }
+
 
                 const indicators = [...items1, ...items2];
                 this.setIndicators(indicators);
@@ -604,6 +703,8 @@ class DataSet {
         if (this.templateType && (this.templateType.value === '4' || this.templateType.value === '5') && this.url !== '' && this.username !== '' && this.password !== '') {
             try {
                 const url = new URL(this.url);
+                // url.username = this.username;
+                // url.password = this.password;
                 const dataURL = url.pathname.split('/');
                 const apiIndex = dataURL.indexOf('api');
 
@@ -629,26 +730,31 @@ class DataSet {
         const baseUrl = this.getDHIS2Url();
         if (baseUrl && this.currentLevel) {
             const url = baseUrl + '/organisationUnits.json';
-            const data = await this.getAxiosData(url, {
-                level: this.currentLevel.value,
-                fields: 'id,name,code',
-                paging: false
-            });
+            let data;
+            if (this.useProxy) {
+                data = await postAxios(this.proxy, {
+                    username: this.username,
+                    password: this.password,
+                    url,
+                    params: {
+                        level: this.currentLevel.value,
+                        fields: 'id,name,code',
+                        paging: false
+                    }
+                });
+            } else {
+                data = await callAxios(url, {
+                    level: this.currentLevel.value,
+                    fields: 'id,name,code',
+                    paging: false
+                }, this.username, this.password)
+            }
             if (data) {
                 return data.organisationUnits;
             }
         }
 
         return [];
-    };
-
-    getAxiosData = async (url, params) => {
-        try {
-            return await callAxios(url, params, this.username, this.password)
-        } catch (e) {
-            NotificationManager.error(e.message, 'Error', 5000);
-            return null;
-        }
     };
 
     @action setTemplate = val => this.template = val;
@@ -668,18 +774,11 @@ class DataSet {
             this.openDialog();
             await this.loadIndicators();
             this.closeDialog();
-
-            // if (this.indicators.length === 0) {
-            //     NotificationManager.warning('Something went wrong, please check that the server is on', 'Warning', 5000);
-            // }
         }
     };
 
     @action onCheckIsDhis2 = async () => {
-        // this.isDhis2 = event.target.checked;
-
         const urlBase = this.getDHIS2Url();
-        console.log(urlBase);
         if (urlBase) {
             this.openDialog();
             await this.loadLevelsAndDataSets();
@@ -729,43 +828,11 @@ class DataSet {
 
     @action
     onDrop = (accepted, rejected) => {
-        const fileReader = new FileReader();
+
         if (accepted.length > 0) {
-            this.uploadMessage = '';
-            const f = accepted[0];
-            this.setFileName(f.name);
-            fileReader.onloadstart = (this.onLoadStart);
-
-            fileReader.onprogress = (this.onProgress);
-
-            fileReader.onload = (ex) => {
-                let data = ex.target.result;
-
-                const workbook = XLSX.read(data, {
-                    type: 'binary',
-                    cellDates: true,
-                    cellNF: false,
-                    cellText: false
-                });
-
-                this.setWorkbook(workbook);
-
-                const sheets = workbook.SheetNames.map(s => {
-                    return {label: s, value: s}
-                });
-
-                if (sheets.length > 0) {
-                    this.setSelectedSheet(sheets[0]);
-                    this.setWorkSheet(this.workbook.Sheets[this.selectedSheet.value]);
-                }
-                this.setSheets(sheets);
-                this.setTemplate(1);
-
-            };
-            fileReader.readAsBinaryString(f);
-            fileReader.onloadend = (this.onLoadEnd);
+            this.worker.postMessage(accepted);
         } else if (rejected.length > 0) {
-            this.uploadMessage = 'Only XLS, XLSX are supported'
+            NotificationManager.error('Only XLS, XLSX and CSV are supported', 'Error', 5000);
         }
 
     };
@@ -802,7 +869,7 @@ class DataSet {
         this.forms.forEach(form => {
             form.dataElements.forEach(de => {
                 const mapping = this.uniqueDataElements.find(u => {
-                    return u.value === de.name || u.value === de.code;
+                    return u.value === de.name || u.value === de.code || u.value === de.id;
                 });
 
                 if (mapping && !de.mapping) {
@@ -919,7 +986,6 @@ class DataSet {
 
     @action
     pullData = async () => {
-        // this.openDialog();
         this.setPulledData(null);
         let param = '';
 
@@ -930,34 +996,33 @@ class DataSet {
             try {
                 let response;
                 let url = this.url;
-                if (this.username !== '' && this.password !== '') {
-                    this.setPulling(true);
-                    if (this.isDhis2) {
-                        url = this.getDHIS2Url() + '/dataValueSets.json';
-                    } else if (this.templateType.value === '5') {
-                        url = this.getDHIS2Url() + '/analytics';
-                    }
+                this.setPulling(true);
 
-                    response = await axios.get(param !== '' ? url + '?' + param : url, {
-                        params: {},
-                        withCredentials: true,
-                        auth: {
-                            username: this.username,
-                            password: this.password
-                        }
-                    });
-                } else {
-                    this.setPulling(true);
-                    response = await axios.get(param !== '' ? url + '?' + param : url);
+                if (this.templateType.value === '4') {
+                    url = this.getDHIS2Url() + '/dataValueSets.json';
+                } else if (this.templateType.value === '5') {
+                    url = this.getDHIS2Url() + '/analytics.json';
                 }
 
-                if (response.status === 200) {
-                    const {data} = response;
+                url = param !== '' ? url + '?' + param : url;
+
+                if (this.useProxy) {
+                    response = await postAxios(this.proxy, {
+                        username: this.username,
+                        password: this.password,
+                        url
+                    });
+                } else {
+                    response = await callAxios(url, {}, this.username, this.password);
+                }
+
+
+                if (response) {
                     if (this.templateType.value === '4') {
-                        this.setPulledData(data.dataValues);
+                        this.setPulledData(response.dataValues);
                     } else if (this.templateType.value === '5') {
-                        const headers = data.headers.map(h => h['name']);
-                        const found = data.rows.map(r => {
+                        const headers = response.headers.map(h => h['name']);
+                        const found = response.rows.map(r => {
                             return Object.assign.apply({}, headers.map((v, i) => ({
                                 [v]: r[i]
                             })));
@@ -966,18 +1031,14 @@ class DataSet {
                         });
                         this.setPulledData(found);
                     } else {
-                        this.setPulledData(data);
+                        this.setPulledData(response);
                     }
                 }
             } catch (e) {
-                // this.addPullingError(e.response.data);
-                // NotificationManager.error(e.message, 'Error', 5000);
                 this.setPulling(false);
                 NotificationManager.error(`Could not pull data ${e.message}`, 'Error', 5000);
             }
         }
-
-        // this.closeDialog();
     };
 
     @action
@@ -1000,8 +1061,9 @@ class DataSet {
 
     @action create1 = () => {
         try {
-            if (this.processed && this.processed.length > 0) {
-                return this.insertDataValues({dataValues: this.processed});
+            if (this.processed.dataValues && this.processed.dataValues.length > 0) {
+                this.setMessage(`Inserting ${this.processed.dataValues.length} of ${this.processed.dataValues.length}`);
+                return this.insertDataValues({dataValues: this.processed.dataValues});
             }
         } catch (e) {
             this.setResponses(e);
@@ -1029,7 +1091,7 @@ class DataSet {
                                 pp.setValue(p);
                                 this.replaceParam(pp);
                                 const all = orgUnits.map(ou => {
-                                    this.setMessage(`Processing for period ${p} for ${ou.name}`);
+                                    // this.setMessage(`Processing for period ${p} for ${ou.name}`);
                                     param.setValue(ou.id);
                                     this.replaceParam(param);
                                     return this.pullData().then(data => {
@@ -1053,7 +1115,7 @@ class DataSet {
                         }
                     } else {
                         const all = orgUnits.map(ou => {
-                            this.setMessage(`Processing data for ${ou.name}`);
+                            // this.setMessage(`Processing data for ${ou.name}`);
                             param.setValue(ou.id);
                             this.replaceParam(param);
                             return this.pullData().then(data => {
@@ -1098,6 +1160,7 @@ class DataSet {
                 }
             } else {
                 this.setMessage(`Inserting processed data`);
+                // await this.pullData();
                 const results = await this.create1();
                 this.setMessage(`Finished inserting processed data`);
                 this.setMessage(`Completing data set`);
@@ -1218,6 +1281,48 @@ class DataSet {
         this.mappingDescription = value;
     };
 
+    @action
+    convertAndMakeDefault = units => {
+        units = _.uniqBy(units, v => JSON.stringify(v))
+            .map(org => {
+                let foundOU = undefined;
+                const foundOUById = _.find(this.organisationUnits, o => {
+                    return o.id === org.name;
+                });
+
+                if (foundOUById) {
+                    foundOU = foundOUById;
+                } else {
+                    const foundOUByCode = _.find(this.organisationUnits, o => {
+                        return o.code === org.name;
+                    });
+
+                    if (foundOUByCode) {
+                        foundOU = foundOUByCode;
+                    } else {
+
+                        const foundOUByName = _.find(this.organisationUnits, o => {
+                            return org.name === o.name;
+                        });
+
+                        if (foundOUByName) {
+                            foundOU = foundOUByName;
+                        }
+                    }
+                }
+                if (foundOU) {
+                    org.setMapping({label: foundOU.name, value: foundOU.id});
+                }
+                return org
+            });
+
+        this.setSourceOrganisationUnits(units)
+    };
+
+    @action handleUseProxyChange = event => {
+        this.setUseProxy(event.target.checked);
+    };
+
 
     @computed get showDetails() {
         if (this.templateType.value === '5') {
@@ -1332,7 +1437,6 @@ class DataSet {
         processed = [...processed, ...others];
 
         const sorter = (a, b) => (a['name'] < b['name'] ? -1 : 1);
-
         return processed.sort(sorter);
     }
 
@@ -1403,6 +1507,18 @@ class DataSet {
         return [];
     }
 
+    @computed get rowData() {
+        if (this.workSheet) {
+            return XLSX.utils.sheet_to_json(this.workSheet, {
+                range: this.headerRow - 1,
+                dateNF: 'YYYY-MM-DD'
+            });
+        } else if (this.pulledData) {
+            return this.pulledData;
+        }
+        return [];
+    }
+
     @computed get allCategoryOptionCombos() {
         let cocs = [];
         this.forms.forEach(f => {
@@ -1434,7 +1550,6 @@ class DataSet {
     }
 
     @computed get processed() {
-
         return processDataSet(this.data, this)
 
     }
@@ -1452,7 +1567,7 @@ class DataSet {
     }
 
     @computed get whatToComplete() {
-        const p = this.processed.map(d => {
+        const p = this.processed.dataValues.map(d => {
             return _.pick(d, ['orgUnit', 'period']);
         });
 
@@ -1482,7 +1597,7 @@ class DataSet {
 
     @computed get finalData() {
         const {dataElements, categoryOptionCombos} = this.allDataElements;
-        return this.processed.map((v, k) => {
+        return this.processed.dataValues.map((v, k) => {
             return {
                 ...v,
                 id: k,
@@ -1615,7 +1730,9 @@ class DataSet {
                 'sourceOrganisationUnits',
                 'levels',
                 'indicators',
-                'selectedIndicators'
+                'selectedIndicators',
+                'proxy',
+                'useProxy'
             ])
     }
 
@@ -1626,8 +1743,8 @@ class DataSet {
     }
 
     @computed get currentDataValues() {
-        if (this.processed && this.processed.length > 0) {
-            return this.processed.slice(this.page * this.rowsPerPage, this.page * this.rowsPerPage + this.rowsPerPage);
+        if (this.processed.dataValues && this.processed.dataValues.length > 0) {
+            return this.processed.dataValues.slice(this.page * this.rowsPerPage, this.page * this.rowsPerPage + this.rowsPerPage);
         }
         return [];
     }
@@ -1708,13 +1825,9 @@ class DataSet {
         return this.templateType && (this.templateType.value === '6' || (this.templateType.value === '5' && !this.multiplePeriods))
     }
 
-    // @computed get sourceOrganisationUnits() {
-    //     if (!this.dhis2DataSet) {
-    //         return []
-    //     } else {
-    //
-    //     }
-    // }
+    @computed get uniqueErrors() {
+        return _.uniqBy(this.processed.errors, 'error');
+    }
 }
 
 export default DataSet;

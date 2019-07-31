@@ -19,6 +19,9 @@ import {
 import Param from "./Param";
 import OrganisationUnit from "./OrganisationUnit";
 
+import myWorker from './app.worker';
+
+
 class Program {
     @observable lastUpdated;
     @observable name;
@@ -145,6 +148,9 @@ class Program {
     @observable templateType;
     @observable sourceOrganisationUnits = [];
     @observable message = '';
+    @observable incidentDateProvided = false;
+    @observable worker;
+
 
     constructor(lastUpdated, name, id, programType, displayName, programStages, programTrackedEntityAttributes) {
         this.lastUpdated = lastUpdated;
@@ -154,6 +160,33 @@ class Program {
         this.displayName = displayName;
         this.programStages = programStages;
         this.programTrackedEntityAttributes = programTrackedEntityAttributes;
+        this.worker = new myWorker();
+        this.worker.addEventListener('message', async event => {
+            this.setWorkbook(event.data);
+
+            const sheets = this.workbook.SheetNames.map(s => {
+                return {
+                    label: s,
+                    value: s
+                }
+            });
+
+            this.setSheets(sheets);
+
+            if (sheets.length > 0) {
+                await this.setSelectedSheet(sheets[0]);
+            }
+
+            if (this.uniqueIds) {
+                await this.searchTrackedEntities();
+            }
+
+            if (!this.isTracker) {
+                const programStage = this.programStages[0];
+                await programStage.findEventsByDates(this);
+                await programStage.findEventsByElements(this);
+            }
+        });
     }
 
     @action setDialogOpen = val => this.dialogOpen = val;
@@ -217,6 +250,11 @@ class Program {
             this.enrollmentDateColumn = null;
             this.incidentDateColumn = null;
         }
+    };
+
+    @action
+    handleIncidentDateProvidedCheck = event => {
+        this.incidentDateProvided = event.target.checked;
     };
 
 
@@ -306,69 +344,11 @@ class Program {
 
     @action setDataSource = val => this.dataSource = val;
 
+
     @action
     onDrop = (accepted, rejected) => {
-        const fileReader = new FileReader();
-        const rABS = true;
         if (accepted.length > 0) {
-            this.uploadMessage = '';
-            const f = accepted[0];
-            this.setFileName(f.name);
-            const fileName = f.name.split('.');
-            const extension = fileName.pop();
-            if (extension === 'csv') {
-                this.setDataSource(1);
-            } else {
-                this.setDataSource(2);
-            }
-            fileReader.onloadstart = (this.onLoadStart);
-
-            fileReader.onprogress = (this.onProgress);
-
-            fileReader.onload = async (ex) => {
-                let data = ex.target.result;
-                if (!rABS) {
-                    data = new Uint8Array(data);
-                }
-
-                const workbook = XLSX.read(data, {
-                    type: rABS ? 'binary' : 'array',
-                    // cellDates: extension !== 'csv',
-                    cellDates: true,
-                    cellNF: false,
-                    cellText: false
-                });
-                this.setWorkbook(workbook);
-
-                const sheets = workbook.SheetNames.map(s => {
-                    return {
-                        label: s,
-                        value: s
-                    }
-                });
-
-                this.setSheets(sheets);
-
-                if (sheets.length > 0) {
-                    await this.setSelectedSheet(sheets[0]);
-                }
-
-                if (this.uniqueIds) {
-                    await this.searchTrackedEntities();
-                }
-
-                if (!this.isTracker) {
-                    const programStage = this.programStages[0];
-                    await programStage.findEventsByDates(this);
-                    await programStage.findEventsByElements(this);
-                }
-            };
-            if (rABS) {
-                fileReader.readAsBinaryString(f);
-            } else {
-                fileReader.readAsArrayBuffer(f);
-            }
-            fileReader.onloadend = (this.onLoadEnd);
+            this.worker.postMessage(accepted);
         } else if (rejected.length > 0) {
             NotificationManager.error('Only XLS, XLSX and CSV are supported', 'Error', 5000);
         }
@@ -534,6 +514,7 @@ class Program {
     @action setMappingDescription = val => this.mappingDescription = val;
     @action setTemplateType = val => this.templateType = val;
     @action setSourceOrganisationUnit = val => this.sourceOrganisationUnits = val;
+    @action setIncidentDateProvided = val => this.incidentDateProvided = val;
 
     @action
     filterAttributes = attributesFilter => {
@@ -544,52 +525,56 @@ class Program {
     @action
     searchTrackedEntities = async () => {
         const api = this.d2.Api.getApi();
-        if (this.uniqueIds.length > 0) {
-            this.setFetchingEntities(1);
-            const all = this.uniqueIds.map(uniqueId => {
-                return api.get('trackedEntityInstances', {
-                    paging: false,
-                    ouMode: 'ALL',
-                    filter: this.uniqueAttribute + ':IN:' + uniqueId,
-                    program: this.id,
-                    fields: 'trackedEntityInstance'
-                })
-            });
+        try {
+            if (this.uniqueIds.length > 0) {
+                this.setFetchingEntities(1);
+                const all = this.uniqueIds.map(uniqueId => {
+                    return api.get('trackedEntityInstances', {
+                        ouMode: 'ALL',
+                        filter: this.uniqueAttribute + ':EQ:' + uniqueId,
+                        fields: 'trackedEntityInstance',
+                        pageSize: 1
+                    })
+                });
 
-            const results = await Promise.all(all);
+                const results = await Promise.all(all);
 
-            const ids = results.map(r => {
-                const {trackedEntityInstances} = r;
-                return trackedEntityInstances.map(t => {
-                    return t.trackedEntityInstance;
-                })
-            });
+                const ids = results.map(r => {
+                    const {trackedEntityInstances} = r;
+                    return trackedEntityInstances.map(t => {
+                        return t.trackedEntityInstance;
+                    })
+                });
 
-            const entities = _.chunk(_.flatten(ids), 50).map(ids => ids.join(';'));
+                const entities = _.chunk(_.flatten(ids), 50).map(ids => ids.join(';'));
 
-            const all1 = entities.map(entityGroup => {
-                const params = {
-                    paging: false,
-                    ouMode: 'ALL',
-                    trackedEntityInstance: entityGroup,
-                    fields: 'trackedEntityInstance,orgUnit,attributes[attribute,value],enrollments[enrollment,program,' +
-                        'trackedEntityInstance,trackedEntityType,trackedEntity,enrollmentDate,incidentDate,orgUnit,events[program,trackedEntityInstance,event,' +
-                        'eventDate,status,completedDate,coordinate,programStage,orgUnit,dataValues[dataElement,value]]]'
-                };
-                return api.get('trackedEntityInstances', params)
-            });
+                const all1 = entities.map(entityGroup => {
+                    const params = {
+                        paging: false,
+                        ouMode: 'ALL',
+                        trackedEntityInstance: entityGroup,
+                        fields: 'trackedEntityInstance,orgUnit,attributes[attribute,value],enrollments[enrollment,program,' +
+                            'trackedEntityInstance,trackedEntityType,trackedEntity,enrollmentDate,incidentDate,orgUnit,events[program,trackedEntityInstance,event,' +
+                            'eventDate,status,completedDate,coordinate,programStage,orgUnit,dataValues[dataElement,value]]]'
+                    };
+                    return api.get('trackedEntityInstances', params)
+                });
 
-            const results1 = await Promise.all(all1);
+                const results1 = await Promise.all(all1);
 
-            let foundEntities = [];
+                let foundEntities = [];
 
-            for (let instance of results1) {
-                const {trackedEntityInstances} = instance;
-                foundEntities = [...foundEntities, ...trackedEntityInstances];
+                for (let instance of results1) {
+                    const {trackedEntityInstances} = instance;
+                    foundEntities = [...foundEntities, ...trackedEntityInstances];
+                }
+                this.setTrackedEntityInstances(foundEntities);
+                this.setFetchingEntities(2);
             }
-            this.setTrackedEntityInstances(foundEntities);
-            this.setFetchingEntities(2);
+        } catch (e) {
+            NotificationManager.error(e.message, 'Error', 5000);
         }
+
     };
 
     @action
@@ -856,7 +841,7 @@ class Program {
     };
 
     @action loadDefaultAttributes = () => {
-        if (this.createNewEnrollments) {
+        if (this.updateEntities || this.createEntities) {
             this.programAttributes.forEach(pa => {
                 const match = this.columns.find(column => {
                     return column.value === pa.trackedEntityAttribute.name;
@@ -1042,7 +1027,8 @@ class Program {
                 'mappingName',
                 'mappingDescription',
                 'sourceOrganisationUnits',
-                'templateType'
+                'templateType',
+                'incidentDateProvided'
             ])
     }
 
@@ -1173,10 +1159,11 @@ class Program {
             let foundIds = this.data.map(d => {
                 return d[this.uniqueColumn];
             }).filter(c => {
-                return c !== null && c !== undefined;
+                return c !== null && c !== undefined && c !== '';
             });
             foundIds = _.uniq(foundIds);
-            return _.chunk(foundIds, 50).map(ids => ids.join(';'));
+            return foundIds;
+            // return _.chunk(foundIds, 50).map(ids => ids.join(';'));
         }
         return [];
     }

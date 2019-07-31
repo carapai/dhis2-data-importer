@@ -1,7 +1,6 @@
 import React from 'react';
 import {withStyles} from '@material-ui/core/styles';
 import Select from 'react-select';
-import Checkbox from "@material-ui/core/Checkbox";
 import FormHelperText from "@material-ui/core/FormHelperText";
 
 import red from '@material-ui/core/colors/red';
@@ -9,7 +8,6 @@ import {inject, observer} from "mobx-react";
 import {InputField} from "@dhis2/d2-ui-core";
 import FormGroup from '@material-ui/core/FormGroup';
 import Grid from "@material-ui/core/Grid";
-// import {Table} from 'antd';
 import Progress from "../progress";
 
 import Table from "@material-ui/core/Table";
@@ -20,6 +18,8 @@ import TableHead from "@material-ui/core/TableHead";
 import TablePagination from "@material-ui/core/TablePagination";
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import customStyles from "../customStyles";
+import {GreenCheckbox} from "../common";
+import {Clear, Done} from "@material-ui/icons";
 
 const styles = theme => ({
     root: {
@@ -36,51 +36,12 @@ const styles = theme => ({
     },
 });
 
-// const items = [{
-//     value: 'auto',
-//     label: 'auto',
-// }, {
-//     value: 'name',
-//     label: 'name',
-// }, {
-//     value: 'uid',
-//     label: 'uid',
-// }, {
-//     value: 'code',
-//     label: 'code',
-// }];
-
 
 @inject('IntegrationStore')
 @observer
 class Step2 extends React.Component {
 
     integrationStore = null;
-
-    // columns = [
-    //     {
-    //         title: 'Source Organisation Units',
-    //         dataIndex: 'name',
-    //         width: 150,
-    //     },
-    //     {
-    //         title: 'Destination Organisation Units',
-    //         render: (text, row, index) => {
-    //             return <Select
-    //                 placeholder="Aggregation Level"
-    //                 value={row.mapping}
-    //                 options={this.integrationStore.program.organisationUnits.map(ui => {
-    //                     return {label: ui.name, value: ui.id}
-    //                 })}
-    //                 onChange={row.setMapping}
-    //                 isClearable
-    //                 isSearchable
-    //                 styles={customStyles}
-    //             />;
-    //         },
-    //         width: 150,
-    //     }
-    // ];
 
     constructor(props) {
         super(props);
@@ -97,7 +58,6 @@ class Step2 extends React.Component {
 
     organisationUnitMapping = () => {
         return <div>
-            {/*<Table dataSource={this.integrationStore.sourceProgramUnits} columns={this.columns} scroll={{y: 240}} pagination={false}/>*/}
             <Table>
                 <TableHead>
                     <TableRow>
@@ -106,8 +66,8 @@ class Step2 extends React.Component {
                         </TableCell>
                         <TableCell>
                             Destination Organisation Units
-
                         </TableCell>
+                        <TableCell style={{width: 40}}>Mapped?</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -128,6 +88,9 @@ class Step2 extends React.Component {
                                 isSearchable
                                 styles={customStyles}
                             />
+                        </TableCell>
+                        <TableCell>
+                            {u.mapping ? <Done/> : <Clear/>}
                         </TableCell>
                     </TableRow>)}
 
@@ -182,7 +145,7 @@ class Step2 extends React.Component {
 
                     <Grid item xs={6}>
                         <InputField
-                            label="Data start row"
+                            label="Data value start row"
                             type="number"
                             fullWidth
                             value={this.integrationStore.program.dataStartRow}
@@ -207,21 +170,10 @@ class Step2 extends React.Component {
                     <FormHelperText>For new tracked entities and events, this column will be
                         used as organisation unit</FormHelperText>
                 </Grid>
-                {/*<Grid item xs={6}>
-                    <span style={{fontWeight:'bold'}}>Select identifier scheme</span>
-                    <Select
-                        placeholder="Identifier scheme"
-                        isClearable
-                        isSearchable
-                        value={this.integrationStore.program.orgUnitStrategy}
-                        options={items}
-                        onChange={this.integrationStore.program.handleOrgUnitStrategySelectChange}
-                    />
-                    <FormHelperText>Organisation units will searched using uid by default
-                        please change if your organisation unit column is not
-                        uid</FormHelperText>
-                </Grid>*/}
             </Grid>
+            <br/>
+            <span style={{fontWeight: 'bold'}}>Organisation unit mapping</span>
+            {this.organisationUnitMapping()}
             <br/>
             {this.integrationStore.program.isTracker ? <Grid container spacing={8}>
                 <Grid item xs={12}>
@@ -230,7 +182,7 @@ class Step2 extends React.Component {
                             <FormGroup row>
                                 <FormControlLabel
                                     control={
-                                        <Checkbox
+                                        <GreenCheckbox
                                             disabled={!this.integrationStore.program.isTracker}
                                             checked={this.integrationStore.program.createEntities}
                                             onChange={this.integrationStore.program.handleCreateEntitiesCheck}
@@ -240,7 +192,7 @@ class Step2 extends React.Component {
                                 />
                                 <FormControlLabel
                                     control={
-                                        <Checkbox
+                                        <GreenCheckbox
                                             disabled={!this.integrationStore.program.isTracker}
                                             checked={this.integrationStore.program.updateEntities}
                                             onChange={this.integrationStore.program.handleUpdateEntitiesCheck}
@@ -250,7 +202,7 @@ class Step2 extends React.Component {
                                 />
                                 <FormControlLabel
                                     control={
-                                        <Checkbox
+                                        <GreenCheckbox
                                             disabled={!this.integrationStore.program.isTracker}
                                             checked={this.integrationStore.program.createNewEnrollments}
                                             onChange={this.integrationStore.program.handleCreateNewEnrollmentsCheck}
@@ -258,13 +210,23 @@ class Step2 extends React.Component {
                                         />}
                                     label="Create new enrollments"
                                 />
+                                <FormControlLabel
+                                    control={
+                                        <GreenCheckbox
+                                            disabled={!this.integrationStore.program.isTracker}
+                                            checked={this.integrationStore.program.incidentDateProvided}
+                                            onChange={this.integrationStore.program.handleIncidentDateProvidedCheck}
+                                            value="5"
+                                        />}
+                                    label="Incident Date Provided"
+                                />
                             </FormGroup>
                         </Grid>
                     </Grid>
-                    <Grid container spacing={8}>
+                    {this.integrationStore.program.createNewEnrollments ? <Grid container spacing={8}>
                         <Grid item xs={12}>
                             <Grid container spacing={8}>
-                                <Grid item xs={6}>
+                                <Grid item xs={this.integrationStore.program.incidentDateProvided ? 6 : 12}>
                                     <span style={{fontWeight: 'bold'}}>Select enrollment date column</span>
                                     <Select
                                         placeholder="Enrollment date column"
@@ -279,7 +241,7 @@ class Step2 extends React.Component {
                                     <FormHelperText>Should be a valid date<br/>&nbsp;</FormHelperText>
                                 </Grid>
 
-                                <Grid item xs={6}>
+                                {this.integrationStore.program.incidentDateProvided ? <Grid item xs={6}>
                                     <span style={{fontWeight: 'bold'}}>Select incident date column</span>
                                     <Select
                                         placeholder="Incident date column"
@@ -292,16 +254,14 @@ class Step2 extends React.Component {
                                         styles={customStyles}
                                     />
                                     <FormHelperText>Should be a valid date<br/>&nbsp;</FormHelperText>
-                                </Grid>
+                                </Grid> : null}
                             </Grid>
 
                         </Grid>
-                    </Grid>
+                    </Grid> : null}
+
                 </Grid>
             </Grid> : null}
-            <br/>
-            <span style={{fontWeight: 'bold'}}>Organisation unit mapping</span>
-            {this.organisationUnitMapping()}
             <Progress open={this.integrationStore.program.dialogOpen}
                       onClose={this.integrationStore.program.closeDialog}/>
         </div>

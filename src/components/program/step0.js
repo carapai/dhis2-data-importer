@@ -51,7 +51,6 @@ class Step0 extends React.Component {
     render() {
         return <div>
             {this.integrationStore.program.pulling ? <LinearProgress color="secondary"/> : ''}
-
             {this.integrationStore.mappings.length > 0 ?
                 <Table
                     columns={['mappingId', 'mappingName', 'mappingDescription']}
@@ -66,8 +65,29 @@ class Step0 extends React.Component {
                         }
                     }
                     primaryAction={this.integrationStore.useSaved}/> :
-                <p style={{textAlign: 'center', fontSize: 15}}>There are no items</p>}
+                <div style={{paddingLeft: 20}}>
+                    <h2>Welcome to the data import wizard app</h2>
+                    <h4>This app will help you import data into DHIS2 either from excel/csv file or from external system
+                        through a REST API</h4>
+                    <h4>You have not created any mapping, to create one</h4>
 
+                    <ul>
+                        <li>Click create new mapping</li>
+                        <li>Click on the program you want to map</li>
+                        <li>
+                            On the import type page enter name and description of the mapping.
+                        </li>
+                        <li>
+                            Select import type
+                        </li>
+                        <li>
+                            If you selected Excel/CSV listing, upload or drag and drop the excel/csv file, otherwise
+                            <br/>
+                            Enter URL and/or username and password to the external system API in the provided fields. You also add any parameters if applicable
+                        </li>
+                    </ul>
+                </div>
+            }
 
             <Dialog
                 fullWidth={true}

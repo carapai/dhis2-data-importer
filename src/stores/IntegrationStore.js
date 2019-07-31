@@ -162,6 +162,7 @@ class IntegrationStore {
     };
 
     @action updateSchedule = args => {
+        console.log(args);
         this.setCurrentSchedule(args);
         this.openSchedule();
     };
@@ -279,6 +280,7 @@ class IntegrationStore {
 
     @action
     handleNext = async () => {
+        // if (this.activeStep === 3 && (!this.program.isTracker || (!this.program.createEntities && !this.program.updateEntities))) {
         if (this.activeStep === 3 && !this.program.isTracker) {
             this.changeSet(this.activeStep + 2);
         } else if (this.activeStep === 6 && this.program.totalImports === 0) {
@@ -297,13 +299,10 @@ class IntegrationStore {
 
     @action
     handleNextAggregate = () => {
-
-        // if (this.dataSet.templateType && (this.dataSet.templateType.value === '4' || this.dataSet.templateType.value === '5') && this.activeAggregateStep === 4) {
-        //     this.changeAggregateSet(this.activeAggregateStep + 1);
-        //     this.handleNextAggregate();
-        // } else
-
-        if (this.activeAggregateStep === 6) {
+        if (this.dataSet.templateType && (this.dataSet.templateType.value === '4' || (this.dataSet.templateType.value === '5' && this.dataSet.multiplePeriods)) && this.activeAggregateStep === 4) {
+            this.changeAggregateSet(this.activeAggregateStep + 1);
+            this.handleNextAggregate();
+        } else if (this.activeAggregateStep === 6) {
             this.handleResetAggregate()
         } else {
             this.changeAggregateSet(this.activeAggregateStep + 1);
@@ -597,7 +596,7 @@ class IntegrationStore {
                             id: des.dataElement.id,
                             name: des.dataElement.name,
                             code: des.dataElement.code,
-                            valueType: des.valueType
+                            valueType: des.dataElement.valueType
                         };
                     });
                     const categoryOptionCombos = v[0]['dataElement']['categoryCombo']['categoryOptionCombos'];
@@ -886,11 +885,9 @@ class IntegrationStore {
                     return true;
                 }
             }
-
-            // || !this.program.orgUnitColumn
-            // || ((!this.program.enrollmentDateColumn || !this.program.incidentDateColumn) && this.program.createNewEnrollments);
-            // || (!this.program.createNewEnrollments && !this.program.createNewEvents);
-        } else if (this.activeStep === 4 && this.program.createNewEnrollments) {
+        } else if (this.activeStep === 3) {
+            return (!this.program.enrollmentDateColumn && this.program.createNewEnrollments) || (this.program.incidentDateProvided && !this.program.incidentDateColumn)
+        } else if (this.activeStep === 4 && (this.program.createEntities || this.program.updateEntities)) {
             return !this.program.mandatoryAttributesMapped;
         } else if (this.activeStep === 5) {
             return !this.program.compulsoryDataElements;
@@ -981,7 +978,7 @@ class IntegrationStore {
     @computed
     get nextLabel() {
         if (this.activeStep === 0) {
-            return 'New Mapping';
+            return 'Create New Mapping';
         } else if (this.activeStep === 6) {
             if (this.program.totalImports > 0 && this.program.processed.conflicts.length > 0) {
                 return 'Import With Conflicts';

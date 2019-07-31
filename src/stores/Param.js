@@ -19,7 +19,7 @@ class Param {
     };
 
     @action handlePeriodTypeChange = event => {
-        this.setPeriodType(event.target.checked);
+        this.setPeriodType(event.target.value);
     };
 
 }

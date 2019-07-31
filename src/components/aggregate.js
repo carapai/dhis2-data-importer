@@ -13,7 +13,6 @@ import D2 from "./aggregate/d2";
 import D3 from "./aggregate/d3";
 import D4 from "./aggregate/d4";
 import D5 from "./aggregate/d5";
-import D6 from "./aggregate/d6";
 import ImportType from "./aggregate/ImportType";
 
 const styles = theme => ({
@@ -60,8 +59,6 @@ class Aggregate extends React.Component {
                 return <D4/>;
             case 6:
                 return <D5/>;
-            case 7:
-                return <D6/>;
             default:
                 return 'Unknown step';
         }

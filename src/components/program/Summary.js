@@ -23,6 +23,9 @@ const styles = theme => ({
         flexGrow: 1,
         width: '100%',
         backgroundColor: theme.palette.background.paper,
+    },
+    primary:{
+        backgroundColor: '#4CA799'
     }
 });
 
@@ -126,17 +129,17 @@ class Summary extends React.Component {
                         indicatorColor="secondary"
                         textColor="inherit"
                     >
-                        <Tab value={0} label={<Badge color="secondary" className={classes.padding}
+                        <Tab value={0} label={<Badge color="primary" className={classes.padding} classes={{ colorPrimary: classes.primary }}
                                                      badgeContent={newTrackedEntityInstances.length}>New
                             Entities</Badge>}/>
-                        <Tab value={1} label={<Badge color="secondary" className={classes.padding}
+                        <Tab value={1} label={<Badge color="primary" className={classes.padding} classes={{ colorPrimary: classes.primary }}
                                                      badgeContent={newEnrollments.length}>New Enrollments</Badge>}/>
-                        <Tab value={2} label={<Badge color="secondary" className={classes.padding}
+                        <Tab value={2} label={<Badge color="primary" className={classes.padding} classes={{ colorPrimary: classes.primary }}
                                                      badgeContent={newEvents.length}>New Events</Badge>}/>
-                        <Tab value={3} label={<Badge color="secondary" className={classes.padding}
+                        <Tab value={3} label={<Badge color="primary" className={classes.padding} classes={{ colorPrimary: classes.primary }}
                                                      badgeContent={trackedEntityInstancesUpdate.length}>Entity
                             Updates</Badge>}/>
-                        <Tab value={4} label={<Badge color="secondary" className={classes.padding}
+                        <Tab value={4} label={<Badge color="primary" className={classes.padding} classes={{ colorPrimary: classes.primary }}
                                                      badgeContent={eventsUpdate.length}>Event Updates</Badge>}/>
                         <Tab value={5} label={<Badge color="secondary" className={classes.padding}
                                                      badgeContent={conflicts.length}>Conflicts</Badge>}/>

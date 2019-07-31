@@ -4,12 +4,12 @@ import {withStyles} from "@material-ui/core/styles";
 import FormControlLabel from "@material-ui/core/FormControlLabel";
 import Grid from "@material-ui/core/Grid";
 import {InputField} from "@dhis2/d2-ui-core";
-import Icon from "@material-ui/core/Icon";
 import Dropzone from "react-dropzone";
 import Checkbox from "@material-ui/core/Checkbox";
 import FormGroup from "@material-ui/core/FormGroup";
 import Select from "react-select";
 import Params from "./Params";
+import {CloudUpload} from "@material-ui/icons";
 
 
 const styles = theme => ({
@@ -28,9 +28,9 @@ const items = [
     {label: 'Excel/CSV Listing to DHIS2 Data Set', value: "1"},
     {label: 'Excel Tabular Data to DHIS2 Data Set', value: "2"},
     {label: 'Excel Form to DHIS2 Data Set', value: "3"},
-    {label: 'DHIS2 Data Set to DHIS2 Data Set', value: "4"},
-    {label: 'DHIS2 Indicators 2 DHIS2 Data Set', value: "5"},
-    {label: 'Rest API to DHIS2 Data Set', value: "6"},
+    {label: 'DHIS2 to DHIS2 Data Set', value: "4"},
+    {label: 'DHIS2 Indicators to DHIS2 Data Set', value: "5"},
+    {label: 'Other Systems via API (REST) to DHIS2 Data Set', value: "6"},
 ];
 
 
@@ -56,6 +56,7 @@ class ImportType extends React.Component {
 
     apiDataSource = () => {
         return <div>
+
             <Grid container spacing={8}>
                 <Grid item xs={12}>
                     <InputField
@@ -94,12 +95,10 @@ class ImportType extends React.Component {
         return <Dropzone activeStyle={{}}
                          accept=".csv, .xls, .xlsx"
                          onDrop={this.integrationStore.dataSet.onDrop}>
+            <br/>
             <p align="center">Drop files here</p>
             <p align="center">
-                <Icon color="primary"
-                      style={{fontSize: 48}}>
-                    add_circle
-                </Icon>
+                <CloudUpload fontSize="large"/>
             </p>
             <p align="center">{this.integrationStore.dataSet.fileName}</p>
             <p align="center"
@@ -163,6 +162,32 @@ class ImportType extends React.Component {
                             />
                         </FormGroup> : null}
                     {this.integrationStore.dataSet.templateType ? this.integrationStore.dataSet.getImportDataSource === 1 ? this.upload() : this.apiDataSource() : null}
+                </Grid>
+
+                <Grid item xs={12}>
+                    {this.integrationStore.dataSet.templateType && (this.integrationStore.dataSet.templateType.value === '4' || this.integrationStore.dataSet.templateType.value === '5') ?
+                        <FormGroup row>
+                            <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        checked={this.integrationStore.dataSet.useProxy}
+                                        onChange={this.integrationStore.dataSet.handleUseProxyChange}
+                                    />
+                                }
+                                label="Use Proxy"
+                            />
+                        </FormGroup> : null}
+                </Grid>
+
+                <Grid item xs={12}>
+                    {this.integrationStore.dataSet.useProxy ?
+                        <InputField
+                            label="Proxy"
+                            type="text"
+                            fullWidth
+                            value={this.integrationStore.dataSet.proxy}
+                            onChange={(value) => this.integrationStore.dataSet.setProxy(value)}
+                        /> : null}
                 </Grid>
             </Grid>
         </div>

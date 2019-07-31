@@ -6,7 +6,6 @@ import Step from '@material-ui/core/Step';
 import StepButton from '@material-ui/core/StepButton';
 import Button from '@material-ui/core/Button';
 import {withStyles} from '@material-ui/core/styles';
-// import Typography from '@material-ui/core/Typography';
 import {inject, observer} from "mobx-react";
 
 import Step0 from './program/step0';
@@ -16,7 +15,6 @@ import Step3 from './program/step3';
 import Step4 from './program/step4';
 import Step5 from './program/step5';
 import Step6 from './program/step6';
-// import Step7 from './program/step7';
 import ImportType from "./program/ImportType";
 
 const styles = theme => ({
@@ -36,6 +34,7 @@ const styles = theme => ({
 @observer
 class Program extends React.Component {
     integrationStore = null;
+
 
     constructor(props) {
         super(props);
@@ -152,7 +151,6 @@ class Program extends React.Component {
 
 Program.propTypes = {
     d2: PropTypes.object.isRequired,
-    baseUrl: PropTypes.string.isRequired,
     classes: PropTypes.object,
 };
 

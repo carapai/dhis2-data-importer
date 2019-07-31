@@ -124,8 +124,6 @@ class Schedule extends React.Component {
                                 <FormControlLabel value="tracker" control={<Radio/>} label="Tracker"/>
                             </RadioGroup>
                         </FormControl>
-
-
                         <Select
                             placeholder="Select mapping"
                             isClearable
@@ -155,6 +153,9 @@ class Schedule extends React.Component {
                                 <FormControlLabel value="Quarterly" control={<Radio/>} label="Quarterly"/>
                                 <FormControlLabel value="SixMonthly" control={<Radio/>} label="Semi Yearly"/>
                                 <FormControlLabel value="Yearly" control={<Radio/>} label="Yearly"/>
+                                <FormControlLabel value="FinancialJuly" control={<Radio/>} label="Financial July"/>
+                                <FormControlLabel value="FinancialApril" control={<Radio/>} label="Financial April"/>
+                                <FormControlLabel value="FinancialOct" control={<Radio/>} label="Financial October"/>
                             </RadioGroup>
                         </FormControl> : null}
 

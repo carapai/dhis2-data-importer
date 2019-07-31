@@ -1,8 +1,6 @@
 import React, {Component} from 'react';
 import {HashRouter as Router, Route} from "react-router-dom";
 import {NotificationContainer} from 'react-notifications';
-// import Card from "@material-ui/core/Card";
-// import CardContent from "@material-ui/core/CardContent";
 import 'react-notifications/lib/notifications.css';
 
 import {Provider} from "mobx-react";
@@ -23,14 +21,22 @@ import {
     Menu, Icon,
 } from 'antd';
 
-
-import './App.css';
 import "antd/dist/antd.css";
 
+import './App.css';
+import {createMuiTheme} from "@material-ui/core";
+import MuiThemeProvider from "@material-ui/core/styles/MuiThemeProvider";
 
-// const {
-//     Content, Sider,
-// } = Layout;
+const theme = createMuiTheme({
+    typography: {
+        useNextVariants: true,
+    },
+    palette: {
+        primary: {
+            main: '#2C6693'
+        }
+    }
+});
 
 class App extends Component {
 
@@ -114,65 +120,48 @@ class App extends Component {
     }
 
     render() {
-        // const {classes} = this.props;
         return (
             <Provider IntegrationStore={IntegrationStore}>
                 <Router>
                     <D2UIApp>
-                        <HeaderBar d2={this.state.d2}/>
-                        {/*<div className={classes.appBarSpacer}/>*/}
+                        <MuiThemeProvider theme={theme}>
+                            <HeaderBar d2={this.state.d2}/>
+                            <div style={{height: 48}}/>
+                            <Menu theme="light" defaultSelectedKeys={['1']} mode="horizontal">
+                                <Menu.Item key="1">
+                                    <Link to="/">
+                                        <Icon type="ordered-list"/>
+                                        <span>Tracker</span>
+                                    </Link>
+                                </Menu.Item>
+                                <Menu.Item key="2">
+                                    <Link to="/aggregates">
+                                        <Icon type="calculator"/>
+                                        <span>Aggregate</span>
+                                    </Link>
+                                </Menu.Item>
 
-                        <div style={{height: 48}}/>
-                        <Menu theme="light" defaultSelectedKeys={['1']} mode="horizontal">
-                            <Menu.Item key="1">
-                                <Link to="/">
-                                    <Icon type="pie-chart"/>
-                                    <span>Tracker</span>
-                                </Link>
-                            </Menu.Item>
-                            <Menu.Item key="2">
-                                <Link to="/aggregates">
-                                    <Icon type="desktop"/>
-                                    <span>Aggregate</span>
-                                </Link>
-                            </Menu.Item>
+                                <Menu.Item key="3">
+                                    <Link to="/schedules">
+                                        <Icon type="schedule"/>
+                                        <span>Schedules</span>
+                                    </Link>
+                                </Menu.Item>
+                            </Menu>
+                            <Route
+                                exact
+                                path='/'
+                                component={() => <Program d2={this.state.d2}
+                                                          baseUrl={this.state.baseUrl}/>}/>
+                            <Route
+                                path='/aggregates'
+                                component={() => <Aggregate d2={this.state.d2}/>}/>
 
-                            <Menu.Item key="3">
-                                <Link to="/schedules">
-                                    <Icon type="desktop"/>
-                                    <span>Schedules</span>
-                                </Link>
-                            </Menu.Item>
-                        </Menu>
-                        <Route
-                            exact
-                            path='/'
-                            component={() => <Program d2={this.state.d2}
-                                                      baseUrl={this.state.baseUrl}/>}/>
-                        <Route
-                            path='/aggregates'
-                            component={() => <Aggregate d2={this.state.d2}/>}/>
-
-                        <Route
-                            path='/schedules'
-                            component={() => <Schedule d2={this.state.d2}/>}/>
-                        {/*<Layout>
-                            <Sider
-                                theme="light"
-                                collapsible
-                                collapsed={this.state.collapsed}
-                                onCollapse={this.onCollapse}
-                            >
-
-
-                            </Sider>
-                            <Layout>
-                                <Content>
-
-                                </Content>
-                            </Layout>
-                        </Layout>*/}
-                        <NotificationContainer/>
+                            <Route
+                                path='/schedules'
+                                component={() => <Schedule d2={this.state.d2}/>}/>
+                            <NotificationContainer/>
+                        </MuiThemeProvider>
                     </D2UIApp>
                 </Router>
             </Provider>
@@ -186,7 +175,6 @@ App.childContextTypes = {
 
 App.propTypes = {
     d2: PropTypes.object.isRequired,
-    baseUrl: PropTypes.string.isRequired,
     classes: PropTypes.object.isRequired
 };
 

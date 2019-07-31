@@ -168,7 +168,6 @@ class ProgramStage {
                 const filter = e.map(v => {
                     return `filter=${v.de}:EQ:${v.value}`
                 }).join('&');
-                console.log(e[0].orgUnit);
                 return api.get(`events.json?program=${id}&orgUnit=${e[0].orgUnit}&pageSize=1&fields=event,eventDate,program,programStage,orgUnit,dataValues[dataElement,value]&${filter}`, {})
             });
             const data = await Promise.all(all);
@@ -188,7 +187,9 @@ class ProgramStage {
 
     @action makeElementAsIdentifier = (psde, program) => async event => {
         psde.dataElement.setAsIdentifier(event.target.checked);
-        await this.findEventsByElements(program);
+        if (!program.isTracker) {
+            await this.findEventsByElements(program);
+        }
 
     };
 
@@ -229,7 +230,7 @@ class ProgramStage {
 
     @computed get elementsWhichAreIdentifies() {
         return this.programStageDataElements.filter(psde => {
-            return psde.dataElement.identifiesEvent;
+            return psde.dataElement.identifiesEvent && !_.isEmpty(psde.column);
         });
     }
 

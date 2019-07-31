@@ -17,7 +17,7 @@ export default {
         // override border radius to match the box
         borderRadius: 0,
         // background: 'yellow',
-        zIndex: 10,
+        zIndex: 25,
         // kill the gap
         marginTop: 0
     }),

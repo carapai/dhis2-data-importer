@@ -15,12 +15,38 @@ import ExpansionPanelDetails from '@material-ui/core/ExpansionPanelDetails';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import Typography from "@material-ui/core/Typography";
 
+import '../../sticky.css'
+
 
 const styles = theme => ({
     block: {
         // display: 'block',
         overflow: 'auto',
         maxHeight: 500
+    },
+    head: {
+        backgroundColor: "#fff",
+        position: "sticky",
+        top: 0,
+        zIndex: 10,
+    },
+
+    fixed: {
+        backgroundColor: "#fff",
+        zIndex: 10,
+        left: 0
+    },
+    fixedHead: {
+        backgroundColor: "#fff",
+        zIndex: 10,
+        position: 'relative',
+        top: 0,
+        left: 0
+    },
+    hover: {
+        "&:hover": {
+            backgroundColor: '#E5F7FF'
+        }
     }
 });
 
@@ -39,7 +65,7 @@ class D3 extends React.Component {
     displayMapping = (de) => {
 
         if (this.integrationStore.dataSet.templateType.value === '1' || this.integrationStore.dataSet.templateType.value === '6') {
-            return <td width="300">
+            return <TableCell>
                 <Select
                     placeholder="Select mapping"
                     isClearable
@@ -48,25 +74,22 @@ class D3 extends React.Component {
                     options={this.integrationStore.dataSet.uniqueDataElements}
                     onChange={de.handelMappingChange(this.integrationStore.dataSet.data, this.integrationStore.dataSet.categoryOptionComboColumn, this.integrationStore.dataSet.isDhis2)}
                 />
-            </td>
+            </TableCell>
         }
-
         return null;
-
     };
 
-    componentDidMount() {
+    async componentDidMount() {
         if (this.integrationStore.dataSet.templateType.value === '2') {
             this.integrationStore.dataSet.loadSame();
         } else if (this.integrationStore.dataSet.templateType.value === '1' || this.integrationStore.dataSet.templateType.value === '6') {
             this.integrationStore.dataSet.setDefaults();
         } else if (this.integrationStore.dataSet.templateType.value === '4') {
-            // this.integrationStore.dataSet.pullDataSetData();
             this.integrationStore.dataSet.setDefaults();
         } else if (this.integrationStore.dataSet.templateType.value === '5') {
             this.integrationStore.dataSet.setDefaultIndicators();
             if (!this.integrationStore.dataSet.multiplePeriods) {
-                this.integrationStore.dataSet.pullIndicatorData();
+                await this.integrationStore.dataSet.pullIndicatorData();
             }
         }
     }
@@ -85,7 +108,7 @@ class D3 extends React.Component {
 
         } else if (this.integrationStore.dataSet.templateType.value === '2') {
             return <Select
-                placeholder="Select cell"
+                placeholder="Select column"
                 isClearable
                 isSearchable
                 value={coc.column[de.id]}
@@ -131,9 +154,9 @@ class D3 extends React.Component {
         let displayMappingHeader = null;
         let display = null;
         if (this.integrationStore.dataSet.templateType.value === '1' || this.integrationStore.dataSet.templateType.value === '6') {
-            displayMappingHeader = <th width="400">
+            displayMappingHeader = <TableCell style={{minWidth: 400, padding: 2}}>
                 Mapping
-            </th>;
+            </TableCell>;
         }
 
         if (this.integrationStore.dataSet.templateType.value !== '2') {
@@ -144,48 +167,49 @@ class D3 extends React.Component {
                         <ExpansionPanelSummary expandIcon={<ExpandMoreIcon/>}>
                             <Typography>{form.name}</Typography>
                         </ExpansionPanelSummary>
-                        <ExpansionPanelDetails className={classes.block}>
-                            <table width={form.categoryOptionCombos.length * 300 + 600}
-                                   style={{minWidth: '100%'}} cellPadding="5">
-                                <thead>
-                                <tr>
-                                    <th>
-                                        Data Element
-                                    </th>
+                        <ExpansionPanelDetails>
+                            <div className="scrollable">
+                                <Table style={{minWidth: '100%'}}>
+                                    <TableHead>
+                                        <TableRow>
+                                            <TableCell style={{minWidth: 500, padding: 2}}>
+                                                Data Element
+                                            </TableCell>
 
-                                    {displayMappingHeader}
+                                            {displayMappingHeader}
 
-                                    {form.categoryOptionCombos.map(coc => {
-                                        return <th key={coc.id} width="300">
-                                            {coc.name}
-                                        </th>
+                                            {form.categoryOptionCombos.map(coc => {
+                                                return <TableCell key={coc.id} style={{minWidth: 400, padding: 2}}>
+                                                    {coc.name}
+                                                </TableCell>
+                                            })}
+                                            <TableCell style={{width: 40}}>Status</TableCell>
+                                        </TableRow>
+                                    </TableHead>
+                                    <tbody>
+                                    {form.dataElements.map(de => {
+                                        return <TableRow key={de.id} hover classes={{hover: classes.hover}}>
+                                            <TableCell component="th" scope="row" style={{padding: 2}}>
+                                                {de.name}
+                                            </TableCell>
+
+                                            {this.displayMapping(de)}
+
+                                            {form.categoryOptionCombos.map(coc => {
+                                                return <TableCell key={de.id + coc.id} style={{padding: 2}}>
+                                                    {this.displayCell(de, coc)}
+                                                </TableCell>
+                                            })}
+                                            <TableCell>
+                                                {form.status[de.id].all ? <DoneAll/> : form.status[de.id].some ?
+                                                    <Done/> :
+                                                    <Clear/>}
+                                            </TableCell>
+                                        </TableRow>
                                     })}
-                                    <th width="50">Status</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                {form.dataElements.map(de => {
-                                    return <tr key={de.id}>
-                                        <td style={{minWidth: 400}}>
-                                            {de.name}
-                                        </td>
-
-                                        {this.displayMapping(de)}
-
-                                        {form.categoryOptionCombos.map(coc => {
-                                            return <td key={de.id + coc.id}>
-                                                {this.displayCell(de, coc)}
-                                            </td>
-                                        })}
-                                        <td>
-                                            {form.status[de.id].all ? <DoneAll/> : form.status[de.id].some ?
-                                                <Done/> :
-                                                <Clear/>}
-                                        </td>
-                                    </tr>
-                                })}
-                                </tbody>
-                            </table>
+                                    </tbody>
+                                </Table>
+                            </div>
                         </ExpansionPanelDetails>
                     </ExpansionPanel>
                 );
@@ -195,14 +219,14 @@ class D3 extends React.Component {
                 <Table>
                     <TableHead>
                         <TableRow>
-                            <TableCell>
-                                Data Element
+                            <TableCell style={{width: '49%'}}>
+                                Source Data Element with disaggregation
                             </TableCell>
-                            <TableCell>
-                                Mapping
+                            <TableCell style={{width: '49%'}}>
+                                Destination Data Element with disaggregation
                             </TableCell>
-                            <TableCell>
-                                Status
+                            <TableCell style={{width: '2%'}}>
+                                Mapped?
                             </TableCell>
                         </TableRow>
                     </TableHead>

@@ -19,6 +19,7 @@ import TableBody from "@material-ui/core/TableBody";
 import TableHead from "@material-ui/core/TableHead";
 import TablePagination from "@material-ui/core/TablePagination";
 import * as PropTypes from "prop-types";
+import customStyles from "../customStyles";
 
 const styles = theme => ({
     block: {
@@ -45,21 +46,6 @@ const styles = theme => ({
         width: 200,
     },
 });
-
-const items = [{
-    value: 'auto',
-    label: 'auto',
-}, {
-    value: 'name',
-    label: 'name',
-}, {
-    value: 'uid',
-    label: 'uid',
-}, {
-    value: 'code',
-    label: 'code',
-}];
-
 
 @inject('IntegrationStore')
 @observer
@@ -104,7 +90,7 @@ class D2 extends React.Component {
                 {this.integrationStore.dataSet.categoryCombo.categories.map(category => {
                     return <Grid key={category.id} item
                                  xs={12 / this.integrationStore.dataSet.categoryCombo.categories.length}>
-
+                        <span style={{fontWeight: 'bold'}}>{category.name + ' column'}</span>
                         <Select
                             placeholder={category.name + ' column'}
                             value={category.mapping}
@@ -112,6 +98,7 @@ class D2 extends React.Component {
                             onChange={category.setMapping}
                             isClearable
                             isSearchable
+                            styles={customStyles}
                         />
                     </Grid>
                 })}
@@ -123,6 +110,7 @@ class D2 extends React.Component {
     mapping = () => {
         return <Grid spacing={8} container>
             <Grid xs={3} item>
+                <span style={{fontWeight: 'bold'}}>Data element column</span>
                 <Select
                     placeholder="Data element column"
                     value={this.integrationStore.dataSet.dataElementColumn}
@@ -133,6 +121,7 @@ class D2 extends React.Component {
                 />
             </Grid>
             <Grid xs={3} item>
+                <span style={{fontWeight: 'bold'}}>Category option combination column</span>
                 <Select
                     placeholder="Category option combination column"
                     value={this.integrationStore.dataSet.categoryOptionComboColumn}
@@ -143,6 +132,7 @@ class D2 extends React.Component {
                 />
             </Grid>
             <Grid xs={3} item>
+                <span style={{fontWeight: 'bold'}}>Period column</span>
                 <Select
                     placeholder="Period column"
                     value={this.integrationStore.dataSet.periodColumn}
@@ -153,6 +143,7 @@ class D2 extends React.Component {
                 />
             </Grid>
             <Grid xs={3} item>
+                <span style={{fontWeight: 'bold'}}>Data value column</span>
                 <Select
                     placeholder="Data value column"
                     value={this.integrationStore.dataSet.dataValueColumn}
@@ -171,7 +162,6 @@ class D2 extends React.Component {
         let columns;
         let onChange;
         let label = 'Organisation column';
-        let showStrategy = true;
 
         switch (this.integrationStore.dataSet.templateType.value) {
             case '2':
@@ -188,7 +178,6 @@ class D2 extends React.Component {
                     value = this.integrationStore.dataSet.organisation;
                     columns = this.integrationStore.dataSet.organisations;
                     onChange = this.integrationStore.dataSet.setOrganisation;
-                    showStrategy = false;
                 }
                 break;
 
@@ -200,7 +189,8 @@ class D2 extends React.Component {
         }
 
         return <Grid container spacing={8}>
-            <Grid item xs={showStrategy ? 6 : 12}>
+            <Grid item xs={12}>
+                <span style={{fontWeight: 'bold'}}>{label}</span>
                 <Select
                     placeholder={label}
                     value={value}
@@ -208,18 +198,9 @@ class D2 extends React.Component {
                     onChange={onChange}
                     isClearable
                     isSearchable
+                    styles={customStyles}
                 />
             </Grid>
-            <br/>
-            {showStrategy ? <Grid item xs={6}>
-                <Select
-                    placeholder="Identifier scheme"
-                    value={this.integrationStore.dataSet.orgUnitStrategy}
-                    options={items}
-                    onChange={this.integrationStore.dataSet.setOrgUnitStrategy}
-                    isClearable
-                    isSearchable
-                /> </Grid> : null}
         </Grid>
     };
 
@@ -253,6 +234,7 @@ class D2 extends React.Component {
         return <div>
             {showPeriod ? this.integrationStore.dataSet.periodInExcel || this.integrationStore.dataSet.templateType.value === '2' ?
                 <div>
+                    <span style={{fontWeight: 'bold'}}>{label}</span>
                     <Select
                         placeholder={label}
                         value={value}
@@ -260,6 +242,7 @@ class D2 extends React.Component {
                         onChange={onChange}
                         isClearable
                         isSearchable
+                        styles={customStyles}
                     />
                 </div> : <PeriodPicker
                     periodType={this.integrationStore.dataSet.periodType}
@@ -303,6 +286,7 @@ class D2 extends React.Component {
         }
 
         return <div>
+            <span style={{fontWeight: 'bold'}}>{label}</span>
             <Select
                 placeholder={label}
                 value={value}
@@ -310,16 +294,10 @@ class D2 extends React.Component {
                 onChange={onChange}
                 isClearable
                 isSearchable
+                styles={customStyles}
             />
 
-            {showPeriod ? <Select
-                placeholder="Identifier scheme"
-                value={this.integrationStore.dataSet.orgUnitStrategy}
-                options={items}
-                onChange={this.integrationStore.dataSet.setOrgUnitStrategy}
-                isClearable
-                isSearchable
-            /> : <PeriodPicker
+            {showPeriod ? null : <PeriodPicker
                 periodType={this.integrationStore.dataSet.periodType}
                 onPickPeriod={(value) => this.integrationStore.dataSet.pick(value)}
             />}
@@ -351,6 +329,7 @@ class D2 extends React.Component {
         }
 
         return <div>
+            <span style={{fontWeight: 'bold'}}>Excel sheet</span>
             <Select
                 placeholder="Select sheet"
                 value={this.integrationStore.dataSet.selectedSheet}
@@ -358,6 +337,7 @@ class D2 extends React.Component {
                 onChange={this.integrationStore.dataSet.setSelectedSheet}
                 isClearable
                 isSearchable
+                styles={customStyles}
             />
 
             {showHeader && displayFull ? <div>
@@ -377,14 +357,19 @@ class D2 extends React.Component {
                 />
             </div> : null}
 
-            {showDataStartColumn && displayFull ? <Select
-                placeholder="Data start column"
-                value={this.integrationStore.dataSet.dataStartColumn}
-                options={this.integrationStore.dataSet.cellColumns}
-                onChange={this.integrationStore.dataSet.setDataStartColumn}
-                isClearable
-                isSearchable
-            /> : null}
+            {showDataStartColumn && displayFull ?
+                <div>
+                    <span style={{fontWeight: 'bold'}}>Data start column</span>
+                    <Select
+                        placeholder="Data start column"
+                        value={this.integrationStore.dataSet.dataStartColumn}
+                        options={this.integrationStore.dataSet.cellColumns}
+                        onChange={this.integrationStore.dataSet.setDataStartColumn}
+                        isClearable
+                        isSearchable
+                        styles={customStyles}
+                    />
+                </div> : null}
         </div>
     };
 
@@ -403,13 +388,13 @@ class D2 extends React.Component {
                 </TableHead>
                 <TableBody>
 
-                    {this.integrationStore.sourceUnits.map(u => <TableRow hover key={u.id}>
+                    {this.integrationStore.sourceUnits.map(u => <TableRow hover key={u.id + u.name}>
                         <TableCell>
                             {u.name}
                         </TableCell>
                         <TableCell>
                             <Select
-                                placeholder="Aggregation Level"
+                                placeholder="Select destination unit"
                                 value={u.mapping}
                                 options={this.integrationStore.dataSet.organisationUnits.map(ui => {
                                     return {label: ui.name, value: ui.id}
@@ -417,6 +402,7 @@ class D2 extends React.Component {
                                 onChange={u.setMapping}
                                 isClearable
                                 isSearchable
+                                styles={customStyles}
                             />
                         </TableCell>
                     </TableRow>)}
@@ -439,7 +425,7 @@ class D2 extends React.Component {
                 onChangeRowsPerPage={this.integrationStore.handleChangeElementRowsPerPage('d25')}
             />
         </div>
-    }
+    };
 
 
     fixedOption = () => {
@@ -486,6 +472,8 @@ class D2 extends React.Component {
         return <div>
             {this.organisationColumn()}
             <br/>
+            {this.organisationUnitMapping()}
+            <br/>
             {this.mapping()}
         </div>
     };
@@ -525,38 +513,44 @@ class D2 extends React.Component {
                             />
                         </Grid>
                     </Grid>
-                </div> : <div>
+                </div> : <div>{this.integrationStore.dataSet.templateType.value === '4' ?
                     <PeriodPicker
                         periodType={this.integrationStore.dataSet.periodType}
                         onPickPeriod={(value) => this.integrationStore.dataSet.replaceParam(createParam({
                             param: 'period',
                             value: value
                         }))}
+                    /> : <PeriodPicker
+                        periodType={this.integrationStore.dataSet.periodType}
+                        onPickPeriod={(value) => this.integrationStore.dataSet.replaceParamByValue(createParam({
+                            param: 'dimension',
+                            value: `pe:${value}`
+                        }), 'pe:')}
                     />
-                </div>}
+                }</div>}
             </Grid>
         </Grid>
     };
 
     dhis2Indicators = () => {
         return <div>
+            {this.dataSetPeriod()}
             <Grid container spacing={8}>
                 <Grid item xs={12}>
                     <Select
-                        placeholder="Aggregation Level"
+                        placeholder="Select indicator aggregation level"
                         value={this.integrationStore.dataSet.currentLevel}
                         options={this.integrationStore.dataSet.levels}
                         onChange={this.integrationStore.dataSet.setCurrentLevel}
                         isClearable
                         isSearchable
+                        styles={customStyles}
                     />
                 </Grid>
             </Grid>
-            {this.dataSetPeriod()}
             <Grid container spacing={8}>
                 <Grid item xs={12}>
                     {this.organisationUnitMapping()}
-
                 </Grid>
             </Grid>
             <Grid container spacing={8}>
@@ -635,6 +629,7 @@ class D2 extends React.Component {
                     {this.fileOption()}
                     <br/>
                     {displayFull ? this.organisationColumn() : null}
+                    {showFixedOptions ? null : this.organisationUnitMapping()}
                     <br/>
                     {displayFull ? this.periodColumn() : null}
                 </Grid>

@@ -10,7 +10,7 @@ class Schedule {
     @observable next = '';
     @observable last = '';
     @observable additionalDays = 0;
-    @observable url = 'http://localhost:3001/api/v1';
+    @observable url = 'http://localhost:3001';
 
     @action setName = val => this.name = val;
     @action setType = val => this.type = val;

@@ -129,7 +129,7 @@ export const convertAggregate = (ds, d2) => {
     const forms = ds.forms.map(form => {
 
         const f = new Form();
-        const dataElements = form.dataElements.sort((a, b) => {
+        const dataElements = form.dataElements.slice().sort((a, b) => {
             const nameA = a.name.toUpperCase();
             const nameB = b.name.toUpperCase();
             if (nameA < nameB) {
@@ -201,6 +201,8 @@ export const convertAggregate = (ds, d2) => {
     dataSet.setUsername(ds.username || '');
     dataSet.setPassword(ds.password || '');
     dataSet.setResponseKey(ds.responseKey || '');
+    dataSet.setProxy(ds.proxy || '');
+    dataSet.setUseProxy(ds.useProxy);
 
     if (ds.params) {
         const params = ds.params.map(p => {
@@ -241,6 +243,16 @@ export const convertAggregate = (ds, d2) => {
         dataSet.loadLevelsAndDataSets();
     }
 
+    if (ds.sourceOrganisationUnits) {
+        const units = ds.sourceOrganisationUnits.map(u => {
+            const o = new OrganisationUnit(u.id, u.name, u.code);
+            o.setMapping(u.mapping);
+            return o;
+        });
+        dataSet.setSourceOrganisationUnit(units);
+
+    }
+
     return dataSet;
 
 };
@@ -253,7 +265,7 @@ export const convert = (program, d2) => {
             if (psd.dataElement.optionSet) {
                 const options = psd.dataElement.optionSet.options.map(o => {
                     const option = new Option(o.code, o.name);
-                    option.setValue(o.value || null);
+                    option.setValue(o.value || '');
                     return option;
                 });
                 optionSet = new OptionSet(options)
@@ -370,6 +382,7 @@ export const convert = (program, d2) => {
     p.setMappingName(program.mappingName || '');
     p.setMappingDescription(program.mappingDescription || '');
     p.setTemplateType(program.templateType || '');
+    p.setIncidentDateProvided(program.incidentDateProvided);
     if (program.sourceOrganisationUnits) {
         const units = program.sourceOrganisationUnits.map(u => {
             const o = new OrganisationUnit(u.id, u.name, u.code);
@@ -380,6 +393,20 @@ export const convert = (program, d2) => {
 
         p.setSourceOrganisationUnit(units);
 
+    }
+
+    if (program.params) {
+        const params = program.params.map(p => {
+            const param = new Param();
+            param.setParam(p.param);
+            param.setValue(p.value);
+            param.setIsPeriod(p.isPeriod);
+            param.setPeriodType(p.periodType);
+
+            return param;
+        });
+
+        p.setParams(params);
     }
 
     return p;
